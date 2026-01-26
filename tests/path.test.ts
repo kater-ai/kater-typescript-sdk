@@ -1,4 +1,4 @@
-import { createPathTagFunction, encodeURIPath } from 'kater/internal/utils/path';
+import { createPathTagFunction, encodeURIPath } from '@kater/sdk/internal/utils/path';
 import { inspect } from 'node:util';
 import { runInNewContext } from 'node:vm';
 

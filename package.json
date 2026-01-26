@@ -1,6 +1,6 @@
 {
-  "name": "kater",
-  "version": "0.1.0",
+  "name": "@kater/sdk",
+  "version": "0.1.1",
   "description": "The official TypeScript library for the Kater API",
   "author": "Kater <>",
   "types": "dist/index.d.ts",
