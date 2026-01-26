@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 (2026-01-26)
+
+Full Changelog: [v0.1.1...v0.1.2](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.1.1...v0.1.2)
+
+### Chores
+
+* update SDK settings ([34ac854](https://github.com/kater-ai/kater-typescript-sdk/commit/34ac854f995c80a65ea47a1aafac7d0de63929f0))
+
 ## 0.1.1 (2026-01-26)
 
 Full Changelog: [v0.1.0...v0.1.1](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.1.0...v0.1.1)
