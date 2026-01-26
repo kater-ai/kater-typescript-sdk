@@ -1,5 +1,5 @@
 {
-  "name": "@kater/sdk",
+  "name": "@katerai/sdk",
   "version": "0.1.1",
   "description": "The official TypeScript library for the Kater API",
   "author": "Kater <>",

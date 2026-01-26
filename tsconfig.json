@@ -8,8 +8,8 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "paths": {
-      "@kater/sdk/*": ["./src/*"],
-      "@kater/sdk": ["./src/index.ts"]
+      "@katerai/sdk/*": ["./src/*"],
+      "@katerai/sdk": ["./src/index.ts"]
     },
     "noEmit": true,
 

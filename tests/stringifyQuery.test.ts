@@ -1,6 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { Kater } from '@kater/sdk';
+import { Kater } from '@katerai/sdk';
 
 const { stringifyQuery } = Kater.prototype as any;
 
