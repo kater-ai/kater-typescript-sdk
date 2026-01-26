@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 (2026-01-26)
+
+Full Changelog: [v0.1.2...v0.2.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.1.2...v0.2.0)
+
+### Features
+
+* **api:** switch to oidc based auth ([dbe32e1](https://github.com/kater-ai/kater-typescript-sdk/commit/dbe32e1c2c5cb469ee5d03b9ace5981f12b59f0b))
+* **api:** update stainless config ([9dd2787](https://github.com/kater-ai/kater-typescript-sdk/commit/9dd2787879daaf4ffe24cb12872d3954c2049bd3))
+
 ## 0.1.2 (2026-01-26)
 
 Full Changelog: [v0.1.1...v0.1.2](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.1.1...v0.1.2)
