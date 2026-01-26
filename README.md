@@ -22,7 +22,9 @@ The full API of this library can be found in [api.md](api.md).
 ```js
 import Kater from 'kater';
 
-const client = new Kater();
+const client = new Kater({
+  bearerToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
+});
 
 const apiKeys = await client.v1.apiKeys.list();
 ```
@@ -35,7 +37,9 @@ This library includes TypeScript definitions for all request params and response
 ```ts
 import Kater from 'kater';
 
-const client = new Kater();
+const client = new Kater({
+  bearerToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
+});
 
 const apiKeys: Kater.V1.APIKeyListResponse = await client.v1.apiKeys.list();
 ```

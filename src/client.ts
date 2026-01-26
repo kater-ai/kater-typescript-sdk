@@ -37,6 +37,11 @@ export interface ClientOptions {
   apiKey?: string | null | undefined;
 
   /**
+   * Propel Auth bearer token for programmatic access
+   */
+  bearerToken?: string | null | undefined;
+
+  /**
    * Override the default base URL for the API, e.g., "https://api.example.com/v2/"
    *
    * Defaults to process.env['KATER_BASE_URL'].
@@ -110,6 +115,7 @@ export interface ClientOptions {
  */
 export class Kater {
   apiKey: string | null;
+  bearerToken: string | null;
 
   baseURL: string;
   maxRetries: number;
@@ -127,6 +133,7 @@ export class Kater {
    * API Client for interfacing with the Kater API.
    *
    * @param {string | null | undefined} [opts.apiKey=process.env['KATER_API_KEY'] ?? null]
+   * @param {string | null | undefined} [opts.bearerToken=process.env['KATER_AUTH_TOKEN'] ?? null]
    * @param {string} [opts.baseURL=process.env['KATER_BASE_URL'] ?? https://api.example.com] - Override the default base URL for the API.
    * @param {number} [opts.timeout=1 minute] - The maximum amount of time (in milliseconds) the client will wait for a response before timing out.
    * @param {MergedRequestInit} [opts.fetchOptions] - Additional `RequestInit` options to be passed to `fetch` calls.
@@ -138,10 +145,12 @@ export class Kater {
   constructor({
     baseURL = readEnv('KATER_BASE_URL'),
     apiKey = readEnv('KATER_API_KEY') ?? null,
+    bearerToken = readEnv('KATER_AUTH_TOKEN') ?? null,
     ...opts
   }: ClientOptions = {}) {
     const options: ClientOptions = {
       apiKey,
+      bearerToken,
       ...opts,
       baseURL: baseURL || `https://api.example.com`,
     };
@@ -164,6 +173,7 @@ export class Kater {
     this._options = options;
 
     this.apiKey = apiKey;
+    this.bearerToken = bearerToken;
   }
 
   /**
@@ -180,6 +190,7 @@ export class Kater {
       fetch: this.fetch,
       fetchOptions: this.fetchOptions,
       apiKey: this.apiKey,
+      bearerToken: this.bearerToken,
       ...options,
     });
     return client;
@@ -197,6 +208,13 @@ export class Kater {
   }
 
   protected validateHeaders({ values, nulls }: NullableHeaders) {
+    if (this.bearerToken && values.get('authorization')) {
+      return;
+    }
+    if (nulls.has('authorization')) {
+      return;
+    }
+
     if (this.apiKey && values.get('x-api-key')) {
       return;
     }
@@ -205,11 +223,22 @@ export class Kater {
     }
 
     throw new Error(
-      'Could not resolve authentication method. Expected the apiKey to be set. Or for the "X-API-Key" headers to be explicitly omitted',
+      'Could not resolve authentication method. Expected either bearerToken or apiKey to be set. Or for one of the "Authorization" or "X-API-Key" headers to be explicitly omitted',
     );
   }
 
   protected async authHeaders(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
+    return buildHeaders([await this.propelAuth(opts), await this.apiKeyAuth(opts)]);
+  }
+
+  protected async propelAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
+    if (this.bearerToken == null) {
+      return undefined;
+    }
+    return buildHeaders([{ Authorization: `Bearer ${this.bearerToken}` }]);
+  }
+
+  protected async apiKeyAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
     if (this.apiKey == null) {
       return undefined;
     }
