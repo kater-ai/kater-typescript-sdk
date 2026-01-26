@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0 (2026-01-26)
+
+Full Changelog: [v0.0.2...v0.1.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.0.2...v0.1.0)
+
+### Features
+
+* **api:** update auth params ([bbea5b8](https://github.com/kater-ai/kater-typescript-sdk/commit/bbea5b8034e1ab3f4db04ce6c94d005b99b10806))
+
 ## 0.0.2 (2026-01-26)
 
 Full Changelog: [v0.0.1...v0.0.2](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.0.1...v0.0.2)
