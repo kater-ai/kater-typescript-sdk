@@ -1,6 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import Kater, { toFile } from 'kater';
+import Kater, { toFile } from '@kater/sdk';
 
 const client = new Kater({
   apiKey: 'My API Key',
