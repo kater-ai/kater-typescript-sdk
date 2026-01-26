@@ -1,10 +1,10 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIPromise } from '@kater/sdk/core/api-promise';
+import { APIPromise } from '@katerai/sdk/core/api-promise';
 
 import util from 'node:util';
-import Kater from '@kater/sdk';
-import { APIUserAbortError } from '@kater/sdk';
+import Kater from '@katerai/sdk';
+import { APIUserAbortError } from '@katerai/sdk';
 const defaultFetch = fetch;
 
 describe('instantiate client', () => {

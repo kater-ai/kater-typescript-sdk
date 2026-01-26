@@ -55,12 +55,12 @@ $ cd kater-typescript-sdk
 # With yarn
 $ yarn link
 $ cd ../my-package
-$ yarn link @kater/sdk
+$ yarn link @katerai/sdk
 
 # With pnpm
 $ pnpm link --global
 $ cd ../my-package
-$ pnpm link -—global @kater/sdk
+$ pnpm link -—global @katerai/sdk
 ```
 
 ## Running tests
