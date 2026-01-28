@@ -16,16 +16,6 @@ export class Me extends APIResource {
   retrieve(options?: RequestOptions): APIPromise<ClientUser> {
     return this._client.get('/api/v1/me', options);
   }
-
-  /**
-   * Get connections accessible to the current user.
-   *
-   * Currently returns all connections in the user's organization. All org users have
-   * access to all org connections.
-   */
-  getConnections(options?: RequestOptions): APIPromise<MeGetConnectionsResponse> {
-    return this._client.get('/api/v1/me/connection', options);
-  }
 }
 
 /**
@@ -67,12 +57,6 @@ export interface ClientUser {
  */
 export type ClientUserRole = 'Admin' | 'Developer' | 'Viewer';
 
-export type MeGetConnectionsResponse = Array<unknown>;
-
 export declare namespace Me {
-  export {
-    type ClientUser as ClientUser,
-    type ClientUserRole as ClientUserRole,
-    type MeGetConnectionsResponse as MeGetConnectionsResponse,
-  };
+  export { type ClientUser as ClientUser, type ClientUserRole as ClientUserRole };
 }

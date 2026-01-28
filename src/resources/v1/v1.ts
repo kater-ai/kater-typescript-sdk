@@ -1,10 +1,8 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
-import * as APIKeysAPI from './api-keys';
-import { APIKey, APIKeyCreateParams, APIKeyCreateResponse, APIKeyListResponse, APIKeys } from './api-keys';
 import * as MeAPI from './me';
-import { ClientUser, ClientUserRole, Me, MeGetConnectionsResponse } from './me';
+import { ClientUser, ClientUserRole, Me } from './me';
 import * as ConnectionsAPI from './connections/connections';
 import {
   Connection,
@@ -16,13 +14,7 @@ import {
   DatabaseConfig,
 } from './connections/connections';
 import * as GitHubAPI from './github/github';
-import {
-  GitHub,
-  GitHubCheckInstallationsResponse,
-  GitHubDisconnectResponse,
-  GitHubGetStatusResponse,
-  GitHubSyncResponse,
-} from './github/github';
+import { GitHub, GitHubGetStatusResponse } from './github/github';
 import * as GroupsAPI from './groups/groups';
 import {
   GroupCreateParams,
@@ -44,7 +36,6 @@ import {
 } from './tenants/tenants';
 
 export class V1 extends APIResource {
-  apiKeys: APIKeysAPI.APIKeys = new APIKeysAPI.APIKeys(this._client);
   connections: ConnectionsAPI.Connections = new ConnectionsAPI.Connections(this._client);
   github: GitHubAPI.GitHub = new GitHubAPI.GitHub(this._client);
   groups: GroupsAPI.Groups = new GroupsAPI.Groups(this._client);
@@ -53,7 +44,6 @@ export class V1 extends APIResource {
   tenants: TenantsAPI.Tenants = new TenantsAPI.Tenants(this._client);
 }
 
-V1.APIKeys = APIKeys;
 V1.Connections = Connections;
 V1.GitHub = GitHub;
 V1.Groups = Groups;
@@ -62,14 +52,6 @@ V1.Org = Org;
 V1.Tenants = Tenants;
 
 export declare namespace V1 {
-  export {
-    APIKeys as APIKeys,
-    type APIKey as APIKey,
-    type APIKeyCreateResponse as APIKeyCreateResponse,
-    type APIKeyListResponse as APIKeyListResponse,
-    type APIKeyCreateParams as APIKeyCreateParams,
-  };
-
   export {
     Connections as Connections,
     type Connection as Connection,
@@ -80,13 +62,7 @@ export declare namespace V1 {
     type ConnectionCreateParams as ConnectionCreateParams,
   };
 
-  export {
-    GitHub as GitHub,
-    type GitHubCheckInstallationsResponse as GitHubCheckInstallationsResponse,
-    type GitHubDisconnectResponse as GitHubDisconnectResponse,
-    type GitHubGetStatusResponse as GitHubGetStatusResponse,
-    type GitHubSyncResponse as GitHubSyncResponse,
-  };
+  export { GitHub as GitHub, type GitHubGetStatusResponse as GitHubGetStatusResponse };
 
   export {
     Groups as Groups,
@@ -96,12 +72,7 @@ export declare namespace V1 {
     type GroupUpdateParams as GroupUpdateParams,
   };
 
-  export {
-    Me as Me,
-    type ClientUser as ClientUser,
-    type ClientUserRole as ClientUserRole,
-    type MeGetConnectionsResponse as MeGetConnectionsResponse,
-  };
+  export { Me as Me, type ClientUser as ClientUser, type ClientUserRole as ClientUserRole };
 
   export { Org as Org };
 

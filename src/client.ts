@@ -37,7 +37,7 @@ export interface ClientOptions {
   apiKey?: string | null | undefined;
 
   /**
-   * Propel Auth bearer token for programmatic access
+   * Propel Auth bearer token for internal CLI access
    */
   bearerToken?: string | null | undefined;
 

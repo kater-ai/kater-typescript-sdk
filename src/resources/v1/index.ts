@@ -1,13 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 export {
-  APIKeys,
-  type APIKey,
-  type APIKeyCreateResponse,
-  type APIKeyListResponse,
-  type APIKeyCreateParams,
-} from './api-keys';
-export {
   Connections,
   type Connection,
   type DatabaseConfig,
@@ -16,13 +9,7 @@ export {
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
 } from './connections/index';
-export {
-  GitHub,
-  type GitHubCheckInstallationsResponse,
-  type GitHubDisconnectResponse,
-  type GitHubGetStatusResponse,
-  type GitHubSyncResponse,
-} from './github/index';
+export { GitHub, type GitHubGetStatusResponse } from './github/index';
 export {
   Groups,
   type GroupDetail,
@@ -30,7 +17,7 @@ export {
   type GroupCreateParams,
   type GroupUpdateParams,
 } from './groups/index';
-export { Me, type ClientUser, type ClientUserRole, type MeGetConnectionsResponse } from './me';
+export { Me, type ClientUser, type ClientUserRole } from './me';
 export { Org } from './org/index';
 export {
   Tenants,
