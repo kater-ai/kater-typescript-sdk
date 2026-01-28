@@ -1,20 +1,5 @@
 # V1
 
-## APIKeys
-
-Types:
-
-- <code><a href="./src/resources/v1/api-keys.ts">APIKey</a></code>
-- <code><a href="./src/resources/v1/api-keys.ts">APIKeyCreateResponse</a></code>
-- <code><a href="./src/resources/v1/api-keys.ts">APIKeyListResponse</a></code>
-
-Methods:
-
-- <code title="post /api/v1/api-keys">client.v1.apiKeys.<a href="./src/resources/v1/api-keys.ts">create</a>({ ...params }) -> APIKeyCreateResponse</code>
-- <code title="get /api/v1/api-keys/{api_key_id}">client.v1.apiKeys.<a href="./src/resources/v1/api-keys.ts">retrieve</a>(apiKeyID) -> APIKey</code>
-- <code title="get /api/v1/api-keys">client.v1.apiKeys.<a href="./src/resources/v1/api-keys.ts">list</a>() -> APIKeyListResponse</code>
-- <code title="delete /api/v1/api-keys/{api_key_id}">client.v1.apiKeys.<a href="./src/resources/v1/api-keys.ts">revoke</a>(apiKeyID) -> void</code>
-
 ## Connections
 
 Types:
@@ -43,17 +28,11 @@ Methods:
 
 Types:
 
-- <code><a href="./src/resources/v1/github/github.ts">GitHubCheckInstallationsResponse</a></code>
-- <code><a href="./src/resources/v1/github/github.ts">GitHubDisconnectResponse</a></code>
 - <code><a href="./src/resources/v1/github/github.ts">GitHubGetStatusResponse</a></code>
-- <code><a href="./src/resources/v1/github/github.ts">GitHubSyncResponse</a></code>
 
 Methods:
 
-- <code title="get /api/v1/github/check-installations">client.v1.github.<a href="./src/resources/v1/github/github.ts">checkInstallations</a>() -> GitHubCheckInstallationsResponse</code>
-- <code title="post /api/v1/github/disconnect">client.v1.github.<a href="./src/resources/v1/github/github.ts">disconnect</a>() -> GitHubDisconnectResponse</code>
 - <code title="get /api/v1/github/status">client.v1.github.<a href="./src/resources/v1/github/github.ts">getStatus</a>() -> GitHubGetStatusResponse</code>
-- <code title="post /api/v1/github/sync">client.v1.github.<a href="./src/resources/v1/github/github.ts">sync</a>() -> GitHubSyncResponse</code>
 
 ### Repos
 
@@ -73,33 +52,11 @@ Methods:
 Types:
 
 - <code><a href="./src/resources/v1/github/scaffold.ts">ScaffoldTrigger</a></code>
-- <code><a href="./src/resources/v1/github/scaffold.ts">ScaffoldGetStatusResponse</a></code>
 
 Methods:
 
-- <code title="get /api/v1/github/scaffold/status">client.v1.github.scaffold.<a href="./src/resources/v1/github/scaffold.ts">getStatus</a>() -> ScaffoldGetStatusResponse</code>
 - <code title="post /api/v1/github/scaffold/retry">client.v1.github.scaffold.<a href="./src/resources/v1/github/scaffold.ts">retry</a>() -> ScaffoldTrigger</code>
 - <code title="post /api/v1/github/scaffold">client.v1.github.scaffold.<a href="./src/resources/v1/github/scaffold.ts">trigger</a>() -> ScaffoldTrigger</code>
-
-### Webhooks
-
-Types:
-
-- <code><a href="./src/resources/v1/github/webhooks.ts">WebhookPingResponse</a></code>
-
-Methods:
-
-- <code title="get /api/v1/github/webhooks/ping">client.v1.github.webhooks.<a href="./src/resources/v1/github/webhooks.ts">ping</a>() -> WebhookPingResponse</code>
-
-### Admin
-
-Types:
-
-- <code><a href="./src/resources/v1/github/admin.ts">AdminGetIntegrationStatusResponse</a></code>
-
-Methods:
-
-- <code title="get /api/v1/github/admin/status/{client_id}">client.v1.github.admin.<a href="./src/resources/v1/github/admin.ts">getIntegrationStatus</a>(clientID) -> AdminGetIntegrationStatusResponse</code>
 
 ## Groups
 
@@ -133,12 +90,10 @@ Types:
 
 - <code><a href="./src/resources/v1/me.ts">ClientUser</a></code>
 - <code><a href="./src/resources/v1/me.ts">ClientUserRole</a></code>
-- <code><a href="./src/resources/v1/me.ts">MeGetConnectionsResponse</a></code>
 
 Methods:
 
 - <code title="get /api/v1/me">client.v1.me.<a href="./src/resources/v1/me.ts">retrieve</a>() -> ClientUser</code>
-- <code title="get /api/v1/me/connection">client.v1.me.<a href="./src/resources/v1/me.ts">getConnections</a>() -> MeGetConnectionsResponse</code>
 
 ## Org
 
