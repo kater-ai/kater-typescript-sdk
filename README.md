@@ -26,7 +26,7 @@ const client = new Kater({
   bearerToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
 });
 
-const apiKeys = await client.v1.apiKeys.list();
+const connections = await client.v1.connections.list();
 ```
 
 ### Request & Response types
@@ -41,7 +41,7 @@ const client = new Kater({
   bearerToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
 });
 
-const apiKeys: Kater.V1.APIKeyListResponse = await client.v1.apiKeys.list();
+const connections: Kater.V1.ConnectionListResponse = await client.v1.connections.list();
 ```
 
 Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
@@ -83,7 +83,7 @@ a subclass of `APIError` will be thrown:
 
 <!-- prettier-ignore -->
 ```ts
-const apiKeys = await client.v1.apiKeys.list().catch(async (err) => {
+const connections = await client.v1.connections.list().catch(async (err) => {
   if (err instanceof Kater.APIError) {
     console.log(err.status); // 400
     console.log(err.name); // BadRequestError
@@ -123,7 +123,7 @@ const client = new Kater({
 });
 
 // Or, configure per-request:
-await client.v1.apiKeys.list({
+await client.v1.connections.list({
   maxRetries: 5,
 });
 ```
@@ -140,7 +140,7 @@ const client = new Kater({
 });
 
 // Override per-request:
-await client.v1.apiKeys.list({
+await client.v1.connections.list({
   timeout: 5 * 1000,
 });
 ```
@@ -163,13 +163,13 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 ```ts
 const client = new Kater();
 
-const response = await client.v1.apiKeys.list().asResponse();
+const response = await client.v1.connections.list().asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
-const { data: apiKeys, response: raw } = await client.v1.apiKeys.list().withResponse();
+const { data: connections, response: raw } = await client.v1.connections.list().withResponse();
 console.log(raw.headers.get('X-My-Header'));
-console.log(apiKeys);
+console.log(connections);
 ```
 
 ### Logging
@@ -249,7 +249,7 @@ parameter. This library doesn't validate at runtime that the request matches the
 send will be sent as-is.
 
 ```ts
-client.v1.apiKeys.list({
+client.v1.connections.list({
   // ...
   // @ts-expect-error baz is not yet public
   baz: 'undocumented option',
