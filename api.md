@@ -7,6 +7,7 @@ Types:
 - <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">DatabaseConfig</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListPendingResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveCredentialResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionSyncResponse</a></code>
 
@@ -17,6 +18,7 @@ Methods:
 - <code title="patch /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">update</a>(connectionID, { ...params }) -> Connection</code>
 - <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">list</a>() -> ConnectionListResponse</code>
 - <code title="delete /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">delete</a>(connectionID) -> void</code>
+- <code title="get /api/v1/connections/pending">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">listPending</a>() -> ConnectionListPendingResponse</code>
 - <code title="get /api/v1/connections/{connection_id}/credential">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveCredential</a>(connectionID) -> ConnectionRetrieveCredentialResponse</code>
 - <code title="post /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">sync</a>(connectionID) -> ConnectionSyncResponse</code>
 
