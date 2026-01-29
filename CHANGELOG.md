@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 (2026-01-29)
+
+Full Changelog: [v0.3.0...v0.4.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.3.0...v0.4.0)
+
+### Features
+
+* **api:** improve OpenAPI spec generation with pre-commit validation ([a4daffc](https://github.com/kater-ai/kater-typescript-sdk/commit/a4daffc32eb62747e4367e97549b095e383e83a9))
+
 ## 0.3.0 (2026-01-28)
 
 Full Changelog: [v0.2.1...v0.3.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.2.1...v0.3.0)
