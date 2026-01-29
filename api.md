@@ -14,24 +14,39 @@ Methods:
 
 - <code title="post /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">create</a>({ ...params }) -> Connection</code>
 - <code title="get /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieve</a>(connectionID) -> Connection</code>
+- <code title="patch /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">update</a>(connectionID, { ...params }) -> Connection</code>
 - <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">list</a>() -> ConnectionListResponse</code>
+- <code title="delete /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">delete</a>(connectionID) -> void</code>
 - <code title="get /api/v1/connections/{connection_id}/credential">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveCredential</a>(connectionID) -> ConnectionRetrieveCredentialResponse</code>
 - <code title="post /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">sync</a>(connectionID) -> ConnectionSyncResponse</code>
 
 ### Databases
 
+Types:
+
+- <code><a href="./src/resources/v1/connections/databases.ts">DatabaseUpdateResponse</a></code>
+- <code><a href="./src/resources/v1/connections/databases.ts">DatabaseUpdateSchemaResponse</a></code>
+
 Methods:
 
+- <code title="patch /api/v1/connections/{connection_id}/databases/{database_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">update</a>(databaseID, { ...params }) -> DatabaseUpdateResponse</code>
 - <code title="delete /api/v1/connections/{connection_id}/databases/{database_id}/schemas/{schema_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">deleteSchema</a>(schemaID, { ...params }) -> void</code>
+- <code title="patch /api/v1/connections/{connection_id}/databases/{database_id}/schemas/{schema_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">updateSchema</a>(schemaID, { ...params }) -> DatabaseUpdateSchemaResponse</code>
 
 ## GitHub
 
 Types:
 
+- <code><a href="./src/resources/v1/github/github.ts">GitHubCallbackResponse</a></code>
+- <code><a href="./src/resources/v1/github/github.ts">GitHubConnectResponse</a></code>
+- <code><a href="./src/resources/v1/github/github.ts">GitHubGetInstallationLinkResponse</a></code>
 - <code><a href="./src/resources/v1/github/github.ts">GitHubGetStatusResponse</a></code>
 
 Methods:
 
+- <code title="get /api/v1/github/callback">client.v1.github.<a href="./src/resources/v1/github/github.ts">callback</a>({ ...params }) -> unknown</code>
+- <code title="get /api/v1/github/connect">client.v1.github.<a href="./src/resources/v1/github/github.ts">connect</a>({ ...params }) -> GitHubConnectResponse</code>
+- <code title="get /api/v1/github/installation-link">client.v1.github.<a href="./src/resources/v1/github/github.ts">getInstallationLink</a>() -> GitHubGetInstallationLinkResponse</code>
 - <code title="get /api/v1/github/status">client.v1.github.<a href="./src/resources/v1/github/github.ts">getStatus</a>() -> GitHubGetStatusResponse</code>
 
 ### Repos
@@ -57,6 +72,16 @@ Methods:
 
 - <code title="post /api/v1/github/scaffold/retry">client.v1.github.scaffold.<a href="./src/resources/v1/github/scaffold.ts">retry</a>() -> ScaffoldTrigger</code>
 - <code title="post /api/v1/github/scaffold">client.v1.github.scaffold.<a href="./src/resources/v1/github/scaffold.ts">trigger</a>() -> ScaffoldTrigger</code>
+
+### Webhooks
+
+Types:
+
+- <code><a href="./src/resources/v1/github/webhooks.ts">WebhookReceiveResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/github/webhooks/receiver">client.v1.github.webhooks.<a href="./src/resources/v1/github/webhooks.ts">receive</a>({ ...params }) -> WebhookReceiveResponse</code>
 
 ## Groups
 
@@ -166,3 +191,23 @@ Methods:
 
 - <code title="post /api/v1/tenants/import/csv">client.v1.tenants.import.<a href="./src/resources/v1/tenants/import.ts">fromCsv</a>({ ...params }) -> ImportTenants</code>
 - <code title="post /api/v1/tenants/import/warehouse">client.v1.tenants.import.<a href="./src/resources/v1/tenants/import.ts">fromWarehouse</a>({ ...params }) -> ImportTenants</code>
+
+# Healthz
+
+Types:
+
+- <code><a href="./src/resources/healthz.ts">HealthzCheckResponse</a></code>
+
+Methods:
+
+- <code title="get /healthz">client.healthz.<a href="./src/resources/healthz.ts">check</a>() -> HealthzCheckResponse</code>
+
+# Readyz
+
+Types:
+
+- <code><a href="./src/resources/readyz.ts">ReadyzCheckResponse</a></code>
+
+Methods:
+
+- <code title="get /readyz">client.readyz.<a href="./src/resources/readyz.ts">check</a>() -> ReadyzCheckResponse</code>
