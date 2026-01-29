@@ -8,7 +8,7 @@ describe('resource connections', () => {
   // Prism tests are disabled
   test.skip('create: only required params', async () => {
     const responsePromise = client.v1.connections.create({
-      databases: [{ database_object_name: 'x' }],
+      databases: [{ name: 'x' }],
       host: 'host',
       name: 'name',
       password: 'password',
@@ -29,16 +29,14 @@ describe('resource connections', () => {
     const response = await client.v1.connections.create({
       databases: [
         {
-          database_object_name: 'x',
+          name: 'x',
           description: 'description',
           label: 'label',
-          name: 'x',
           schemas: [
             {
-              database_object_name: 'x',
+              name: 'x',
               description: 'description',
               label: 'label',
-              name: 'x',
             },
           ],
           timezone: 'UTC',
