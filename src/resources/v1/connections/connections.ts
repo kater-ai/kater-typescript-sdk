@@ -2,14 +2,7 @@
 
 import { APIResource } from '../../../core/resource';
 import * as DatabasesAPI from './databases';
-import {
-  DatabaseDeleteSchemaParams,
-  DatabaseUpdateParams,
-  DatabaseUpdateResponse,
-  DatabaseUpdateSchemaParams,
-  DatabaseUpdateSchemaResponse,
-  Databases,
-} from './databases';
+import { DatabaseDeleteSchemaParams, Databases } from './databases';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -208,6 +201,11 @@ export namespace Connection {
     id: string;
 
     /**
+     * Actual name of the database in the warehouse
+     */
+    database_object_name: string;
+
+    /**
      * Database name
      */
     name: string;
@@ -242,6 +240,11 @@ export namespace Connection {
        * Schema ID
        */
       id: string;
+
+      /**
+       * Actual name of the schema in the warehouse
+       */
+      database_object_name: string;
 
       /**
        * Schema name
@@ -376,9 +379,9 @@ export namespace Connection {
  */
 export interface DatabaseConfig {
   /**
-   * Database name
+   * The actual name of the database object in the warehouse
    */
-  name: string;
+  database_object_name: string;
 
   /**
    * Description of the database
@@ -389,6 +392,11 @@ export interface DatabaseConfig {
    * Human-readable label for the database (defaults to name if not set)
    */
   label?: string | null;
+
+  /**
+   * Database name (defaults to database_object_name if not set)
+   */
+  name?: string | null;
 
   /**
    * Schema configurations to include (empty = discover all schemas)
@@ -407,9 +415,9 @@ export namespace DatabaseConfig {
    */
   export interface Schema {
     /**
-     * Schema name
+     * The actual name of the schema object in the warehouse
      */
-    name: string;
+    database_object_name: string;
 
     /**
      * Description of the schema
@@ -420,6 +428,11 @@ export namespace DatabaseConfig {
      * Human-readable label for the schema (defaults to name if not set)
      */
     label?: string | null;
+
+    /**
+     * Schema name (defaults to database_object_name if not set)
+     */
+    name?: string | null;
   }
 }
 
@@ -1055,12 +1068,5 @@ export declare namespace Connections {
     type ConnectionUpdateParams as ConnectionUpdateParams,
   };
 
-  export {
-    Databases as Databases,
-    type DatabaseUpdateResponse as DatabaseUpdateResponse,
-    type DatabaseUpdateSchemaResponse as DatabaseUpdateSchemaResponse,
-    type DatabaseUpdateParams as DatabaseUpdateParams,
-    type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams,
-    type DatabaseUpdateSchemaParams as DatabaseUpdateSchemaParams,
-  };
+  export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };
 }
