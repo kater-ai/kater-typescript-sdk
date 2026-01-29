@@ -4,10 +4,10 @@ import Kater from '@katerai/sdk';
 
 const client = new Kater({ baseURL: process.env['TEST_API_BASE_URL'] ?? 'http://127.0.0.1:4010' });
 
-describe('resource me', () => {
+describe('resource healthz', () => {
   // Prism tests are disabled
-  test.skip('retrieve', async () => {
-    const responsePromise = client.v1.me.retrieve();
+  test.skip('check', async () => {
+    const responsePromise = client.healthz.check();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;

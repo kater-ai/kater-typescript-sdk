@@ -16,6 +16,8 @@ import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
 import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
+import { Healthz, HealthzCheckResponse } from './resources/healthz';
+import { Readyz, ReadyzCheckResponse } from './resources/readyz';
 import { V1 } from './resources/v1/v1';
 import { type Fetch } from './internal/builtin-types';
 import { HeadersLike, NullableHeaders, buildHeaders } from './internal/headers';
@@ -208,41 +210,7 @@ export class Kater {
   }
 
   protected validateHeaders({ values, nulls }: NullableHeaders) {
-    if (this.bearerToken && values.get('authorization')) {
-      return;
-    }
-    if (nulls.has('authorization')) {
-      return;
-    }
-
-    if (this.apiKey && values.get('x-api-key')) {
-      return;
-    }
-    if (nulls.has('x-api-key')) {
-      return;
-    }
-
-    throw new Error(
-      'Could not resolve authentication method. Expected either bearerToken or apiKey to be set. Or for one of the "Authorization" or "X-API-Key" headers to be explicitly omitted',
-    );
-  }
-
-  protected async authHeaders(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
-    return buildHeaders([await this.propelAuth(opts), await this.apiKeyAuth(opts)]);
-  }
-
-  protected async propelAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
-    if (this.bearerToken == null) {
-      return undefined;
-    }
-    return buildHeaders([{ Authorization: `Bearer ${this.bearerToken}` }]);
-  }
-
-  protected async apiKeyAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
-    if (this.apiKey == null) {
-      return undefined;
-    }
-    return buildHeaders([{ 'X-API-Key': this.apiKey }]);
+    return;
   }
 
   /**
@@ -682,7 +650,6 @@ export class Kater {
         ...(options.timeout ? { 'X-Stainless-Timeout': String(Math.trunc(options.timeout / 1000)) } : {}),
         ...getPlatformHeaders(),
       },
-      await this.authHeaders(options),
       this._options.defaultHeaders,
       bodyHeaders,
       options.headers,
@@ -750,12 +717,20 @@ export class Kater {
   static toFile = Uploads.toFile;
 
   v1: API.V1 = new API.V1(this);
+  healthz: API.Healthz = new API.Healthz(this);
+  readyz: API.Readyz = new API.Readyz(this);
 }
 
 Kater.V1 = V1;
+Kater.Healthz = Healthz;
+Kater.Readyz = Readyz;
 
 export declare namespace Kater {
   export type RequestOptions = Opts.RequestOptions;
 
   export { V1 as V1 };
+
+  export { Healthz as Healthz, type HealthzCheckResponse as HealthzCheckResponse };
+
+  export { Readyz as Readyz, type ReadyzCheckResponse as ReadyzCheckResponse };
 }

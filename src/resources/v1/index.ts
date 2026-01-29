@@ -8,8 +8,17 @@ export {
   type ConnectionRetrieveCredentialResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
+  type ConnectionUpdateParams,
 } from './connections/index';
-export { GitHub, type GitHubGetStatusResponse } from './github/index';
+export {
+  GitHub,
+  type GitHubCallbackResponse,
+  type GitHubConnectResponse,
+  type GitHubGetInstallationLinkResponse,
+  type GitHubGetStatusResponse,
+  type GitHubCallbackParams,
+  type GitHubConnectParams,
+} from './github/index';
 export {
   Groups,
   type GroupDetail,

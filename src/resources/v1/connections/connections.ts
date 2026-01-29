@@ -2,8 +2,16 @@
 
 import { APIResource } from '../../../core/resource';
 import * as DatabasesAPI from './databases';
-import { DatabaseDeleteSchemaParams, Databases } from './databases';
+import {
+  DatabaseDeleteSchemaParams,
+  DatabaseUpdateParams,
+  DatabaseUpdateResponse,
+  DatabaseUpdateSchemaParams,
+  DatabaseUpdateSchemaResponse,
+  Databases,
+} from './databases';
 import { APIPromise } from '../../../core/api-promise';
+import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
@@ -21,6 +29,10 @@ export class Connections extends APIResource {
    * Get a single warehouse connection by kater_id.
    *
    * Returns connection from the database (source of truth) with full hierarchy.
+   * Supports content negotiation via Accept header (handled by MultiFormatRoute):
+   *
+   * - application/json (default): Returns JSON response
+   * - application/yaml: Returns YAML representation
    *
    * RLS: Filtered to current client (DualClientRLSDB).
    *
@@ -28,6 +40,23 @@ export class Connections extends APIResource {
    */
   retrieve(connectionID: string, options?: RequestOptions): APIPromise<Connection> {
     return this._client.get(path`/api/v1/connections/${connectionID}`, options);
+  }
+
+  /**
+   * Update a warehouse connection's metadata.
+   *
+   * Updates name, label, and/or description fields.
+   *
+   * RLS: Filtered to current client (ClientRLSDB).
+   *
+   * Raises: ConnectionNotFoundError: If connection doesn't exist (404)
+   */
+  update(
+    connectionID: string,
+    body: ConnectionUpdateParams,
+    options?: RequestOptions,
+  ): APIPromise<Connection> {
+    return this._client.patch(path`/api/v1/connections/${connectionID}`, { body, ...options });
   }
 
   /**
@@ -41,6 +70,23 @@ export class Connections extends APIResource {
    */
   list(options?: RequestOptions): APIPromise<ConnectionListResponse> {
     return this._client.get('/api/v1/connections', options);
+  }
+
+  /**
+   * Delete a warehouse connection.
+   *
+   * Soft-deletes the connection record and cascades to all associated databases and
+   * schemas, setting deleted_at and deleted_by fields.
+   *
+   * RLS: Filtered to current client (ClientRLSDB).
+   *
+   * Raises: ConnectionNotFoundError: If connection doesn't exist (404)
+   */
+  delete(connectionID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.delete(path`/api/v1/connections/${connectionID}`, {
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+    });
   }
 
   /**
@@ -71,12 +117,12 @@ export class Connections extends APIResource {
 /**
  * Response model for a single connection.
  *
- * All data comes from the database (source of truth). The id field serves as the
- * kater_id.
+ * All data comes from the database (source of truth). JSON responses use 'id'
+ * field; YAML responses transform to 'kater_id' via MultiFormatRoute.
  */
 export interface Connection {
   /**
-   * Connection ID (also the kater_id)
+   * Connection ID
    */
   id: string;
 
@@ -96,16 +142,6 @@ export interface Connection {
   databases: Array<Connection.Database>;
 
   /**
-   * Connection description
-   */
-  description: string | null;
-
-  /**
-   * Human-readable label
-   */
-  label: string | null;
-
-  /**
    * Connection name
    */
   name: string;
@@ -116,39 +152,49 @@ export interface Connection {
   updated_at: string;
 
   /**
-   * Snowflake account identifier
+   * Warehouse-specific configuration
    */
-  account?: string | null;
+  warehouse_metadata:
+    | Connection.SnowflakeMetadata
+    | Connection.PostgresMetadata
+    | Connection.DatabricksMetadata
+    | Connection.ClickHouseMetadata
+    | Connection.MssqlMetadata;
 
   /**
-   * Database host (PostgreSQL, MSSQL, ClickHouse)
+   * Warehouse type (snowflake, postgresql, etc.)
    */
-  host?: string | null;
+  warehouse_type: string;
 
   /**
-   * Databricks HTTP path
+   * Default timezone for the connection
    */
-  http_path?: string | null;
+  database_timezone?: string | null;
 
   /**
-   * Database port (PostgreSQL, MSSQL, ClickHouse)
+   * Connection description
    */
-  port?: number | null;
+  description?: string | null;
 
   /**
-   * Snowflake role
+   * Human-readable label
    */
-  role?: string | null;
+  label?: string | null;
 
   /**
-   * Databricks server hostname
+   * Query timeout in seconds
    */
-  server_hostname?: string | null;
+  query_timeout?: number | null;
 
   /**
-   * Snowflake or Databricks warehouse name
+   * Timezone conversion mode (do_not_convert, convert_to_utc)
    */
-  warehouse?: string | null;
+  query_timezone_conversion?: string | null;
+
+  /**
+   * Sync identifier for schema sync
+   */
+  sync_id?: string | null;
 }
 
 export namespace Connection {
@@ -162,16 +208,6 @@ export namespace Connection {
     id: string;
 
     /**
-     * Database description
-     */
-    description: string | null;
-
-    /**
-     * Human-readable label
-     */
-    label: string | null;
-
-    /**
      * Database name
      */
     name: string;
@@ -182,9 +218,19 @@ export namespace Connection {
     schemas: Array<Database.Schema>;
 
     /**
+     * Database description
+     */
+    description?: string | null;
+
+    /**
+     * Human-readable label
+     */
+    label?: string | null;
+
+    /**
      * Timezone for the database
      */
-    timezone: string | null;
+    timezone?: string | null;
   }
 
   export namespace Database {
@@ -198,20 +244,130 @@ export namespace Connection {
       id: string;
 
       /**
+       * Schema name
+       */
+      name: string;
+
+      /**
        * Schema description
        */
-      description: string | null;
+      description?: string | null;
 
       /**
        * Human-readable label
        */
-      label: string | null;
-
-      /**
-       * Schema name
-       */
-      name: string;
+      label?: string | null;
     }
+  }
+
+  /**
+   * Snowflake-specific warehouse metadata.
+   */
+  export interface SnowflakeMetadata {
+    /**
+     * Authentication method
+     */
+    auth_method: 'username_password' | 'key_pair';
+
+    /**
+     * Snowflake role
+     */
+    role: string;
+
+    /**
+     * Snowflake account identifier
+     */
+    snowflake_account_id: string;
+
+    /**
+     * Compute warehouse name
+     */
+    warehouse: string;
+
+    /**
+     * Warehouse type discriminator
+     */
+    warehouse_type: 'snowflake';
+  }
+
+  /**
+   * PostgreSQL-specific warehouse metadata.
+   */
+  export interface PostgresMetadata {
+    /**
+     * Database host
+     */
+    host: string;
+
+    /**
+     * Database port
+     */
+    port: number;
+
+    /**
+     * Warehouse type discriminator
+     */
+    warehouse_type: 'postgresql';
+  }
+
+  /**
+   * Databricks-specific warehouse metadata.
+   */
+  export interface DatabricksMetadata {
+    /**
+     * SQL warehouse HTTP path
+     */
+    http_path: string;
+
+    /**
+     * Databricks server hostname
+     */
+    server_hostname: string;
+
+    /**
+     * Warehouse type discriminator
+     */
+    warehouse_type: 'databricks';
+  }
+
+  /**
+   * ClickHouse-specific warehouse metadata.
+   */
+  export interface ClickHouseMetadata {
+    /**
+     * ClickHouse host
+     */
+    host: string;
+
+    /**
+     * ClickHouse port
+     */
+    port: number;
+
+    /**
+     * Warehouse type discriminator
+     */
+    warehouse_type: 'clickhouse';
+  }
+
+  /**
+   * Microsoft SQL Server-specific warehouse metadata.
+   */
+  export interface MssqlMetadata {
+    /**
+     * SQL Server host
+     */
+    host: string;
+
+    /**
+     * SQL Server port
+     */
+    port: number;
+
+    /**
+     * Warehouse type discriminator
+     */
+    warehouse_type: 'mssql';
   }
 }
 
@@ -287,7 +443,7 @@ export namespace ConnectionRetrieveCredentialResponse {
     /**
      * Database name
      */
-    database: string | null;
+    database: string;
 
     /**
      * Database host
@@ -385,7 +541,7 @@ export namespace ConnectionRetrieveCredentialResponse {
       /**
        * Passphrase if key is encrypted
        */
-      private_key_passphrase: string | null;
+      private_key_passphrase?: string | null;
     }
   }
 
@@ -419,11 +575,6 @@ export namespace ConnectionRetrieveCredentialResponse {
    */
   export interface ClickHouseCredentialResponse {
     /**
-     * Database name
-     */
-    database: string | null;
-
-    /**
      * ClickHouse host
      */
     host: string;
@@ -447,17 +598,17 @@ export namespace ConnectionRetrieveCredentialResponse {
      * Warehouse type
      */
     warehouse_type: 'clickhouse';
+
+    /**
+     * Database name
+     */
+    database?: string | null;
   }
 
   /**
    * Microsoft SQL Server credential response.
    */
   export interface MssqlCredentialResponse {
-    /**
-     * Database name
-     */
-    database: string | null;
-
     /**
      * SQL Server host
      */
@@ -482,29 +633,40 @@ export namespace ConnectionRetrieveCredentialResponse {
      * Warehouse type
      */
     warehouse_type: 'mssql';
+
+    /**
+     * Database name
+     */
+    database?: string | null;
   }
 }
 
 /**
  * Response for syncing views.
  *
- * Returned after successfully creating a PR with merged ViewSchema files.
+ * Returned after successfully creating a PR with merged ViewSchema files, or
+ * indicating that all views are already up to date.
  */
 export interface ConnectionSyncResponse {
-  /**
-   * GitHub PR number
-   */
-  pr_number: number;
-
-  /**
-   * GitHub PR URL
-   */
-  pr_url: string;
-
   /**
    * Number of views in the PR
    */
   views_updated: number;
+
+  /**
+   * Status message
+   */
+  message?: string | null;
+
+  /**
+   * GitHub PR number
+   */
+  pr_number?: number | null;
+
+  /**
+   * GitHub PR URL
+   */
+  pr_url?: string | null;
 }
 
 export type ConnectionCreateParams =
@@ -527,7 +689,7 @@ export declare namespace ConnectionCreateParams {
     host: string;
 
     /**
-     * Name of the connection
+     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
      */
     name: string;
 
@@ -547,6 +709,11 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'postgresql';
 
     /**
+     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     */
+    database_timezone?: string | null;
+
+    /**
      * Description of the connection
      */
     description?: string | null;
@@ -560,6 +727,16 @@ export declare namespace ConnectionCreateParams {
      * Database port
      */
     port?: number;
+
+    /**
+     * Query timeout in seconds (1-3600)
+     */
+    query_timeout?: number | null;
+
+    /**
+     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     */
+    query_timezone_conversion?: string | null;
   }
 
   export interface SnowflakeConnectionConfig {
@@ -579,7 +756,7 @@ export declare namespace ConnectionCreateParams {
     databases: Array<DatabaseConfig>;
 
     /**
-     * Name of the connection
+     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
      */
     name: string;
 
@@ -604,6 +781,11 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'snowflake';
 
     /**
+     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     */
+    database_timezone?: string | null;
+
+    /**
      * Description of the connection
      */
     description?: string | null;
@@ -612,6 +794,16 @@ export declare namespace ConnectionCreateParams {
      * Human-readable label for the connection (defaults to name if not set)
      */
     label?: string | null;
+
+    /**
+     * Query timeout in seconds (1-3600)
+     */
+    query_timeout?: number | null;
+
+    /**
+     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     */
+    query_timezone_conversion?: string | null;
   }
 
   export namespace SnowflakeConnectionConfig {
@@ -668,7 +860,7 @@ export declare namespace ConnectionCreateParams {
     http_path: string;
 
     /**
-     * Name of the connection
+     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
      */
     name: string;
 
@@ -683,6 +875,11 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'databricks';
 
     /**
+     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     */
+    database_timezone?: string | null;
+
+    /**
      * Description of the connection
      */
     description?: string | null;
@@ -691,6 +888,16 @@ export declare namespace ConnectionCreateParams {
      * Human-readable label for the connection (defaults to name if not set)
      */
     label?: string | null;
+
+    /**
+     * Query timeout in seconds (1-3600)
+     */
+    query_timeout?: number | null;
+
+    /**
+     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     */
+    query_timezone_conversion?: string | null;
   }
 
   export interface ClickHouseConnectionConfig {
@@ -705,7 +912,7 @@ export declare namespace ConnectionCreateParams {
     host: string;
 
     /**
-     * Name of the connection
+     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
      */
     name: string;
 
@@ -725,6 +932,11 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'clickhouse';
 
     /**
+     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     */
+    database_timezone?: string | null;
+
+    /**
      * Description of the connection
      */
     description?: string | null;
@@ -738,6 +950,16 @@ export declare namespace ConnectionCreateParams {
      * ClickHouse port
      */
     port?: number;
+
+    /**
+     * Query timeout in seconds (1-3600)
+     */
+    query_timeout?: number | null;
+
+    /**
+     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     */
+    query_timezone_conversion?: string | null;
   }
 
   export interface MssqlConnectionConfig {
@@ -752,7 +974,7 @@ export declare namespace ConnectionCreateParams {
     host: string;
 
     /**
-     * Name of the connection
+     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
      */
     name: string;
 
@@ -772,6 +994,11 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'mssql';
 
     /**
+     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     */
+    database_timezone?: string | null;
+
+    /**
      * Description of the connection
      */
     description?: string | null;
@@ -785,7 +1012,34 @@ export declare namespace ConnectionCreateParams {
      * SQL Server port
      */
     port?: number;
+
+    /**
+     * Query timeout in seconds (1-3600)
+     */
+    query_timeout?: number | null;
+
+    /**
+     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     */
+    query_timezone_conversion?: string | null;
   }
+}
+
+export interface ConnectionUpdateParams {
+  /**
+   * Connection description
+   */
+  description?: string | null;
+
+  /**
+   * Human-readable display label
+   */
+  label?: string | null;
+
+  /**
+   * Connection name (snake_case identifier)
+   */
+  name?: string | null;
 }
 
 Connections.Databases = Databases;
@@ -798,7 +1052,15 @@ export declare namespace Connections {
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
+    type ConnectionUpdateParams as ConnectionUpdateParams,
   };
 
-  export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };
+  export {
+    Databases as Databases,
+    type DatabaseUpdateResponse as DatabaseUpdateResponse,
+    type DatabaseUpdateSchemaResponse as DatabaseUpdateSchemaResponse,
+    type DatabaseUpdateParams as DatabaseUpdateParams,
+    type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams,
+    type DatabaseUpdateSchemaParams as DatabaseUpdateSchemaParams,
+  };
 }
