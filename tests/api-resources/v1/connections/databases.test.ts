@@ -6,31 +6,6 @@ const client = new Kater({ baseURL: process.env['TEST_API_BASE_URL'] ?? 'http://
 
 describe('resource databases', () => {
   // Prism tests are disabled
-  test.skip('update: only required params', async () => {
-    const responsePromise = client.v1.connections.databases.update('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-    });
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Prism tests are disabled
-  test.skip('update: required and optional params', async () => {
-    const response = await client.v1.connections.databases.update('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      auto_merge: true,
-      description: 'description',
-      label: 'label',
-      name: 'name',
-    });
-  });
-
-  // Prism tests are disabled
   test.skip('deleteSchema: only required params', async () => {
     const responsePromise = client.v1.connections.databases.deleteSchema(
       '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -55,39 +30,6 @@ describe('resource databases', () => {
       {
         connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
         database_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      },
-    );
-  });
-
-  // Prism tests are disabled
-  test.skip('updateSchema: only required params', async () => {
-    const responsePromise = client.v1.connections.databases.updateSchema(
-      '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      {
-        connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        database_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      },
-    );
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Prism tests are disabled
-  test.skip('updateSchema: required and optional params', async () => {
-    const response = await client.v1.connections.databases.updateSchema(
-      '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      {
-        connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        database_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        auto_merge: true,
-        description: 'description',
-        label: 'label',
-        name: 'name',
       },
     );
   });

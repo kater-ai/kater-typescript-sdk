@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 (2026-01-29)
+
+Full Changelog: [v0.4.0...v0.5.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.4.0...v0.5.0)
+
+### Features
+
+* **core,api:** add database_object_name field to Database and Schema ([7d157ea](https://github.com/kater-ai/kater-typescript-sdk/commit/7d157ea42ff72226afb38cea3ac4b68aa0226d1e))
+
 ## 0.4.0 (2026-01-29)
 
 Full Changelog: [v0.3.0...v0.4.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.3.0...v0.4.0)

@@ -22,16 +22,9 @@ Methods:
 
 ### Databases
 
-Types:
-
-- <code><a href="./src/resources/v1/connections/databases.ts">DatabaseUpdateResponse</a></code>
-- <code><a href="./src/resources/v1/connections/databases.ts">DatabaseUpdateSchemaResponse</a></code>
-
 Methods:
 
-- <code title="patch /api/v1/connections/{connection_id}/databases/{database_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">update</a>(databaseID, { ...params }) -> DatabaseUpdateResponse</code>
 - <code title="delete /api/v1/connections/{connection_id}/databases/{database_id}/schemas/{schema_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">deleteSchema</a>(schemaID, { ...params }) -> void</code>
-- <code title="patch /api/v1/connections/{connection_id}/databases/{database_id}/schemas/{schema_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">updateSchema</a>(schemaID, { ...params }) -> DatabaseUpdateSchemaResponse</code>
 
 ## GitHub
 

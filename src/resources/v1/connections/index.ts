@@ -10,11 +10,4 @@ export {
   type ConnectionCreateParams,
   type ConnectionUpdateParams,
 } from './connections';
-export {
-  Databases,
-  type DatabaseUpdateResponse,
-  type DatabaseUpdateSchemaResponse,
-  type DatabaseUpdateParams,
-  type DatabaseDeleteSchemaParams,
-  type DatabaseUpdateSchemaParams,
-} from './databases';
+export { Databases, type DatabaseDeleteSchemaParams } from './databases';
