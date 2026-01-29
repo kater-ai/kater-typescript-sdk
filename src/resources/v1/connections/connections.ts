@@ -402,9 +402,9 @@ export namespace Connection {
  */
 export interface DatabaseConfig {
   /**
-   * The actual name of the database object in the warehouse
+   * Database name (also used as the warehouse object name)
    */
-  database_object_name: string;
+  name: string;
 
   /**
    * Description of the database
@@ -415,11 +415,6 @@ export interface DatabaseConfig {
    * Human-readable label for the database (defaults to name if not set)
    */
   label?: string | null;
-
-  /**
-   * Database name (defaults to database_object_name if not set)
-   */
-  name?: string | null;
 
   /**
    * Schema configurations to include (empty = discover all schemas)
@@ -438,9 +433,9 @@ export namespace DatabaseConfig {
    */
   export interface Schema {
     /**
-     * The actual name of the schema object in the warehouse
+     * Schema name (also used as the warehouse object name)
      */
-    database_object_name: string;
+    name: string;
 
     /**
      * Description of the schema
@@ -451,11 +446,6 @@ export namespace DatabaseConfig {
      * Human-readable label for the schema (defaults to name if not set)
      */
     label?: string | null;
-
-    /**
-     * Schema name (defaults to database_object_name if not set)
-     */
-    name?: string | null;
   }
 }
 
