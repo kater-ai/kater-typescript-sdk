@@ -8,5 +8,13 @@ export {
   type ConnectionRetrieveCredentialResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
+  type ConnectionUpdateParams,
 } from './connections';
-export { Databases, type DatabaseDeleteSchemaParams } from './databases';
+export {
+  Databases,
+  type DatabaseUpdateResponse,
+  type DatabaseUpdateSchemaResponse,
+  type DatabaseUpdateParams,
+  type DatabaseDeleteSchemaParams,
+  type DatabaseUpdateSchemaParams,
+} from './databases';

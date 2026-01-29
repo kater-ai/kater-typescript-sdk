@@ -10,11 +10,20 @@ import {
   ConnectionListResponse,
   ConnectionRetrieveCredentialResponse,
   ConnectionSyncResponse,
+  ConnectionUpdateParams,
   Connections,
   DatabaseConfig,
 } from './connections/connections';
 import * as GitHubAPI from './github/github';
-import { GitHub, GitHubGetStatusResponse } from './github/github';
+import {
+  GitHub,
+  GitHubCallbackParams,
+  GitHubCallbackResponse,
+  GitHubConnectParams,
+  GitHubConnectResponse,
+  GitHubGetInstallationLinkResponse,
+  GitHubGetStatusResponse,
+} from './github/github';
 import * as GroupsAPI from './groups/groups';
 import {
   GroupCreateParams,
@@ -60,9 +69,18 @@ export declare namespace V1 {
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
+    type ConnectionUpdateParams as ConnectionUpdateParams,
   };
 
-  export { GitHub as GitHub, type GitHubGetStatusResponse as GitHubGetStatusResponse };
+  export {
+    GitHub as GitHub,
+    type GitHubCallbackResponse as GitHubCallbackResponse,
+    type GitHubConnectResponse as GitHubConnectResponse,
+    type GitHubGetInstallationLinkResponse as GitHubGetInstallationLinkResponse,
+    type GitHubGetStatusResponse as GitHubGetStatusResponse,
+    type GitHubCallbackParams as GitHubCallbackParams,
+    type GitHubConnectParams as GitHubConnectParams,
+  };
 
   export {
     Groups as Groups,
