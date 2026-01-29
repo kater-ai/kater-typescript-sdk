@@ -12,10 +12,11 @@ export class Connections extends APIResource {
   databases: DatabasesAPI.Databases = new DatabasesAPI.Databases(this._client);
 
   /**
-   * Create a new warehouse connection.
+   * Create a new warehouse connection with PR approval flow.
    */
-  create(body: ConnectionCreateParams, options?: RequestOptions): APIPromise<Connection> {
-    return this._client.post('/api/v1/connections', { body, ...options });
+  create(params: ConnectionCreateParams, options?: RequestOptions): APIPromise<Connection> {
+    const { merge_immediately, ...body } = params;
+    return this._client.post('/api/v1/connections', { query: { merge_immediately }, body, ...options });
   }
 
   /**
@@ -53,11 +54,11 @@ export class Connections extends APIResource {
   }
 
   /**
-   * List all warehouse connections for the client.
+   * List approved warehouse connections for the client.
    *
-   * Returns connections from the database joined with schema information from
-   * GitHub. Connections with pending PRs will have null GitHub fields until merged.
-   * Returns empty list if GitHub is not configured.
+   * Returns only approved connections (is_pending_approval=false). Use GET
+   * /connections/pending for connections awaiting PR approval. Returns empty list if
+   * GitHub is not configured.
    *
    * RLS: Filtered to current client (DualClientRLSDB).
    */
@@ -80,6 +81,18 @@ export class Connections extends APIResource {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
+  }
+
+  /**
+   * List connections awaiting PR approval.
+   *
+   * Returns connections with is_pending_approval=true, along with their approval PR
+   * URLs (if available).
+   *
+   * RLS: Filtered to current client (DualClientRLSDB).
+   */
+  listPending(options?: RequestOptions): APIPromise<ConnectionListPendingResponse> {
+    return this._client.get('/api/v1/connections/pending', options);
   }
 
   /**
@@ -160,6 +173,11 @@ export interface Connection {
   warehouse_type: string;
 
   /**
+   * GitHub PR URL for approving the connection (None if already approved)
+   */
+  approval_pr_url?: string | null;
+
+  /**
    * Default timezone for the connection
    */
   database_timezone?: string | null;
@@ -168,6 +186,11 @@ export interface Connection {
    * Connection description
    */
   description?: string | null;
+
+  /**
+   * True if this connection is awaiting PR approval
+   */
+  is_pending_approval?: boolean;
 
   /**
    * Human-readable label
@@ -438,6 +461,8 @@ export namespace DatabaseConfig {
 
 export type ConnectionListResponse = Array<Connection>;
 
+export type ConnectionListPendingResponse = Array<Connection>;
+
 /**
  * PostgreSQL credential response.
  */
@@ -692,129 +717,145 @@ export type ConnectionCreateParams =
 export declare namespace ConnectionCreateParams {
   export interface PostgresConnectionConfig {
     /**
-     * Databases to include in the connection (at least one required)
+     * Body param: Databases to include in the connection (at least one required)
      */
     databases: Array<DatabaseConfig>;
 
     /**
-     * Database host
+     * Body param: Database host
      */
     host: string;
 
     /**
-     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
+     * Body param: Name of the connection (snake_case: lowercase letters, numbers,
+     * underscores)
      */
     name: string;
 
     /**
-     * Database password
+     * Body param: Database password
      */
     password: string;
 
     /**
-     * Database username
+     * Body param: Database username
      */
     username: string;
 
     /**
-     * Warehouse type
+     * Body param: Warehouse type
      */
     warehouse_type: 'postgresql';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     * Query param
+     */
+    merge_immediately?: boolean;
+
+    /**
+     * Body param: Default timezone for the connection (e.g., 'UTC',
+     * 'America/New_York')
      */
     database_timezone?: string | null;
 
     /**
-     * Description of the connection
+     * Body param: Description of the connection
      */
     description?: string | null;
 
     /**
-     * Human-readable label for the connection (defaults to name if not set)
+     * Body param: Human-readable label for the connection (defaults to name if not
+     * set)
      */
     label?: string | null;
 
     /**
-     * Database port
+     * Body param: Database port
      */
     port?: number;
 
     /**
-     * Query timeout in seconds (1-3600)
+     * Body param: Query timeout in seconds (1-3600)
      */
     query_timeout?: number | null;
 
     /**
-     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     * Body param: Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
      */
     query_timezone_conversion?: string | null;
   }
 
   export interface SnowflakeConnectionConfig {
     /**
-     * Snowflake account identifier (e.g., 'xy12345.us-east-1')
+     * Body param: Snowflake account identifier (e.g., 'xy12345.us-east-1')
      */
     account: string;
 
     /**
-     * Authentication configuration
+     * Body param: Authentication configuration
      */
     auth: SnowflakeConnectionConfig.SnowflakePasswordAuth | SnowflakeConnectionConfig.SnowflakePrivateKeyAuth;
 
     /**
-     * Databases to include in the connection (at least one required)
+     * Body param: Databases to include in the connection (at least one required)
      */
     databases: Array<DatabaseConfig>;
 
     /**
-     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
+     * Body param: Name of the connection (snake_case: lowercase letters, numbers,
+     * underscores)
      */
     name: string;
 
     /**
-     * Snowflake role
+     * Body param: Snowflake role
      */
     role: string;
 
     /**
-     * Snowflake username
+     * Body param: Snowflake username
      */
     username: string;
 
     /**
-     * Compute warehouse name
+     * Body param: Compute warehouse name
      */
     warehouse: string;
 
     /**
-     * Warehouse type
+     * Body param: Warehouse type
      */
     warehouse_type: 'snowflake';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     * Query param
+     */
+    merge_immediately?: boolean;
+
+    /**
+     * Body param: Default timezone for the connection (e.g., 'UTC',
+     * 'America/New_York')
      */
     database_timezone?: string | null;
 
     /**
-     * Description of the connection
+     * Body param: Description of the connection
      */
     description?: string | null;
 
     /**
-     * Human-readable label for the connection (defaults to name if not set)
+     * Body param: Human-readable label for the connection (defaults to name if not
+     * set)
      */
     label?: string | null;
 
     /**
-     * Query timeout in seconds (1-3600)
+     * Body param: Query timeout in seconds (1-3600)
      */
     query_timeout?: number | null;
 
     /**
-     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     * Body param: Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
      */
     query_timezone_conversion?: string | null;
   }
@@ -858,181 +899,205 @@ export declare namespace ConnectionCreateParams {
 
   export interface DatabricksConnectionConfig {
     /**
-     * Databricks personal access token
+     * Body param: Databricks personal access token
      */
     access_token: string;
 
     /**
-     * Databases to include in the connection (at least one required)
+     * Body param: Databases to include in the connection (at least one required)
      */
     databases: Array<DatabaseConfig>;
 
     /**
-     * SQL warehouse HTTP path (e.g., '/sql/1.0/warehouses/xxx')
+     * Body param: SQL warehouse HTTP path (e.g., '/sql/1.0/warehouses/xxx')
      */
     http_path: string;
 
     /**
-     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
+     * Body param: Name of the connection (snake_case: lowercase letters, numbers,
+     * underscores)
      */
     name: string;
 
     /**
-     * Databricks server hostname (e.g., 'dbc-xxx.cloud.databricks.com')
+     * Body param: Databricks server hostname (e.g., 'dbc-xxx.cloud.databricks.com')
      */
     server_hostname: string;
 
     /**
-     * Warehouse type
+     * Body param: Warehouse type
      */
     warehouse_type: 'databricks';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     * Query param
+     */
+    merge_immediately?: boolean;
+
+    /**
+     * Body param: Default timezone for the connection (e.g., 'UTC',
+     * 'America/New_York')
      */
     database_timezone?: string | null;
 
     /**
-     * Description of the connection
+     * Body param: Description of the connection
      */
     description?: string | null;
 
     /**
-     * Human-readable label for the connection (defaults to name if not set)
+     * Body param: Human-readable label for the connection (defaults to name if not
+     * set)
      */
     label?: string | null;
 
     /**
-     * Query timeout in seconds (1-3600)
+     * Body param: Query timeout in seconds (1-3600)
      */
     query_timeout?: number | null;
 
     /**
-     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     * Body param: Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
      */
     query_timezone_conversion?: string | null;
   }
 
   export interface ClickHouseConnectionConfig {
     /**
-     * Databases to include in the connection (at least one required)
+     * Body param: Databases to include in the connection (at least one required)
      */
     databases: Array<DatabaseConfig>;
 
     /**
-     * ClickHouse host
+     * Body param: ClickHouse host
      */
     host: string;
 
     /**
-     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
+     * Body param: Name of the connection (snake_case: lowercase letters, numbers,
+     * underscores)
      */
     name: string;
 
     /**
-     * ClickHouse password
+     * Body param: ClickHouse password
      */
     password: string;
 
     /**
-     * ClickHouse username
+     * Body param: ClickHouse username
      */
     username: string;
 
     /**
-     * Warehouse type
+     * Body param: Warehouse type
      */
     warehouse_type: 'clickhouse';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     * Query param
+     */
+    merge_immediately?: boolean;
+
+    /**
+     * Body param: Default timezone for the connection (e.g., 'UTC',
+     * 'America/New_York')
      */
     database_timezone?: string | null;
 
     /**
-     * Description of the connection
+     * Body param: Description of the connection
      */
     description?: string | null;
 
     /**
-     * Human-readable label for the connection (defaults to name if not set)
+     * Body param: Human-readable label for the connection (defaults to name if not
+     * set)
      */
     label?: string | null;
 
     /**
-     * ClickHouse port
+     * Body param: ClickHouse port
      */
     port?: number;
 
     /**
-     * Query timeout in seconds (1-3600)
+     * Body param: Query timeout in seconds (1-3600)
      */
     query_timeout?: number | null;
 
     /**
-     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     * Body param: Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
      */
     query_timezone_conversion?: string | null;
   }
 
   export interface MssqlConnectionConfig {
     /**
-     * Databases to include in the connection (at least one required)
+     * Body param: Databases to include in the connection (at least one required)
      */
     databases: Array<DatabaseConfig>;
 
     /**
-     * SQL Server host
+     * Body param: SQL Server host
      */
     host: string;
 
     /**
-     * Name of the connection (snake_case: lowercase letters, numbers, underscores)
+     * Body param: Name of the connection (snake_case: lowercase letters, numbers,
+     * underscores)
      */
     name: string;
 
     /**
-     * SQL Server password
+     * Body param: SQL Server password
      */
     password: string;
 
     /**
-     * SQL Server username
+     * Body param: SQL Server username
      */
     username: string;
 
     /**
-     * Warehouse type
+     * Body param: Warehouse type
      */
     warehouse_type: 'mssql';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
+     * Query param
+     */
+    merge_immediately?: boolean;
+
+    /**
+     * Body param: Default timezone for the connection (e.g., 'UTC',
+     * 'America/New_York')
      */
     database_timezone?: string | null;
 
     /**
-     * Description of the connection
+     * Body param: Description of the connection
      */
     description?: string | null;
 
     /**
-     * Human-readable label for the connection (defaults to name if not set)
+     * Body param: Human-readable label for the connection (defaults to name if not
+     * set)
      */
     label?: string | null;
 
     /**
-     * SQL Server port
+     * Body param: SQL Server port
      */
     port?: number;
 
     /**
-     * Query timeout in seconds (1-3600)
+     * Body param: Query timeout in seconds (1-3600)
      */
     query_timeout?: number | null;
 
     /**
-     * Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
+     * Body param: Timezone conversion mode: 'do_not_convert' or 'convert_to_utc'
      */
     query_timezone_conversion?: string | null;
   }
@@ -1062,6 +1127,7 @@ export declare namespace Connections {
     type Connection as Connection,
     type DatabaseConfig as DatabaseConfig,
     type ConnectionListResponse as ConnectionListResponse,
+    type ConnectionListPendingResponse as ConnectionListPendingResponse,
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
     type ConnectionCreateParams as ConnectionCreateParams,

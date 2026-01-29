@@ -5,6 +5,7 @@ export {
   type Connection,
   type DatabaseConfig,
   type ConnectionListResponse,
+  type ConnectionListPendingResponse,
   type ConnectionRetrieveCredentialResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
