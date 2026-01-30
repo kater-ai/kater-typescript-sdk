@@ -6,9 +6,11 @@ export {
   type DatabaseConfig,
   type ConnectionListResponse,
   type ConnectionRetrieveCredentialResponse,
+  type ConnectionRetrieveSchemaResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
   type ConnectionUpdateParams,
+  type ConnectionListParams,
 } from './connections/index';
 export {
   GitHub,

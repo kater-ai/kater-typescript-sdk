@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0 (2026-01-30)
+
+Full Changelog: [v0.5.0...v0.6.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.5.0...v0.6.0)
+
+### Features
+
+* **api,core:** simplify connection creation and fix migration chain ([3722095](https://github.com/kater-ai/kater-typescript-sdk/commit/3722095262172f002a115abf4bb92aa305f918ab))
+* Chore/cleanup connection models ([ad1de48](https://github.com/kater-ai/kater-typescript-sdk/commit/ad1de48330d768b5e77c9cc30f854548009d3bc5))
+* **core,api:** add PR approval flow for connection creation ([266457e](https://github.com/kater-ai/kater-typescript-sdk/commit/266457ed6d800744e7dfc0dfb8221b7600a12e54))
+* Feat/fix create connection fe ([b802264](https://github.com/kater-ai/kater-typescript-sdk/commit/b802264e5211c2d58ca341e81720fb3aa1ba6086))
+
 ## 0.5.0 (2026-01-29)
 
 Full Changelog: [v0.4.0...v0.5.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.4.0...v0.5.0)

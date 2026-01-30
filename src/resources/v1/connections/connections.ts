@@ -12,20 +12,18 @@ export class Connections extends APIResource {
   databases: DatabasesAPI.Databases = new DatabasesAPI.Databases(this._client);
 
   /**
-   * Create a new warehouse connection.
+   * Create a new warehouse connection with PR approval flow.
    */
   create(body: ConnectionCreateParams, options?: RequestOptions): APIPromise<Connection> {
     return this._client.post('/api/v1/connections', { body, ...options });
   }
 
   /**
-   * Get a single warehouse connection by kater_id.
+   * Get a single warehouse connection by ID.
    *
-   * Returns connection from the database (source of truth) with full hierarchy.
-   * Supports content negotiation via Accept header (handled by MultiFormatRoute):
-   *
-   * - application/json (default): Returns JSON response
-   * - application/yaml: Returns YAML representation
+   * Returns connection from the database (source of truth) with full hierarchy. For
+   * YAML output compatible with repository files (using kater_id), use the GET
+   * /connections/{id}/schema endpoint instead.
    *
    * RLS: Filtered to current client (DualClientRLSDB).
    *
@@ -53,16 +51,24 @@ export class Connections extends APIResource {
   }
 
   /**
-   * List all warehouse connections for the client.
+   * List warehouse connections for the client.
    *
-   * Returns connections from the database joined with schema information from
-   * GitHub. Connections with pending PRs will have null GitHub fields until merged.
-   * Returns empty list if GitHub is not configured.
+   * Filter connections by approval status using the `status` query parameter:
+   *
+   * - `approved` (default): Only approved connections (is_pending_approval=false)
+   * - `pending`: Only connections awaiting PR approval (is_pending_approval=true)
+   * - `all`: All connections regardless of approval status
+   *
+   * Pending connections include their approval PR URLs when available. Returns empty
+   * list if GitHub is not configured.
    *
    * RLS: Filtered to current client (DualClientRLSDB).
    */
-  list(options?: RequestOptions): APIPromise<ConnectionListResponse> {
-    return this._client.get('/api/v1/connections', options);
+  list(
+    query: ConnectionListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ConnectionListResponse> {
+    return this._client.get('/api/v1/connections', { query, ...options });
   }
 
   /**
@@ -83,6 +89,13 @@ export class Connections extends APIResource {
   }
 
   /**
+   * Merge the PR for a pending connection to finalize it.
+   */
+  approve(connectionID: string, options?: RequestOptions): APIPromise<Connection> {
+    return this._client.post(path`/api/v1/connections/${connectionID}/approve`, options);
+  }
+
+  /**
    * Get decrypted warehouse credentials for a connection.
    *
    * Returns the decrypted credentials for a connection. This is sensitive data and
@@ -100,6 +113,23 @@ export class Connections extends APIResource {
   }
 
   /**
+   * Get connection as a ConnectionSchema object.
+   *
+   * Returns the connection in the YAML-compatible schema format with full
+   * database/schema hierarchy.
+   *
+   * RLS: Automatically filtered by client_id from auth context.
+   *
+   * Raises: ConnectionNotFoundError: If connection not found or deleted.
+   */
+  retrieveSchema(
+    connectionID: string,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionRetrieveSchemaResponse> {
+    return this._client.get(path`/api/v1/connections/${connectionID}/schema`, options);
+  }
+
+  /**
    * Sync view schemas from warehouse and create a PR (or update existing).
    */
   sync(connectionID: string, options?: RequestOptions): APIPromise<ConnectionSyncResponse> {
@@ -110,8 +140,8 @@ export class Connections extends APIResource {
 /**
  * Response model for a single connection.
  *
- * All data comes from the database (source of truth). JSON responses use 'id'
- * field; YAML responses transform to 'kater_id' via MultiFormatRoute.
+ * All data comes from the database (source of truth). For YAML-compatible output
+ * with 'kater_id', use the /schema endpoint instead.
  */
 export interface Connection {
   /**
@@ -149,9 +179,9 @@ export interface Connection {
    */
   warehouse_metadata:
     | Connection.SnowflakeMetadata
-    | Connection.PostgresMetadata
+    | Connection.PostgresqlMetadata
     | Connection.DatabricksMetadata
-    | Connection.ClickHouseMetadata
+    | Connection.ClickhouseMetadata
     | Connection.MssqlMetadata;
 
   /**
@@ -160,14 +190,19 @@ export interface Connection {
   warehouse_type: string;
 
   /**
-   * Default timezone for the connection
+   * GitHub PR URL for approving the connection (None if already approved)
    */
-  database_timezone?: string | null;
+  approval_pr_url?: string | null;
 
   /**
    * Connection description
    */
   description?: string | null;
+
+  /**
+   * True if this connection is awaiting PR approval
+   */
+  is_pending_approval?: boolean;
 
   /**
    * Human-readable label
@@ -183,11 +218,6 @@ export interface Connection {
    * Timezone conversion mode (do_not_convert, convert_to_utc)
    */
   query_timezone_conversion?: string | null;
-
-  /**
-   * Sync identifier for schema sync
-   */
-  sync_id?: string | null;
 }
 
 export namespace Connection {
@@ -263,9 +293,6 @@ export namespace Connection {
     }
   }
 
-  /**
-   * Snowflake-specific warehouse metadata.
-   */
   export interface SnowflakeMetadata {
     /**
      * Authentication method
@@ -283,42 +310,30 @@ export namespace Connection {
     snowflake_account_id: string;
 
     /**
-     * Compute warehouse name
+     * Snowflake compute warehouse name
      */
     warehouse: string;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'snowflake';
   }
 
-  /**
-   * PostgreSQL-specific warehouse metadata.
-   */
-  export interface PostgresMetadata {
+  export interface PostgresqlMetadata {
     /**
-     * Database host
+     * Database host address
      */
     host: string;
 
     /**
-     * Database port
+     * Database port (default: 5432)
      */
     port: number;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'postgresql';
   }
 
-  /**
-   * Databricks-specific warehouse metadata.
-   */
   export interface DatabricksMetadata {
     /**
-     * SQL warehouse HTTP path
+     * Databricks SQL warehouse HTTP path
      */
     http_path: string;
 
@@ -327,49 +342,34 @@ export namespace Connection {
      */
     server_hostname: string;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'databricks';
   }
 
-  /**
-   * ClickHouse-specific warehouse metadata.
-   */
-  export interface ClickHouseMetadata {
+  export interface ClickhouseMetadata {
     /**
-     * ClickHouse host
+     * ClickHouse host address
      */
     host: string;
 
     /**
-     * ClickHouse port
+     * ClickHouse port (default: 8443)
      */
     port: number;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'clickhouse';
   }
 
-  /**
-   * Microsoft SQL Server-specific warehouse metadata.
-   */
   export interface MssqlMetadata {
     /**
-     * SQL Server host
+     * SQL Server host address
      */
     host: string;
 
     /**
-     * SQL Server port
+     * SQL Server port (default: 1433)
      */
     port: number;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'mssql';
   }
 }
@@ -379,9 +379,9 @@ export namespace Connection {
  */
 export interface DatabaseConfig {
   /**
-   * The actual name of the database object in the warehouse
+   * Database name (also used as the warehouse object name)
    */
-  database_object_name: string;
+  name: string;
 
   /**
    * Description of the database
@@ -392,11 +392,6 @@ export interface DatabaseConfig {
    * Human-readable label for the database (defaults to name if not set)
    */
   label?: string | null;
-
-  /**
-   * Database name (defaults to database_object_name if not set)
-   */
-  name?: string | null;
 
   /**
    * Schema configurations to include (empty = discover all schemas)
@@ -415,9 +410,9 @@ export namespace DatabaseConfig {
    */
   export interface Schema {
     /**
-     * The actual name of the schema object in the warehouse
+     * Schema name (also used as the warehouse object name)
      */
-    database_object_name: string;
+    name: string;
 
     /**
      * Description of the schema
@@ -428,11 +423,6 @@ export namespace DatabaseConfig {
      * Human-readable label for the schema (defaults to name if not set)
      */
     label?: string | null;
-
-    /**
-     * Schema name (defaults to database_object_name if not set)
-     */
-    name?: string | null;
   }
 }
 
@@ -655,6 +645,234 @@ export namespace ConnectionRetrieveCredentialResponse {
 }
 
 /**
+ * Schema for Kater connection configuration files
+ */
+export interface ConnectionRetrieveSchemaResponse {
+  /**
+   * Unique identifier for the connection
+   */
+  kater_id: string;
+
+  /**
+   * Name of the connection
+   */
+  name: string;
+
+  /**
+   * Warehouse-specific configuration (non-sensitive)
+   */
+  warehouse_metadata:
+    | ConnectionRetrieveSchemaResponse.SnowflakeMetadata
+    | ConnectionRetrieveSchemaResponse.PostgresqlMetadata
+    | ConnectionRetrieveSchemaResponse.DatabricksMetadata
+    | ConnectionRetrieveSchemaResponse.ClickhouseMetadata
+    | ConnectionRetrieveSchemaResponse.MssqlMetadata;
+
+  /**
+   * Additional context for AI processing
+   */
+  ai_context?: string | null;
+
+  /**
+   * Custom properties
+   */
+  custom_properties?: { [key: string]: unknown } | null;
+
+  /**
+   * List of databases in this connection
+   */
+  databases?: Array<ConnectionRetrieveSchemaResponse.Database> | null;
+
+  /**
+   * Description of the connection
+   */
+  description?: string | null;
+
+  /**
+   * Human-readable label for the connection
+   */
+  label?: string | null;
+
+  /**
+   * Query timeout in seconds
+   */
+  query_timeout?: number;
+
+  /**
+   * Timezone conversion mode for queries
+   */
+  query_timezone_conversion?: 'do_not_convert' | 'convert_to_utc';
+}
+
+export namespace ConnectionRetrieveSchemaResponse {
+  export interface SnowflakeMetadata {
+    /**
+     * Authentication method
+     */
+    auth_method: 'username_password' | 'key_pair';
+
+    /**
+     * Snowflake role
+     */
+    role: string;
+
+    /**
+     * Snowflake account identifier
+     */
+    snowflake_account_id: string;
+
+    /**
+     * Snowflake compute warehouse name
+     */
+    warehouse: string;
+
+    warehouse_type: 'snowflake';
+  }
+
+  export interface PostgresqlMetadata {
+    /**
+     * Database host address
+     */
+    host: string;
+
+    /**
+     * Database port (default: 5432)
+     */
+    port: number;
+
+    warehouse_type: 'postgresql';
+  }
+
+  export interface DatabricksMetadata {
+    /**
+     * Databricks SQL warehouse HTTP path
+     */
+    http_path: string;
+
+    /**
+     * Databricks server hostname
+     */
+    server_hostname: string;
+
+    warehouse_type: 'databricks';
+  }
+
+  export interface ClickhouseMetadata {
+    /**
+     * ClickHouse host address
+     */
+    host: string;
+
+    /**
+     * ClickHouse port (default: 8443)
+     */
+    port: number;
+
+    warehouse_type: 'clickhouse';
+  }
+
+  export interface MssqlMetadata {
+    /**
+     * SQL Server host address
+     */
+    host: string;
+
+    /**
+     * SQL Server port (default: 1433)
+     */
+    port: number;
+
+    warehouse_type: 'mssql';
+  }
+
+  export interface Database {
+    /**
+     * The actual name of the database object in the warehouse
+     */
+    database_object_name: string;
+
+    /**
+     * Unique identifier for the database
+     */
+    kater_id: string;
+
+    /**
+     * Name of the database
+     */
+    name: string;
+
+    /**
+     * Additional context for AI processing
+     */
+    ai_context?: string | null;
+
+    /**
+     * Custom properties
+     */
+    custom_properties?: { [key: string]: unknown } | null;
+
+    /**
+     * Description of the database
+     */
+    description?: string | null;
+
+    /**
+     * Human-readable label for the database
+     */
+    label?: string | null;
+
+    /**
+     * List of schemas in this database
+     */
+    schemas?: Array<Database.Schema> | null;
+
+    /**
+     * Timezone for the database
+     */
+    timezone?: string | null;
+  }
+
+  export namespace Database {
+    export interface Schema {
+      /**
+       * The actual name of the schema object in the warehouse
+       */
+      database_object_name: string;
+
+      /**
+       * Unique identifier for the schema
+       */
+      kater_id: string;
+
+      /**
+       * Name of the schema
+       */
+      name: string;
+
+      /**
+       * Additional context for AI processing
+       */
+      ai_context?: string | null;
+
+      /**
+       * Custom properties
+       */
+      custom_properties?: { [key: string]: unknown } | null;
+
+      /**
+       * Description of the schema
+       */
+      description?: string | null;
+
+      /**
+       * Human-readable label for the schema
+       */
+      label?: string | null;
+    }
+  }
+}
+
+/**
  * Response for syncing views.
  *
  * Returned after successfully creating a PR with merged ViewSchema files, or
@@ -722,11 +940,6 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'postgresql';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
-
-    /**
      * Description of the connection
      */
     description?: string | null;
@@ -792,11 +1005,6 @@ export declare namespace ConnectionCreateParams {
      * Warehouse type
      */
     warehouse_type: 'snowflake';
-
-    /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
 
     /**
      * Description of the connection
@@ -888,11 +1096,6 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'databricks';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
-
-    /**
      * Description of the connection
      */
     description?: string | null;
@@ -943,11 +1146,6 @@ export declare namespace ConnectionCreateParams {
      * Warehouse type
      */
     warehouse_type: 'clickhouse';
-
-    /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
 
     /**
      * Description of the connection
@@ -1007,11 +1205,6 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'mssql';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
-
-    /**
      * Description of the connection
      */
     description?: string | null;
@@ -1055,6 +1248,10 @@ export interface ConnectionUpdateParams {
   name?: string | null;
 }
 
+export interface ConnectionListParams {
+  status?: 'approved' | 'pending' | 'all';
+}
+
 Connections.Databases = Databases;
 
 export declare namespace Connections {
@@ -1063,9 +1260,11 @@ export declare namespace Connections {
     type DatabaseConfig as DatabaseConfig,
     type ConnectionListResponse as ConnectionListResponse,
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
+    type ConnectionRetrieveSchemaResponse as ConnectionRetrieveSchemaResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
     type ConnectionUpdateParams as ConnectionUpdateParams,
+    type ConnectionListParams as ConnectionListParams,
   };
 
   export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };
