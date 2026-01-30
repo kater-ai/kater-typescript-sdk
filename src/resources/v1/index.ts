@@ -5,11 +5,11 @@ export {
   type Connection,
   type DatabaseConfig,
   type ConnectionListResponse,
-  type ConnectionListPendingResponse,
   type ConnectionRetrieveCredentialResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
   type ConnectionUpdateParams,
+  type ConnectionListParams,
 } from './connections/index';
 export {
   GitHub,
