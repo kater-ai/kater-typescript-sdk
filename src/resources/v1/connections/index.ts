@@ -5,10 +5,10 @@ export {
   type Connection,
   type DatabaseConfig,
   type ConnectionListResponse,
-  type ConnectionListPendingResponse,
   type ConnectionRetrieveCredentialResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
   type ConnectionUpdateParams,
+  type ConnectionListParams,
 } from './connections';
 export { Databases, type DatabaseDeleteSchemaParams } from './databases';

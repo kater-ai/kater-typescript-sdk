@@ -7,7 +7,7 @@ import * as ConnectionsAPI from './connections/connections';
 import {
   Connection,
   ConnectionCreateParams,
-  ConnectionListPendingResponse,
+  ConnectionListParams,
   ConnectionListResponse,
   ConnectionRetrieveCredentialResponse,
   ConnectionSyncResponse,
@@ -67,11 +67,11 @@ export declare namespace V1 {
     type Connection as Connection,
     type DatabaseConfig as DatabaseConfig,
     type ConnectionListResponse as ConnectionListResponse,
-    type ConnectionListPendingResponse as ConnectionListPendingResponse,
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
     type ConnectionUpdateParams as ConnectionUpdateParams,
+    type ConnectionListParams as ConnectionListParams,
   };
 
   export {
