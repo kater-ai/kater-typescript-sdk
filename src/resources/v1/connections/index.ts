@@ -6,6 +6,7 @@ export {
   type DatabaseConfig,
   type ConnectionListResponse,
   type ConnectionRetrieveCredentialResponse,
+  type ConnectionRetrieveSchemaResponse,
   type ConnectionSyncResponse,
   type ConnectionCreateParams,
   type ConnectionUpdateParams,
