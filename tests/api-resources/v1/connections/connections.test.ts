@@ -47,7 +47,6 @@ describe('resource connections', () => {
       password: 'password',
       username: 'username',
       warehouse_type: 'postgresql',
-      database_timezone: 'database_timezone',
       description: 'description',
       label: 'label',
       port: 1,
@@ -127,6 +126,18 @@ describe('resource connections', () => {
   // Prism tests are disabled
   test.skip('retrieveCredential', async () => {
     const responsePromise = client.v1.connections.retrieveCredential('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('retrieveSchema', async () => {
+    const responsePromise = client.v1.connections.retrieveSchema('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
