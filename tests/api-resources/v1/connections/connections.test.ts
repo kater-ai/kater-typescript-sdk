@@ -124,6 +124,51 @@ describe('resource connections', () => {
   });
 
   // Prism tests are disabled
+  test.skip('approveSync: only required params', async () => {
+    const responsePromise = client.v1.connections.approveSync('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+    });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('approveSync: required and optional params', async () => {
+    const response = await client.v1.connections.approveSync('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+    });
+  });
+
+  // Prism tests are disabled
+  test.skip('listSyncs', async () => {
+    const responsePromise = client.v1.connections.listSyncs('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('listSyncs: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.v1.connections.listSyncs(
+        '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+        { limit: 0, offset: 0 },
+        { path: '/_stainless_unknown_path' },
+      ),
+    ).rejects.toThrow(Kater.NotFoundError);
+  });
+
+  // Prism tests are disabled
   test.skip('retrieveCredential', async () => {
     const responsePromise = client.v1.connections.retrieveCredential('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
     const rawResponse = await responsePromise.asResponse();
@@ -145,6 +190,48 @@ describe('resource connections', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('retrieveSyncStatus: only required params', async () => {
+    const responsePromise = client.v1.connections.retrieveSyncStatus('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+    });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('retrieveSyncStatus: required and optional params', async () => {
+    const response = await client.v1.connections.retrieveSyncStatus('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+    });
+  });
+
+  // Prism tests are disabled
+  test.skip('streamSyncProgress: only required params', async () => {
+    const responsePromise = client.v1.connections.streamSyncProgress('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+    });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Prism tests are disabled
+  test.skip('streamSyncProgress: required and optional params', async () => {
+    const response = await client.v1.connections.streamSyncProgress('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+    });
   });
 
   // Prism tests are disabled

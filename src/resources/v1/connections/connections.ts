@@ -96,6 +96,29 @@ export class Connections extends APIResource {
   }
 
   /**
+   * Merge the PR for a completed schema sync.
+   */
+  approveSync(
+    syncID: string,
+    params: ConnectionApproveSyncParams,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionApproveSyncResponse> {
+    const { connection_id } = params;
+    return this._client.post(path`/api/v1/connections/${connection_id}/sync/${syncID}/approve`, options);
+  }
+
+  /**
+   * List all schema sync records for a connection.
+   */
+  listSyncs(
+    connectionID: string,
+    query: ConnectionListSyncsParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ConnectionListSyncsResponse> {
+    return this._client.get(path`/api/v1/connections/${connectionID}/sync`, { query, ...options });
+  }
+
+  /**
    * Get decrypted warehouse credentials for a connection.
    *
    * Returns the decrypted credentials for a connection. This is sensitive data and
@@ -130,7 +153,31 @@ export class Connections extends APIResource {
   }
 
   /**
-   * Sync view schemas from warehouse and create a PR (or update existing).
+   * Get the current status of a schema sync workflow.
+   */
+  retrieveSyncStatus(
+    syncID: string,
+    params: ConnectionRetrieveSyncStatusParams,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionRetrieveSyncStatusResponse> {
+    const { connection_id } = params;
+    return this._client.get(path`/api/v1/connections/${connection_id}/sync/${syncID}`, options);
+  }
+
+  /**
+   * Server-Sent Events stream for real-time sync progress updates.
+   */
+  streamSyncProgress(
+    syncID: string,
+    params: ConnectionStreamSyncProgressParams,
+    options?: RequestOptions,
+  ): APIPromise<unknown> {
+    const { connection_id } = params;
+    return this._client.get(path`/api/v1/connections/${connection_id}/sync/${syncID}/stream`, options);
+  }
+
+  /**
+   * Start a schema sync workflow. Returns 202 Accepted with sync_id.
    */
   sync(connectionID: string, options?: RequestOptions): APIPromise<ConnectionSyncResponse> {
     return this._client.post(path`/api/v1/connections/${connectionID}/sync`, options);
@@ -427,6 +474,258 @@ export namespace DatabaseConfig {
 }
 
 export type ConnectionListResponse = Array<Connection>;
+
+/**
+ * Response for sync status endpoint.
+ *
+ * Contains full sync state including progress and results.
+ */
+export interface ConnectionApproveSyncResponse {
+  /**
+   * Connection ID
+   */
+  connection_id: string;
+
+  /**
+   * Sync creation timestamp
+   */
+  created_at: string;
+
+  /**
+   * Workflow status: queued, running, succeeded, failed, canceled
+   */
+  run_status: string;
+
+  /**
+   * Schema sync record ID
+   */
+  sync_id: string;
+
+  /**
+   * Workflow completion timestamp
+   */
+  completed_at?: string | null;
+
+  /**
+   * Current workflow step
+   */
+  current_step?: string | null;
+
+  /**
+   * Error message if failed
+   */
+  error_message?: string | null;
+
+  /**
+   * Sync event history
+   */
+  events?: Array<ConnectionApproveSyncResponse.Event>;
+
+  /**
+   * Hatchet workflow run ID
+   */
+  hatchet_run_id?: string | null;
+
+  /**
+   * GitHub PR number
+   */
+  pr_number?: number | null;
+
+  /**
+   * PR status: open, merged, closed
+   */
+  pr_status?: string | null;
+
+  /**
+   * GitHub PR URL
+   */
+  pr_url?: string | null;
+
+  /**
+   * Workflow start timestamp
+   */
+  started_at?: string | null;
+
+  /**
+   * Number of views deleted
+   */
+  views_deleted?: number | null;
+
+  /**
+   * Number of views renamed
+   */
+  views_renamed?: number | null;
+
+  /**
+   * Number of views updated
+   */
+  views_updated?: number | null;
+}
+
+export namespace ConnectionApproveSyncResponse {
+  /**
+   * Response model for a single sync event.
+   */
+  export interface Event {
+    /**
+     * Event ID
+     */
+    id: string;
+
+    /**
+     * Event timestamp
+     */
+    created_at: string;
+
+    /**
+     * Event type: step_started, step_completed, progress, warning, error
+     */
+    event_type: string;
+
+    /**
+     * Human-readable event message
+     */
+    message: string;
+
+    /**
+     * Additional event data
+     */
+    metadata?: { [key: string]: unknown };
+
+    /**
+     * Step name if applicable
+     */
+    step_name?: string | null;
+  }
+}
+
+export type ConnectionListSyncsResponse = Array<ConnectionListSyncsResponse.ConnectionListSyncsResponseItem>;
+
+export namespace ConnectionListSyncsResponse {
+  /**
+   * Response for sync status endpoint.
+   *
+   * Contains full sync state including progress and results.
+   */
+  export interface ConnectionListSyncsResponseItem {
+    /**
+     * Connection ID
+     */
+    connection_id: string;
+
+    /**
+     * Sync creation timestamp
+     */
+    created_at: string;
+
+    /**
+     * Workflow status: queued, running, succeeded, failed, canceled
+     */
+    run_status: string;
+
+    /**
+     * Schema sync record ID
+     */
+    sync_id: string;
+
+    /**
+     * Workflow completion timestamp
+     */
+    completed_at?: string | null;
+
+    /**
+     * Current workflow step
+     */
+    current_step?: string | null;
+
+    /**
+     * Error message if failed
+     */
+    error_message?: string | null;
+
+    /**
+     * Sync event history
+     */
+    events?: Array<ConnectionListSyncsResponseItem.Event>;
+
+    /**
+     * Hatchet workflow run ID
+     */
+    hatchet_run_id?: string | null;
+
+    /**
+     * GitHub PR number
+     */
+    pr_number?: number | null;
+
+    /**
+     * PR status: open, merged, closed
+     */
+    pr_status?: string | null;
+
+    /**
+     * GitHub PR URL
+     */
+    pr_url?: string | null;
+
+    /**
+     * Workflow start timestamp
+     */
+    started_at?: string | null;
+
+    /**
+     * Number of views deleted
+     */
+    views_deleted?: number | null;
+
+    /**
+     * Number of views renamed
+     */
+    views_renamed?: number | null;
+
+    /**
+     * Number of views updated
+     */
+    views_updated?: number | null;
+  }
+
+  export namespace ConnectionListSyncsResponseItem {
+    /**
+     * Response model for a single sync event.
+     */
+    export interface Event {
+      /**
+       * Event ID
+       */
+      id: string;
+
+      /**
+       * Event timestamp
+       */
+      created_at: string;
+
+      /**
+       * Event type: step_started, step_completed, progress, warning, error
+       */
+      event_type: string;
+
+      /**
+       * Human-readable event message
+       */
+      message: string;
+
+      /**
+       * Additional event data
+       */
+      metadata?: { [key: string]: unknown };
+
+      /**
+       * Step name if applicable
+       */
+      step_name?: string | null;
+    }
+  }
+}
 
 /**
  * PostgreSQL credential response.
@@ -873,21 +1172,55 @@ export namespace ConnectionRetrieveSchemaResponse {
 }
 
 /**
- * Response for syncing views.
+ * Response for sync status endpoint.
  *
- * Returned after successfully creating a PR with merged ViewSchema files, or
- * indicating that all views are already up to date.
+ * Contains full sync state including progress and results.
  */
-export interface ConnectionSyncResponse {
+export interface ConnectionRetrieveSyncStatusResponse {
   /**
-   * Number of views in the PR
+   * Connection ID
    */
-  views_updated: number;
+  connection_id: string;
 
   /**
-   * Status message
+   * Sync creation timestamp
    */
-  message?: string | null;
+  created_at: string;
+
+  /**
+   * Workflow status: queued, running, succeeded, failed, canceled
+   */
+  run_status: string;
+
+  /**
+   * Schema sync record ID
+   */
+  sync_id: string;
+
+  /**
+   * Workflow completion timestamp
+   */
+  completed_at?: string | null;
+
+  /**
+   * Current workflow step
+   */
+  current_step?: string | null;
+
+  /**
+   * Error message if failed
+   */
+  error_message?: string | null;
+
+  /**
+   * Sync event history
+   */
+  events?: Array<ConnectionRetrieveSyncStatusResponse.Event>;
+
+  /**
+   * Hatchet workflow run ID
+   */
+  hatchet_run_id?: string | null;
 
   /**
    * GitHub PR number
@@ -895,9 +1228,95 @@ export interface ConnectionSyncResponse {
   pr_number?: number | null;
 
   /**
+   * PR status: open, merged, closed
+   */
+  pr_status?: string | null;
+
+  /**
    * GitHub PR URL
    */
   pr_url?: string | null;
+
+  /**
+   * Workflow start timestamp
+   */
+  started_at?: string | null;
+
+  /**
+   * Number of views deleted
+   */
+  views_deleted?: number | null;
+
+  /**
+   * Number of views renamed
+   */
+  views_renamed?: number | null;
+
+  /**
+   * Number of views updated
+   */
+  views_updated?: number | null;
+}
+
+export namespace ConnectionRetrieveSyncStatusResponse {
+  /**
+   * Response model for a single sync event.
+   */
+  export interface Event {
+    /**
+     * Event ID
+     */
+    id: string;
+
+    /**
+     * Event timestamp
+     */
+    created_at: string;
+
+    /**
+     * Event type: step_started, step_completed, progress, warning, error
+     */
+    event_type: string;
+
+    /**
+     * Human-readable event message
+     */
+    message: string;
+
+    /**
+     * Additional event data
+     */
+    metadata?: { [key: string]: unknown };
+
+    /**
+     * Step name if applicable
+     */
+    step_name?: string | null;
+  }
+}
+
+export type ConnectionStreamSyncProgressResponse = unknown;
+
+/**
+ * Response for starting a schema sync.
+ *
+ * Returned with 202 Accepted when sync workflow is successfully queued.
+ */
+export interface ConnectionSyncResponse {
+  /**
+   * Schema sync record ID
+   */
+  sync_id: string;
+
+  /**
+   * Hatchet workflow run ID
+   */
+  hatchet_run_id?: string | null;
+
+  /**
+   * Current sync status
+   */
+  status?: string;
 }
 
 export type ConnectionCreateParams =
@@ -1252,6 +1671,24 @@ export interface ConnectionListParams {
   status?: 'approved' | 'pending' | 'all';
 }
 
+export interface ConnectionApproveSyncParams {
+  connection_id: string;
+}
+
+export interface ConnectionListSyncsParams {
+  limit?: number;
+
+  offset?: number;
+}
+
+export interface ConnectionRetrieveSyncStatusParams {
+  connection_id: string;
+}
+
+export interface ConnectionStreamSyncProgressParams {
+  connection_id: string;
+}
+
 Connections.Databases = Databases;
 
 export declare namespace Connections {
@@ -1259,12 +1696,20 @@ export declare namespace Connections {
     type Connection as Connection,
     type DatabaseConfig as DatabaseConfig,
     type ConnectionListResponse as ConnectionListResponse,
+    type ConnectionApproveSyncResponse as ConnectionApproveSyncResponse,
+    type ConnectionListSyncsResponse as ConnectionListSyncsResponse,
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
     type ConnectionRetrieveSchemaResponse as ConnectionRetrieveSchemaResponse,
+    type ConnectionRetrieveSyncStatusResponse as ConnectionRetrieveSyncStatusResponse,
+    type ConnectionStreamSyncProgressResponse as ConnectionStreamSyncProgressResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
     type ConnectionUpdateParams as ConnectionUpdateParams,
     type ConnectionListParams as ConnectionListParams,
+    type ConnectionApproveSyncParams as ConnectionApproveSyncParams,
+    type ConnectionListSyncsParams as ConnectionListSyncsParams,
+    type ConnectionRetrieveSyncStatusParams as ConnectionRetrieveSyncStatusParams,
+    type ConnectionStreamSyncProgressParams as ConnectionStreamSyncProgressParams,
   };
 
   export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };

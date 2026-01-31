@@ -7,8 +7,12 @@ Types:
 - <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">DatabaseConfig</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionApproveSyncResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListSyncsResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveCredentialResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveSchemaResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveSyncStatusResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionStreamSyncProgressResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionSyncResponse</a></code>
 
 Methods:
@@ -19,8 +23,12 @@ Methods:
 - <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">list</a>({ ...params }) -> ConnectionListResponse</code>
 - <code title="delete /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">delete</a>(connectionID) -> void</code>
 - <code title="post /api/v1/connections/{connection_id}/approve">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">approve</a>(connectionID) -> Connection</code>
+- <code title="post /api/v1/connections/{connection_id}/sync/{sync_id}/approve">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">approveSync</a>(syncID, { ...params }) -> ConnectionApproveSyncResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">listSyncs</a>(connectionID, { ...params }) -> ConnectionListSyncsResponse</code>
 - <code title="get /api/v1/connections/{connection_id}/credential">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveCredential</a>(connectionID) -> ConnectionRetrieveCredentialResponse</code>
 - <code title="get /api/v1/connections/{connection_id}/schema">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveSchema</a>(connectionID) -> ConnectionRetrieveSchemaResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveSyncStatus</a>(syncID, { ...params }) -> ConnectionRetrieveSyncStatusResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/stream">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">streamSyncProgress</a>(syncID, { ...params }) -> unknown</code>
 - <code title="post /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">sync</a>(connectionID) -> ConnectionSyncResponse</code>
 
 ### Databases
