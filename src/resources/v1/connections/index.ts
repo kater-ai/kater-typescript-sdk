@@ -21,3 +21,10 @@ export {
   type ConnectionStreamSyncProgressParams,
 } from './connections';
 export { Databases, type DatabaseDeleteSchemaParams } from './databases';
+export {
+  Views,
+  type ViewRetrieveResponse,
+  type ViewListResponse,
+  type ViewRetrieveParams,
+  type ViewListParams,
+} from './views';

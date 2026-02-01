@@ -3,6 +3,8 @@
 import { APIResource } from '../../../core/resource';
 import * as DatabasesAPI from './databases';
 import { DatabaseDeleteSchemaParams, Databases } from './databases';
+import * as ViewsAPI from './views';
+import { ViewListParams, ViewListResponse, ViewRetrieveParams, ViewRetrieveResponse, Views } from './views';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -10,6 +12,7 @@ import { path } from '../../../internal/utils/path';
 
 export class Connections extends APIResource {
   databases: DatabasesAPI.Databases = new DatabasesAPI.Databases(this._client);
+  views: ViewsAPI.Views = new ViewsAPI.Views(this._client);
 
   /**
    * Create a new warehouse connection with PR approval flow.
@@ -552,12 +555,17 @@ export interface ConnectionApproveSyncResponse {
   views_deleted?: number | null;
 
   /**
-   * Number of views renamed
+   * Number of new views added
+   */
+  views_inserted?: number | null;
+
+  /**
+   * Number of views renamed (subset of updated)
    */
   views_renamed?: number | null;
 
   /**
-   * Number of views updated
+   * Number of views updated (dimension changes or renames)
    */
   views_updated?: number | null;
 }
@@ -679,12 +687,17 @@ export namespace ConnectionListSyncsResponse {
     views_deleted?: number | null;
 
     /**
-     * Number of views renamed
+     * Number of new views added
+     */
+    views_inserted?: number | null;
+
+    /**
+     * Number of views renamed (subset of updated)
      */
     views_renamed?: number | null;
 
     /**
-     * Number of views updated
+     * Number of views updated (dimension changes or renames)
      */
     views_updated?: number | null;
   }
@@ -1248,12 +1261,17 @@ export interface ConnectionRetrieveSyncStatusResponse {
   views_deleted?: number | null;
 
   /**
-   * Number of views renamed
+   * Number of new views added
+   */
+  views_inserted?: number | null;
+
+  /**
+   * Number of views renamed (subset of updated)
    */
   views_renamed?: number | null;
 
   /**
-   * Number of views updated
+   * Number of views updated (dimension changes or renames)
    */
   views_updated?: number | null;
 }
@@ -1690,6 +1708,7 @@ export interface ConnectionStreamSyncProgressParams {
 }
 
 Connections.Databases = Databases;
+Connections.Views = Views;
 
 export declare namespace Connections {
   export {
@@ -1713,4 +1732,12 @@ export declare namespace Connections {
   };
 
   export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };
+
+  export {
+    Views as Views,
+    type ViewRetrieveResponse as ViewRetrieveResponse,
+    type ViewListResponse as ViewListResponse,
+    type ViewRetrieveParams as ViewRetrieveParams,
+    type ViewListParams as ViewListParams,
+  };
 }
