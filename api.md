@@ -37,6 +37,18 @@ Methods:
 
 - <code title="delete /api/v1/connections/{connection_id}/databases/{database_id}/schemas/{schema_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">deleteSchema</a>(schemaID, { ...params }) -> void</code>
 
+### Views
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/views.ts">ViewRetrieveResponse</a></code>
+- <code><a href="./src/resources/v1/connections/views.ts">ViewListResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/views/{file_name}">client.v1.connections.views.<a href="./src/resources/v1/connections/views.ts">retrieve</a>(fileName, { ...params }) -> ViewRetrieveResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/views">client.v1.connections.views.<a href="./src/resources/v1/connections/views.ts">list</a>(syncID, { ...params }) -> ViewListResponse</code>
+
 ## GitHub
 
 Types:
