@@ -5,6 +5,8 @@ import * as DatabasesAPI from './databases';
 import { DatabaseDeleteSchemaParams, Databases } from './databases';
 import * as ViewsAPI from './views';
 import { ViewListParams, ViewListResponse, ViewRetrieveParams, ViewRetrieveResponse, Views } from './views';
+import * as YamlAPI from './yaml';
+import { Yaml, YamlCommitYamlParams, YamlCommitYamlResponse, YamlRetrieveYamlResponse } from './yaml';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -13,6 +15,7 @@ import { path } from '../../../internal/utils/path';
 export class Connections extends APIResource {
   databases: DatabasesAPI.Databases = new DatabasesAPI.Databases(this._client);
   views: ViewsAPI.Views = new ViewsAPI.Views(this._client);
+  yaml: YamlAPI.Yaml = new YamlAPI.Yaml(this._client);
 
   /**
    * Create a new warehouse connection with PR approval flow.
@@ -184,6 +187,17 @@ export class Connections extends APIResource {
    */
   sync(connectionID: string, options?: RequestOptions): APIPromise<ConnectionSyncResponse> {
     return this._client.post(path`/api/v1/connections/${connectionID}/sync`, options);
+  }
+
+  /**
+   * Test and update warehouse credentials without modifying connection config.
+   */
+  updateCredentials(
+    connectionID: string,
+    body: ConnectionUpdateCredentialsParams,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionUpdateCredentialsResponse> {
+    return this._client.patch(path`/api/v1/connections/${connectionID}/credentials`, { body, ...options });
   }
 }
 
@@ -1337,6 +1351,21 @@ export interface ConnectionSyncResponse {
   status?: string;
 }
 
+/**
+ * Response for credential update.
+ */
+export interface ConnectionUpdateCredentialsResponse {
+  /**
+   * Connection ID
+   */
+  connection_id: string;
+
+  /**
+   * Whether the credential update was successful
+   */
+  success: boolean;
+}
+
 export type ConnectionCreateParams =
   | ConnectionCreateParams.PostgresConnectionConfig
   | ConnectionCreateParams.SnowflakeConnectionConfig
@@ -1707,8 +1736,132 @@ export interface ConnectionStreamSyncProgressParams {
   connection_id: string;
 }
 
+export type ConnectionUpdateCredentialsParams =
+  | ConnectionUpdateCredentialsParams.PostgreSqlCredentialUpdate
+  | ConnectionUpdateCredentialsParams.SnowflakeCredentialUpdate
+  | ConnectionUpdateCredentialsParams.DatabricksCredentialUpdate
+  | ConnectionUpdateCredentialsParams.ClickHouseCredentialUpdate
+  | ConnectionUpdateCredentialsParams.MssqlCredentialUpdate;
+
+export declare namespace ConnectionUpdateCredentialsParams {
+  export interface PostgreSqlCredentialUpdate {
+    /**
+     * Database password
+     */
+    password: string;
+
+    /**
+     * Database username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'postgresql';
+  }
+
+  export interface SnowflakeCredentialUpdate {
+    /**
+     * Authentication credentials
+     */
+    auth:
+      | SnowflakeCredentialUpdate.SnowflakePasswordCredentialAuth
+      | SnowflakeCredentialUpdate.SnowflakePrivateKeyCredentialAuth;
+
+    /**
+     * Snowflake username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'snowflake';
+  }
+
+  export namespace SnowflakeCredentialUpdate {
+    /**
+     * Snowflake password auth for credential update.
+     */
+    export interface SnowflakePasswordCredentialAuth {
+      /**
+       * Authentication type
+       */
+      auth_type: 'password';
+
+      /**
+       * Snowflake password
+       */
+      password: string;
+    }
+
+    /**
+     * Snowflake private key auth for credential update.
+     */
+    export interface SnowflakePrivateKeyCredentialAuth {
+      /**
+       * Authentication type
+       */
+      auth_type: 'private_key';
+
+      /**
+       * PEM-encoded private key
+       */
+      private_key: string;
+    }
+  }
+
+  export interface DatabricksCredentialUpdate {
+    /**
+     * Databricks personal access token
+     */
+    access_token: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'databricks';
+  }
+
+  export interface ClickHouseCredentialUpdate {
+    /**
+     * ClickHouse password
+     */
+    password: string;
+
+    /**
+     * ClickHouse username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'clickhouse';
+  }
+
+  export interface MssqlCredentialUpdate {
+    /**
+     * SQL Server password
+     */
+    password: string;
+
+    /**
+     * SQL Server username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'mssql';
+  }
+}
+
 Connections.Databases = Databases;
 Connections.Views = Views;
+Connections.Yaml = Yaml;
 
 export declare namespace Connections {
   export {
@@ -1722,6 +1875,7 @@ export declare namespace Connections {
     type ConnectionRetrieveSyncStatusResponse as ConnectionRetrieveSyncStatusResponse,
     type ConnectionStreamSyncProgressResponse as ConnectionStreamSyncProgressResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
+    type ConnectionUpdateCredentialsResponse as ConnectionUpdateCredentialsResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
     type ConnectionUpdateParams as ConnectionUpdateParams,
     type ConnectionListParams as ConnectionListParams,
@@ -1729,6 +1883,7 @@ export declare namespace Connections {
     type ConnectionListSyncsParams as ConnectionListSyncsParams,
     type ConnectionRetrieveSyncStatusParams as ConnectionRetrieveSyncStatusParams,
     type ConnectionStreamSyncProgressParams as ConnectionStreamSyncProgressParams,
+    type ConnectionUpdateCredentialsParams as ConnectionUpdateCredentialsParams,
   };
 
   export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };
@@ -1739,5 +1894,12 @@ export declare namespace Connections {
     type ViewListResponse as ViewListResponse,
     type ViewRetrieveParams as ViewRetrieveParams,
     type ViewListParams as ViewListParams,
+  };
+
+  export {
+    Yaml as Yaml,
+    type YamlCommitYamlResponse as YamlCommitYamlResponse,
+    type YamlRetrieveYamlResponse as YamlRetrieveYamlResponse,
+    type YamlCommitYamlParams as YamlCommitYamlParams,
   };
 }

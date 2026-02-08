@@ -20,6 +20,8 @@ import {
   ConnectionStreamSyncProgressParams,
   ConnectionStreamSyncProgressResponse,
   ConnectionSyncResponse,
+  ConnectionUpdateCredentialsParams,
+  ConnectionUpdateCredentialsResponse,
   ConnectionUpdateParams,
   Connections,
   DatabaseConfig,
@@ -83,6 +85,7 @@ export declare namespace V1 {
     type ConnectionRetrieveSyncStatusResponse as ConnectionRetrieveSyncStatusResponse,
     type ConnectionStreamSyncProgressResponse as ConnectionStreamSyncProgressResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
+    type ConnectionUpdateCredentialsResponse as ConnectionUpdateCredentialsResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
     type ConnectionUpdateParams as ConnectionUpdateParams,
     type ConnectionListParams as ConnectionListParams,
@@ -90,6 +93,7 @@ export declare namespace V1 {
     type ConnectionListSyncsParams as ConnectionListSyncsParams,
     type ConnectionRetrieveSyncStatusParams as ConnectionRetrieveSyncStatusParams,
     type ConnectionStreamSyncProgressParams as ConnectionStreamSyncProgressParams,
+    type ConnectionUpdateCredentialsParams as ConnectionUpdateCredentialsParams,
   };
 
   export {
