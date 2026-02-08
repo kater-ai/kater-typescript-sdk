@@ -3,6 +3,10 @@
 import { APIResource } from '../../../core/resource';
 import * as DatabasesAPI from './databases';
 import { DatabaseDeleteSchemaParams, Databases } from './databases';
+import * as ViewsAPI from './views';
+import { ViewListParams, ViewListResponse, ViewRetrieveParams, ViewRetrieveResponse, Views } from './views';
+import * as YamlAPI from './yaml';
+import { Yaml, YamlCommitParams, YamlCommitResponse, YamlRetrieveResponse } from './yaml';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -10,22 +14,22 @@ import { path } from '../../../internal/utils/path';
 
 export class Connections extends APIResource {
   databases: DatabasesAPI.Databases = new DatabasesAPI.Databases(this._client);
+  views: ViewsAPI.Views = new ViewsAPI.Views(this._client);
+  yaml: YamlAPI.Yaml = new YamlAPI.Yaml(this._client);
 
   /**
-   * Create a new warehouse connection.
+   * Create a new warehouse connection with PR approval flow.
    */
   create(body: ConnectionCreateParams, options?: RequestOptions): APIPromise<Connection> {
     return this._client.post('/api/v1/connections', { body, ...options });
   }
 
   /**
-   * Get a single warehouse connection by kater_id.
+   * Get a single warehouse connection by ID.
    *
-   * Returns connection from the database (source of truth) with full hierarchy.
-   * Supports content negotiation via Accept header (handled by MultiFormatRoute):
-   *
-   * - application/json (default): Returns JSON response
-   * - application/yaml: Returns YAML representation
+   * Returns connection from the database (source of truth) with full hierarchy. For
+   * YAML output compatible with repository files (using kater_id), use the GET
+   * /connections/{id}/schema endpoint instead.
    *
    * RLS: Filtered to current client (DualClientRLSDB).
    *
@@ -53,16 +57,24 @@ export class Connections extends APIResource {
   }
 
   /**
-   * List all warehouse connections for the client.
+   * List warehouse connections for the client.
    *
-   * Returns connections from the database joined with schema information from
-   * GitHub. Connections with pending PRs will have null GitHub fields until merged.
-   * Returns empty list if GitHub is not configured.
+   * Filter connections by approval status using the `status` query parameter:
+   *
+   * - `approved` (default): Only approved connections (is_pending_approval=false)
+   * - `pending`: Only connections awaiting PR approval (is_pending_approval=true)
+   * - `all`: All connections regardless of approval status
+   *
+   * Pending connections include their approval PR URLs when available. Returns empty
+   * list if GitHub is not configured.
    *
    * RLS: Filtered to current client (DualClientRLSDB).
    */
-  list(options?: RequestOptions): APIPromise<ConnectionListResponse> {
-    return this._client.get('/api/v1/connections', options);
+  list(
+    query: ConnectionListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ConnectionListResponse> {
+    return this._client.get('/api/v1/connections', { query, ...options });
   }
 
   /**
@@ -83,6 +95,36 @@ export class Connections extends APIResource {
   }
 
   /**
+   * Merge the PR for a pending connection to finalize it.
+   */
+  approve(connectionID: string, options?: RequestOptions): APIPromise<Connection> {
+    return this._client.post(path`/api/v1/connections/${connectionID}/approve`, options);
+  }
+
+  /**
+   * Merge the PR for a completed schema sync.
+   */
+  approveSync(
+    syncID: string,
+    params: ConnectionApproveSyncParams,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionApproveSyncResponse> {
+    const { connection_id } = params;
+    return this._client.post(path`/api/v1/connections/${connection_id}/sync/${syncID}/approve`, options);
+  }
+
+  /**
+   * List all schema sync records for a connection.
+   */
+  listSyncs(
+    connectionID: string,
+    query: ConnectionListSyncsParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ConnectionListSyncsResponse> {
+    return this._client.get(path`/api/v1/connections/${connectionID}/sync`, { query, ...options });
+  }
+
+  /**
    * Get decrypted warehouse credentials for a connection.
    *
    * Returns the decrypted credentials for a connection. This is sensitive data and
@@ -100,18 +142,70 @@ export class Connections extends APIResource {
   }
 
   /**
-   * Sync view schemas from warehouse and create a PR (or update existing).
+   * Get connection as a ConnectionSchema object.
+   *
+   * Returns the connection in the YAML-compatible schema format with full
+   * database/schema hierarchy.
+   *
+   * RLS: Automatically filtered by client_id from auth context.
+   *
+   * Raises: ConnectionNotFoundError: If connection not found or deleted.
+   */
+  retrieveSchema(
+    connectionID: string,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionRetrieveSchemaResponse> {
+    return this._client.get(path`/api/v1/connections/${connectionID}/schema`, options);
+  }
+
+  /**
+   * Get the current status of a schema sync workflow.
+   */
+  retrieveSyncStatus(
+    syncID: string,
+    params: ConnectionRetrieveSyncStatusParams,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionRetrieveSyncStatusResponse> {
+    const { connection_id } = params;
+    return this._client.get(path`/api/v1/connections/${connection_id}/sync/${syncID}`, options);
+  }
+
+  /**
+   * Server-Sent Events stream for real-time sync progress updates.
+   */
+  streamSyncProgress(
+    syncID: string,
+    params: ConnectionStreamSyncProgressParams,
+    options?: RequestOptions,
+  ): APIPromise<unknown> {
+    const { connection_id } = params;
+    return this._client.get(path`/api/v1/connections/${connection_id}/sync/${syncID}/stream`, options);
+  }
+
+  /**
+   * Start a schema sync workflow. Returns 202 Accepted with sync_id.
    */
   sync(connectionID: string, options?: RequestOptions): APIPromise<ConnectionSyncResponse> {
     return this._client.post(path`/api/v1/connections/${connectionID}/sync`, options);
+  }
+
+  /**
+   * Test and update warehouse credentials without modifying connection config.
+   */
+  updateCredentials(
+    connectionID: string,
+    body: ConnectionUpdateCredentialsParams,
+    options?: RequestOptions,
+  ): APIPromise<ConnectionUpdateCredentialsResponse> {
+    return this._client.patch(path`/api/v1/connections/${connectionID}/credentials`, { body, ...options });
   }
 }
 
 /**
  * Response model for a single connection.
  *
- * All data comes from the database (source of truth). JSON responses use 'id'
- * field; YAML responses transform to 'kater_id' via MultiFormatRoute.
+ * All data comes from the database (source of truth). For YAML-compatible output
+ * with 'kater_id', use the /schema endpoint instead.
  */
 export interface Connection {
   /**
@@ -149,9 +243,9 @@ export interface Connection {
    */
   warehouse_metadata:
     | Connection.SnowflakeMetadata
-    | Connection.PostgresMetadata
+    | Connection.PostgresqlMetadata
     | Connection.DatabricksMetadata
-    | Connection.ClickHouseMetadata
+    | Connection.ClickhouseMetadata
     | Connection.MssqlMetadata;
 
   /**
@@ -160,14 +254,19 @@ export interface Connection {
   warehouse_type: string;
 
   /**
-   * Default timezone for the connection
+   * GitHub PR URL for approving the connection (None if already approved)
    */
-  database_timezone?: string | null;
+  approval_pr_url?: string | null;
 
   /**
    * Connection description
    */
   description?: string | null;
+
+  /**
+   * True if this connection is awaiting PR approval
+   */
+  is_pending_approval?: boolean;
 
   /**
    * Human-readable label
@@ -183,11 +282,6 @@ export interface Connection {
    * Timezone conversion mode (do_not_convert, convert_to_utc)
    */
   query_timezone_conversion?: string | null;
-
-  /**
-   * Sync identifier for schema sync
-   */
-  sync_id?: string | null;
 }
 
 export namespace Connection {
@@ -263,9 +357,6 @@ export namespace Connection {
     }
   }
 
-  /**
-   * Snowflake-specific warehouse metadata.
-   */
   export interface SnowflakeMetadata {
     /**
      * Authentication method
@@ -283,42 +374,30 @@ export namespace Connection {
     snowflake_account_id: string;
 
     /**
-     * Compute warehouse name
+     * Snowflake compute warehouse name
      */
     warehouse: string;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'snowflake';
   }
 
-  /**
-   * PostgreSQL-specific warehouse metadata.
-   */
-  export interface PostgresMetadata {
+  export interface PostgresqlMetadata {
     /**
-     * Database host
+     * Database host address
      */
     host: string;
 
     /**
-     * Database port
+     * Database port (default: 5432)
      */
     port: number;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'postgresql';
   }
 
-  /**
-   * Databricks-specific warehouse metadata.
-   */
   export interface DatabricksMetadata {
     /**
-     * SQL warehouse HTTP path
+     * Databricks SQL warehouse HTTP path
      */
     http_path: string;
 
@@ -327,49 +406,34 @@ export namespace Connection {
      */
     server_hostname: string;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'databricks';
   }
 
-  /**
-   * ClickHouse-specific warehouse metadata.
-   */
-  export interface ClickHouseMetadata {
+  export interface ClickhouseMetadata {
     /**
-     * ClickHouse host
+     * ClickHouse host address
      */
     host: string;
 
     /**
-     * ClickHouse port
+     * ClickHouse port (default: 8443)
      */
     port: number;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'clickhouse';
   }
 
-  /**
-   * Microsoft SQL Server-specific warehouse metadata.
-   */
   export interface MssqlMetadata {
     /**
-     * SQL Server host
+     * SQL Server host address
      */
     host: string;
 
     /**
-     * SQL Server port
+     * SQL Server port (default: 1433)
      */
     port: number;
 
-    /**
-     * Warehouse type discriminator
-     */
     warehouse_type: 'mssql';
   }
 }
@@ -379,9 +443,9 @@ export namespace Connection {
  */
 export interface DatabaseConfig {
   /**
-   * The actual name of the database object in the warehouse
+   * Database name (also used as the warehouse object name)
    */
-  database_object_name: string;
+  name: string;
 
   /**
    * Description of the database
@@ -392,11 +456,6 @@ export interface DatabaseConfig {
    * Human-readable label for the database (defaults to name if not set)
    */
   label?: string | null;
-
-  /**
-   * Database name (defaults to database_object_name if not set)
-   */
-  name?: string | null;
 
   /**
    * Schema configurations to include (empty = discover all schemas)
@@ -415,9 +474,9 @@ export namespace DatabaseConfig {
    */
   export interface Schema {
     /**
-     * The actual name of the schema object in the warehouse
+     * Schema name (also used as the warehouse object name)
      */
-    database_object_name: string;
+    name: string;
 
     /**
      * Description of the schema
@@ -428,15 +487,272 @@ export namespace DatabaseConfig {
      * Human-readable label for the schema (defaults to name if not set)
      */
     label?: string | null;
-
-    /**
-     * Schema name (defaults to database_object_name if not set)
-     */
-    name?: string | null;
   }
 }
 
 export type ConnectionListResponse = Array<Connection>;
+
+/**
+ * Response for sync status endpoint.
+ *
+ * Contains full sync state including progress and results.
+ */
+export interface ConnectionApproveSyncResponse {
+  /**
+   * Connection ID
+   */
+  connection_id: string;
+
+  /**
+   * Sync creation timestamp
+   */
+  created_at: string;
+
+  /**
+   * Workflow status: queued, running, succeeded, failed, canceled
+   */
+  run_status: string;
+
+  /**
+   * Schema sync record ID
+   */
+  sync_id: string;
+
+  /**
+   * Workflow completion timestamp
+   */
+  completed_at?: string | null;
+
+  /**
+   * Current workflow step
+   */
+  current_step?: string | null;
+
+  /**
+   * Error message if failed
+   */
+  error_message?: string | null;
+
+  /**
+   * Sync event history
+   */
+  events?: Array<ConnectionApproveSyncResponse.Event>;
+
+  /**
+   * Hatchet workflow run ID
+   */
+  hatchet_run_id?: string | null;
+
+  /**
+   * GitHub PR number
+   */
+  pr_number?: number | null;
+
+  /**
+   * PR status: open, merged, closed
+   */
+  pr_status?: string | null;
+
+  /**
+   * GitHub PR URL
+   */
+  pr_url?: string | null;
+
+  /**
+   * Workflow start timestamp
+   */
+  started_at?: string | null;
+
+  /**
+   * Number of views deleted
+   */
+  views_deleted?: number | null;
+
+  /**
+   * Number of new views added
+   */
+  views_inserted?: number | null;
+
+  /**
+   * Number of views renamed (subset of updated)
+   */
+  views_renamed?: number | null;
+
+  /**
+   * Number of views updated (dimension changes or renames)
+   */
+  views_updated?: number | null;
+}
+
+export namespace ConnectionApproveSyncResponse {
+  /**
+   * Response model for a single sync event.
+   */
+  export interface Event {
+    /**
+     * Event ID
+     */
+    id: string;
+
+    /**
+     * Event timestamp
+     */
+    created_at: string;
+
+    /**
+     * Event type: step_started, step_completed, progress, warning, error
+     */
+    event_type: string;
+
+    /**
+     * Human-readable event message
+     */
+    message: string;
+
+    /**
+     * Additional event data
+     */
+    metadata?: { [key: string]: unknown };
+
+    /**
+     * Step name if applicable
+     */
+    step_name?: string | null;
+  }
+}
+
+export type ConnectionListSyncsResponse = Array<ConnectionListSyncsResponse.ConnectionListSyncsResponseItem>;
+
+export namespace ConnectionListSyncsResponse {
+  /**
+   * Response for sync status endpoint.
+   *
+   * Contains full sync state including progress and results.
+   */
+  export interface ConnectionListSyncsResponseItem {
+    /**
+     * Connection ID
+     */
+    connection_id: string;
+
+    /**
+     * Sync creation timestamp
+     */
+    created_at: string;
+
+    /**
+     * Workflow status: queued, running, succeeded, failed, canceled
+     */
+    run_status: string;
+
+    /**
+     * Schema sync record ID
+     */
+    sync_id: string;
+
+    /**
+     * Workflow completion timestamp
+     */
+    completed_at?: string | null;
+
+    /**
+     * Current workflow step
+     */
+    current_step?: string | null;
+
+    /**
+     * Error message if failed
+     */
+    error_message?: string | null;
+
+    /**
+     * Sync event history
+     */
+    events?: Array<ConnectionListSyncsResponseItem.Event>;
+
+    /**
+     * Hatchet workflow run ID
+     */
+    hatchet_run_id?: string | null;
+
+    /**
+     * GitHub PR number
+     */
+    pr_number?: number | null;
+
+    /**
+     * PR status: open, merged, closed
+     */
+    pr_status?: string | null;
+
+    /**
+     * GitHub PR URL
+     */
+    pr_url?: string | null;
+
+    /**
+     * Workflow start timestamp
+     */
+    started_at?: string | null;
+
+    /**
+     * Number of views deleted
+     */
+    views_deleted?: number | null;
+
+    /**
+     * Number of new views added
+     */
+    views_inserted?: number | null;
+
+    /**
+     * Number of views renamed (subset of updated)
+     */
+    views_renamed?: number | null;
+
+    /**
+     * Number of views updated (dimension changes or renames)
+     */
+    views_updated?: number | null;
+  }
+
+  export namespace ConnectionListSyncsResponseItem {
+    /**
+     * Response model for a single sync event.
+     */
+    export interface Event {
+      /**
+       * Event ID
+       */
+      id: string;
+
+      /**
+       * Event timestamp
+       */
+      created_at: string;
+
+      /**
+       * Event type: step_started, step_completed, progress, warning, error
+       */
+      event_type: string;
+
+      /**
+       * Human-readable event message
+       */
+      message: string;
+
+      /**
+       * Additional event data
+       */
+      metadata?: { [key: string]: unknown };
+
+      /**
+       * Step name if applicable
+       */
+      step_name?: string | null;
+    }
+  }
+}
 
 /**
  * PostgreSQL credential response.
@@ -655,21 +971,283 @@ export namespace ConnectionRetrieveCredentialResponse {
 }
 
 /**
- * Response for syncing views.
- *
- * Returned after successfully creating a PR with merged ViewSchema files, or
- * indicating that all views are already up to date.
+ * Schema for Kater connection configuration files
  */
-export interface ConnectionSyncResponse {
+export interface ConnectionRetrieveSchemaResponse {
   /**
-   * Number of views in the PR
+   * Unique identifier for the connection
    */
-  views_updated: number;
+  kater_id: string;
 
   /**
-   * Status message
+   * Name of the connection
    */
-  message?: string | null;
+  name: string;
+
+  /**
+   * Warehouse-specific configuration (non-sensitive)
+   */
+  warehouse_metadata:
+    | ConnectionRetrieveSchemaResponse.SnowflakeMetadata
+    | ConnectionRetrieveSchemaResponse.PostgresqlMetadata
+    | ConnectionRetrieveSchemaResponse.DatabricksMetadata
+    | ConnectionRetrieveSchemaResponse.ClickhouseMetadata
+    | ConnectionRetrieveSchemaResponse.MssqlMetadata;
+
+  /**
+   * Additional context for AI processing
+   */
+  ai_context?: string | null;
+
+  /**
+   * Custom properties
+   */
+  custom_properties?: { [key: string]: unknown } | null;
+
+  /**
+   * List of databases in this connection
+   */
+  databases?: Array<ConnectionRetrieveSchemaResponse.Database> | null;
+
+  /**
+   * Description of the connection
+   */
+  description?: string | null;
+
+  /**
+   * Human-readable label for the connection
+   */
+  label?: string | null;
+
+  /**
+   * Query timeout in seconds
+   */
+  query_timeout?: number;
+
+  /**
+   * Timezone conversion mode for queries
+   */
+  query_timezone_conversion?: 'do_not_convert' | 'convert_to_utc';
+}
+
+export namespace ConnectionRetrieveSchemaResponse {
+  export interface SnowflakeMetadata {
+    /**
+     * Authentication method
+     */
+    auth_method: 'username_password' | 'key_pair';
+
+    /**
+     * Snowflake role
+     */
+    role: string;
+
+    /**
+     * Snowflake account identifier
+     */
+    snowflake_account_id: string;
+
+    /**
+     * Snowflake compute warehouse name
+     */
+    warehouse: string;
+
+    warehouse_type: 'snowflake';
+  }
+
+  export interface PostgresqlMetadata {
+    /**
+     * Database host address
+     */
+    host: string;
+
+    /**
+     * Database port (default: 5432)
+     */
+    port: number;
+
+    warehouse_type: 'postgresql';
+  }
+
+  export interface DatabricksMetadata {
+    /**
+     * Databricks SQL warehouse HTTP path
+     */
+    http_path: string;
+
+    /**
+     * Databricks server hostname
+     */
+    server_hostname: string;
+
+    warehouse_type: 'databricks';
+  }
+
+  export interface ClickhouseMetadata {
+    /**
+     * ClickHouse host address
+     */
+    host: string;
+
+    /**
+     * ClickHouse port (default: 8443)
+     */
+    port: number;
+
+    warehouse_type: 'clickhouse';
+  }
+
+  export interface MssqlMetadata {
+    /**
+     * SQL Server host address
+     */
+    host: string;
+
+    /**
+     * SQL Server port (default: 1433)
+     */
+    port: number;
+
+    warehouse_type: 'mssql';
+  }
+
+  export interface Database {
+    /**
+     * The actual name of the database object in the warehouse
+     */
+    database_object_name: string;
+
+    /**
+     * Unique identifier for the database
+     */
+    kater_id: string;
+
+    /**
+     * Name of the database
+     */
+    name: string;
+
+    /**
+     * Additional context for AI processing
+     */
+    ai_context?: string | null;
+
+    /**
+     * Custom properties
+     */
+    custom_properties?: { [key: string]: unknown } | null;
+
+    /**
+     * Description of the database
+     */
+    description?: string | null;
+
+    /**
+     * Human-readable label for the database
+     */
+    label?: string | null;
+
+    /**
+     * List of schemas in this database
+     */
+    schemas?: Array<Database.Schema> | null;
+
+    /**
+     * Timezone for the database
+     */
+    timezone?: string | null;
+  }
+
+  export namespace Database {
+    export interface Schema {
+      /**
+       * The actual name of the schema object in the warehouse
+       */
+      database_object_name: string;
+
+      /**
+       * Unique identifier for the schema
+       */
+      kater_id: string;
+
+      /**
+       * Name of the schema
+       */
+      name: string;
+
+      /**
+       * Additional context for AI processing
+       */
+      ai_context?: string | null;
+
+      /**
+       * Custom properties
+       */
+      custom_properties?: { [key: string]: unknown } | null;
+
+      /**
+       * Description of the schema
+       */
+      description?: string | null;
+
+      /**
+       * Human-readable label for the schema
+       */
+      label?: string | null;
+    }
+  }
+}
+
+/**
+ * Response for sync status endpoint.
+ *
+ * Contains full sync state including progress and results.
+ */
+export interface ConnectionRetrieveSyncStatusResponse {
+  /**
+   * Connection ID
+   */
+  connection_id: string;
+
+  /**
+   * Sync creation timestamp
+   */
+  created_at: string;
+
+  /**
+   * Workflow status: queued, running, succeeded, failed, canceled
+   */
+  run_status: string;
+
+  /**
+   * Schema sync record ID
+   */
+  sync_id: string;
+
+  /**
+   * Workflow completion timestamp
+   */
+  completed_at?: string | null;
+
+  /**
+   * Current workflow step
+   */
+  current_step?: string | null;
+
+  /**
+   * Error message if failed
+   */
+  error_message?: string | null;
+
+  /**
+   * Sync event history
+   */
+  events?: Array<ConnectionRetrieveSyncStatusResponse.Event>;
+
+  /**
+   * Hatchet workflow run ID
+   */
+  hatchet_run_id?: string | null;
 
   /**
    * GitHub PR number
@@ -677,9 +1255,115 @@ export interface ConnectionSyncResponse {
   pr_number?: number | null;
 
   /**
+   * PR status: open, merged, closed
+   */
+  pr_status?: string | null;
+
+  /**
    * GitHub PR URL
    */
   pr_url?: string | null;
+
+  /**
+   * Workflow start timestamp
+   */
+  started_at?: string | null;
+
+  /**
+   * Number of views deleted
+   */
+  views_deleted?: number | null;
+
+  /**
+   * Number of new views added
+   */
+  views_inserted?: number | null;
+
+  /**
+   * Number of views renamed (subset of updated)
+   */
+  views_renamed?: number | null;
+
+  /**
+   * Number of views updated (dimension changes or renames)
+   */
+  views_updated?: number | null;
+}
+
+export namespace ConnectionRetrieveSyncStatusResponse {
+  /**
+   * Response model for a single sync event.
+   */
+  export interface Event {
+    /**
+     * Event ID
+     */
+    id: string;
+
+    /**
+     * Event timestamp
+     */
+    created_at: string;
+
+    /**
+     * Event type: step_started, step_completed, progress, warning, error
+     */
+    event_type: string;
+
+    /**
+     * Human-readable event message
+     */
+    message: string;
+
+    /**
+     * Additional event data
+     */
+    metadata?: { [key: string]: unknown };
+
+    /**
+     * Step name if applicable
+     */
+    step_name?: string | null;
+  }
+}
+
+export type ConnectionStreamSyncProgressResponse = unknown;
+
+/**
+ * Response for starting a schema sync.
+ *
+ * Returned with 202 Accepted when sync workflow is successfully queued.
+ */
+export interface ConnectionSyncResponse {
+  /**
+   * Schema sync record ID
+   */
+  sync_id: string;
+
+  /**
+   * Hatchet workflow run ID
+   */
+  hatchet_run_id?: string | null;
+
+  /**
+   * Current sync status
+   */
+  status?: string;
+}
+
+/**
+ * Response for credential update.
+ */
+export interface ConnectionUpdateCredentialsResponse {
+  /**
+   * Connection ID
+   */
+  connection_id: string;
+
+  /**
+   * Whether the credential update was successful
+   */
+  success: boolean;
 }
 
 export type ConnectionCreateParams =
@@ -720,11 +1404,6 @@ export declare namespace ConnectionCreateParams {
      * Warehouse type
      */
     warehouse_type: 'postgresql';
-
-    /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
 
     /**
      * Description of the connection
@@ -792,11 +1471,6 @@ export declare namespace ConnectionCreateParams {
      * Warehouse type
      */
     warehouse_type: 'snowflake';
-
-    /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
 
     /**
      * Description of the connection
@@ -888,11 +1562,6 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'databricks';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
-
-    /**
      * Description of the connection
      */
     description?: string | null;
@@ -943,11 +1612,6 @@ export declare namespace ConnectionCreateParams {
      * Warehouse type
      */
     warehouse_type: 'clickhouse';
-
-    /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
 
     /**
      * Description of the connection
@@ -1007,11 +1671,6 @@ export declare namespace ConnectionCreateParams {
     warehouse_type: 'mssql';
 
     /**
-     * Default timezone for the connection (e.g., 'UTC', 'America/New_York')
-     */
-    database_timezone?: string | null;
-
-    /**
      * Description of the connection
      */
     description?: string | null;
@@ -1055,18 +1714,192 @@ export interface ConnectionUpdateParams {
   name?: string | null;
 }
 
+export interface ConnectionListParams {
+  status?: 'approved' | 'pending' | 'all';
+}
+
+export interface ConnectionApproveSyncParams {
+  connection_id: string;
+}
+
+export interface ConnectionListSyncsParams {
+  limit?: number;
+
+  offset?: number;
+}
+
+export interface ConnectionRetrieveSyncStatusParams {
+  connection_id: string;
+}
+
+export interface ConnectionStreamSyncProgressParams {
+  connection_id: string;
+}
+
+export type ConnectionUpdateCredentialsParams =
+  | ConnectionUpdateCredentialsParams.PostgreSqlCredentialUpdate
+  | ConnectionUpdateCredentialsParams.SnowflakeCredentialUpdate
+  | ConnectionUpdateCredentialsParams.DatabricksCredentialUpdate
+  | ConnectionUpdateCredentialsParams.ClickHouseCredentialUpdate
+  | ConnectionUpdateCredentialsParams.MssqlCredentialUpdate;
+
+export declare namespace ConnectionUpdateCredentialsParams {
+  export interface PostgreSqlCredentialUpdate {
+    /**
+     * Database password
+     */
+    password: string;
+
+    /**
+     * Database username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'postgresql';
+  }
+
+  export interface SnowflakeCredentialUpdate {
+    /**
+     * Authentication credentials
+     */
+    auth:
+      | SnowflakeCredentialUpdate.SnowflakePasswordCredentialAuth
+      | SnowflakeCredentialUpdate.SnowflakePrivateKeyCredentialAuth;
+
+    /**
+     * Snowflake username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'snowflake';
+  }
+
+  export namespace SnowflakeCredentialUpdate {
+    /**
+     * Snowflake password auth for credential update.
+     */
+    export interface SnowflakePasswordCredentialAuth {
+      /**
+       * Authentication type
+       */
+      auth_type: 'password';
+
+      /**
+       * Snowflake password
+       */
+      password: string;
+    }
+
+    /**
+     * Snowflake private key auth for credential update.
+     */
+    export interface SnowflakePrivateKeyCredentialAuth {
+      /**
+       * Authentication type
+       */
+      auth_type: 'private_key';
+
+      /**
+       * PEM-encoded private key
+       */
+      private_key: string;
+    }
+  }
+
+  export interface DatabricksCredentialUpdate {
+    /**
+     * Databricks personal access token
+     */
+    access_token: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'databricks';
+  }
+
+  export interface ClickHouseCredentialUpdate {
+    /**
+     * ClickHouse password
+     */
+    password: string;
+
+    /**
+     * ClickHouse username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'clickhouse';
+  }
+
+  export interface MssqlCredentialUpdate {
+    /**
+     * SQL Server password
+     */
+    password: string;
+
+    /**
+     * SQL Server username
+     */
+    username: string;
+
+    /**
+     * Warehouse type
+     */
+    warehouse_type: 'mssql';
+  }
+}
+
 Connections.Databases = Databases;
+Connections.Views = Views;
+Connections.Yaml = Yaml;
 
 export declare namespace Connections {
   export {
     type Connection as Connection,
     type DatabaseConfig as DatabaseConfig,
     type ConnectionListResponse as ConnectionListResponse,
+    type ConnectionApproveSyncResponse as ConnectionApproveSyncResponse,
+    type ConnectionListSyncsResponse as ConnectionListSyncsResponse,
     type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
+    type ConnectionRetrieveSchemaResponse as ConnectionRetrieveSchemaResponse,
+    type ConnectionRetrieveSyncStatusResponse as ConnectionRetrieveSyncStatusResponse,
+    type ConnectionStreamSyncProgressResponse as ConnectionStreamSyncProgressResponse,
     type ConnectionSyncResponse as ConnectionSyncResponse,
+    type ConnectionUpdateCredentialsResponse as ConnectionUpdateCredentialsResponse,
     type ConnectionCreateParams as ConnectionCreateParams,
     type ConnectionUpdateParams as ConnectionUpdateParams,
+    type ConnectionListParams as ConnectionListParams,
+    type ConnectionApproveSyncParams as ConnectionApproveSyncParams,
+    type ConnectionListSyncsParams as ConnectionListSyncsParams,
+    type ConnectionRetrieveSyncStatusParams as ConnectionRetrieveSyncStatusParams,
+    type ConnectionStreamSyncProgressParams as ConnectionStreamSyncProgressParams,
+    type ConnectionUpdateCredentialsParams as ConnectionUpdateCredentialsParams,
   };
 
   export { Databases as Databases, type DatabaseDeleteSchemaParams as DatabaseDeleteSchemaParams };
+
+  export {
+    Views as Views,
+    type ViewRetrieveResponse as ViewRetrieveResponse,
+    type ViewListResponse as ViewListResponse,
+    type ViewRetrieveParams as ViewRetrieveParams,
+    type ViewListParams as ViewListParams,
+  };
+
+  export {
+    Yaml as Yaml,
+    type YamlRetrieveResponse as YamlRetrieveResponse,
+    type YamlCommitResponse as YamlCommitResponse,
+    type YamlCommitParams as YamlCommitParams,
+  };
 }

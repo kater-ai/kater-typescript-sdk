@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.0 (2026-02-08)
+
+Full Changelog: [v0.5.0...v0.6.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.5.0...v0.6.0)
+
+### Features
+
+* added patch connection and credentials ([d31b23d](https://github.com/kater-ai/kater-typescript-sdk/commit/d31b23d944eaa51605b8fe919f41206b9f8ed2ba))
+* **api,core:** simplify connection creation and fix migration chain ([3722095](https://github.com/kater-ai/kater-typescript-sdk/commit/3722095262172f002a115abf4bb92aa305f918ab))
+* Chore/cleanup connection models ([ad1de48](https://github.com/kater-ai/kater-typescript-sdk/commit/ad1de48330d768b5e77c9cc30f854548009d3bc5))
+* **core,api,web:** display real synced view files in schema sync UI ([5252191](https://github.com/kater-ai/kater-typescript-sdk/commit/525219102d58100bb200948e4215178214cc639b))
+* **core,api,web:** implement async schema sync with Hatchet workflow… ([bbe6a03](https://github.com/kater-ai/kater-typescript-sdk/commit/bbe6a03a89723826260fbb9a1009832760a8f571))
+* **core,api:** add PR approval flow for connection creation ([266457e](https://github.com/kater-ai/kater-typescript-sdk/commit/266457ed6d800744e7dfc0dfb8221b7600a12e54))
+* Feat/fix create connection fe ([b802264](https://github.com/kater-ai/kater-typescript-sdk/commit/b802264e5211c2d58ca341e81720fb3aa1ba6086))
+* **tenants:** serve tenant and group YAML from server-side schema en… ([767cfad](https://github.com/kater-ai/kater-typescript-sdk/commit/767cfad86502a1da6b6b2de53b93391f418c396d))
+
+
+### Bug Fixes
+
+* **client:** avoid memory leak with abort signals ([0765d30](https://github.com/kater-ai/kater-typescript-sdk/commit/0765d3065f3e41b5500ac473f075e87bf40a69fe))
+* **client:** avoid removing abort listener too early ([c6694e5](https://github.com/kater-ai/kater-typescript-sdk/commit/c6694e50ccc14fb5ec4ec6647ded084fbea00f80))
+
+
+### Chores
+
+* **client:** do not parse responses with empty content-length ([c3a889b](https://github.com/kater-ai/kater-typescript-sdk/commit/c3a889bf4ed4f9297cc210eb9aec68e942884c9d))
+* **client:** restructure abort controller binding ([7d309ba](https://github.com/kater-ai/kater-typescript-sdk/commit/7d309ba7880aa633110e45ba96eb6fce12d2cd6a))
+* **internal:** upgrade pnpm ([d636fa2](https://github.com/kater-ai/kater-typescript-sdk/commit/d636fa295af7a2074bf4257532be958b1868931c))
+
 ## 0.5.0 (2026-01-29)
 
 Full Changelog: [v0.4.0...v0.5.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.4.0...v0.5.0)

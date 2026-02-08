@@ -7,24 +7,61 @@ Types:
 - <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">DatabaseConfig</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionApproveSyncResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListSyncsResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveCredentialResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveSchemaResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveSyncStatusResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionStreamSyncProgressResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionSyncResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionUpdateCredentialsResponse</a></code>
 
 Methods:
 
 - <code title="post /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">create</a>({ ...params }) -> Connection</code>
 - <code title="get /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieve</a>(connectionID) -> Connection</code>
 - <code title="patch /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">update</a>(connectionID, { ...params }) -> Connection</code>
-- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">list</a>() -> ConnectionListResponse</code>
+- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">list</a>({ ...params }) -> ConnectionListResponse</code>
 - <code title="delete /api/v1/connections/{connection_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">delete</a>(connectionID) -> void</code>
+- <code title="post /api/v1/connections/{connection_id}/approve">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">approve</a>(connectionID) -> Connection</code>
+- <code title="post /api/v1/connections/{connection_id}/sync/{sync_id}/approve">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">approveSync</a>(syncID, { ...params }) -> ConnectionApproveSyncResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">listSyncs</a>(connectionID, { ...params }) -> ConnectionListSyncsResponse</code>
 - <code title="get /api/v1/connections/{connection_id}/credential">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveCredential</a>(connectionID) -> ConnectionRetrieveCredentialResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/schema">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveSchema</a>(connectionID) -> ConnectionRetrieveSchemaResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveSyncStatus</a>(syncID, { ...params }) -> ConnectionRetrieveSyncStatusResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/stream">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">streamSyncProgress</a>(syncID, { ...params }) -> unknown</code>
 - <code title="post /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">sync</a>(connectionID) -> ConnectionSyncResponse</code>
+- <code title="patch /api/v1/connections/{connection_id}/credentials">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">updateCredentials</a>(connectionID, { ...params }) -> ConnectionUpdateCredentialsResponse</code>
 
 ### Databases
 
 Methods:
 
 - <code title="delete /api/v1/connections/{connection_id}/databases/{database_id}/schemas/{schema_id}">client.v1.connections.databases.<a href="./src/resources/v1/connections/databases.ts">deleteSchema</a>(schemaID, { ...params }) -> void</code>
+
+### Views
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/views.ts">ViewRetrieveResponse</a></code>
+- <code><a href="./src/resources/v1/connections/views.ts">ViewListResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/views/{file_name}">client.v1.connections.views.<a href="./src/resources/v1/connections/views.ts">retrieve</a>(fileName, { ...params }) -> ViewRetrieveResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/views">client.v1.connections.views.<a href="./src/resources/v1/connections/views.ts">list</a>(syncID, { ...params }) -> ViewListResponse</code>
+
+### Yaml
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/yaml.ts">YamlRetrieveResponse</a></code>
+- <code><a href="./src/resources/v1/connections/yaml.ts">YamlCommitResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">retrieve</a>(connectionID) -> YamlRetrieveResponse</code>
+- <code title="post /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">commit</a>(connectionID, { ...params }) -> YamlCommitResponse</code>
 
 ## GitHub
 
@@ -149,6 +186,7 @@ Types:
 - <code><a href="./src/resources/v1/tenants/tenants.ts">CreateTenant</a></code>
 - <code><a href="./src/resources/v1/tenants/tenants.ts">Tenant</a></code>
 - <code><a href="./src/resources/v1/tenants/tenants.ts">TenantListResponse</a></code>
+- <code><a href="./src/resources/v1/tenants/tenants.ts">TenantRetrieveSchemaResponse</a></code>
 
 Methods:
 
@@ -157,6 +195,7 @@ Methods:
 - <code title="patch /api/v1/tenants/{tenant_id}">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">update</a>(tenantID, { ...params }) -> Tenant</code>
 - <code title="get /api/v1/tenants">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">list</a>() -> TenantListResponse</code>
 - <code title="delete /api/v1/tenants/{tenant_id}">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">delete</a>(tenantID) -> void</code>
+- <code title="get /api/v1/tenants/schema">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">retrieveSchema</a>() -> TenantRetrieveSchemaResponse</code>
 
 ### Batch
 
@@ -184,6 +223,16 @@ Methods:
 
 - <code title="post /api/v1/tenants/import/csv">client.v1.tenants.import.<a href="./src/resources/v1/tenants/import.ts">fromCsv</a>({ ...params }) -> ImportTenants</code>
 - <code title="post /api/v1/tenants/import/warehouse">client.v1.tenants.import.<a href="./src/resources/v1/tenants/import.ts">fromWarehouse</a>({ ...params }) -> ImportTenants</code>
+
+### Groups
+
+Types:
+
+- <code><a href="./src/resources/v1/tenants/groups.ts">GroupRetrieveSchemaResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/tenants/groups/schema">client.v1.tenants.groups.<a href="./src/resources/v1/tenants/groups.ts">retrieveSchema</a>() -> GroupRetrieveSchemaResponse</code>
 
 # Healthz
 

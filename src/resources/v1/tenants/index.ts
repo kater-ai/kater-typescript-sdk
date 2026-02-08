@@ -11,6 +11,7 @@ export {
   type BatchUpdateParams,
   type BatchDeleteParams,
 } from './batch';
+export { Groups, type GroupRetrieveSchemaResponse } from './groups';
 export {
   Import,
   type ImportTenants,
@@ -22,6 +23,7 @@ export {
   type CreateTenant,
   type Tenant,
   type TenantListResponse,
+  type TenantRetrieveSchemaResponse,
   type TenantCreateParams,
   type TenantUpdateParams,
 } from './tenants';
