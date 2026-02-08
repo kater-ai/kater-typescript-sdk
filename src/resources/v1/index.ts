@@ -12,6 +12,7 @@ export {
   type ConnectionRetrieveSyncStatusResponse,
   type ConnectionStreamSyncProgressResponse,
   type ConnectionSyncResponse,
+  type ConnectionUpdateCredentialsResponse,
   type ConnectionCreateParams,
   type ConnectionUpdateParams,
   type ConnectionListParams,
@@ -19,6 +20,7 @@ export {
   type ConnectionListSyncsParams,
   type ConnectionRetrieveSyncStatusParams,
   type ConnectionStreamSyncProgressParams,
+  type ConnectionUpdateCredentialsParams,
 } from './connections/index';
 export {
   GitHub,

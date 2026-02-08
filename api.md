@@ -14,6 +14,7 @@ Types:
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionRetrieveSyncStatusResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionStreamSyncProgressResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionSyncResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionUpdateCredentialsResponse</a></code>
 
 Methods:
 
@@ -30,6 +31,7 @@ Methods:
 - <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">retrieveSyncStatus</a>(syncID, { ...params }) -> ConnectionRetrieveSyncStatusResponse</code>
 - <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/stream">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">streamSyncProgress</a>(syncID, { ...params }) -> unknown</code>
 - <code title="post /api/v1/connections/{connection_id}/sync">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">sync</a>(connectionID) -> ConnectionSyncResponse</code>
+- <code title="patch /api/v1/connections/{connection_id}/credentials">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">updateCredentials</a>(connectionID, { ...params }) -> ConnectionUpdateCredentialsResponse</code>
 
 ### Databases
 
@@ -48,6 +50,18 @@ Methods:
 
 - <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/views/{file_name}">client.v1.connections.views.<a href="./src/resources/v1/connections/views.ts">retrieve</a>(fileName, { ...params }) -> ViewRetrieveResponse</code>
 - <code title="get /api/v1/connections/{connection_id}/sync/{sync_id}/views">client.v1.connections.views.<a href="./src/resources/v1/connections/views.ts">list</a>(syncID, { ...params }) -> ViewListResponse</code>
+
+### Yaml
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/yaml.ts">YamlCommitYamlResponse</a></code>
+- <code><a href="./src/resources/v1/connections/yaml.ts">YamlRetrieveYamlResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">commitYaml</a>(connectionID, { ...params }) -> YamlCommitYamlResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">retrieveYaml</a>(connectionID) -> YamlRetrieveYamlResponse</code>
 
 ## GitHub
 

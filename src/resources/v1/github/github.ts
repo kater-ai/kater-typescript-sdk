@@ -83,6 +83,14 @@ export interface GitHubGetStatusResponse {
 
   repository?: string | null;
 
+  scaffolding_pr_author?: string | null;
+
+  scaffolding_pr_created_at?: string | null;
+
+  scaffolding_pr_state?: string | null;
+
+  scaffolding_pr_title?: string | null;
+
   scaffolding_pr_url?: string | null;
 
   scaffolding_status?: string | null;
