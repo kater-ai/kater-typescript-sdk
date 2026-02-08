@@ -55,13 +55,13 @@ Methods:
 
 Types:
 
-- <code><a href="./src/resources/v1/connections/yaml.ts">YamlCommitYamlResponse</a></code>
-- <code><a href="./src/resources/v1/connections/yaml.ts">YamlRetrieveYamlResponse</a></code>
+- <code><a href="./src/resources/v1/connections/yaml.ts">YamlRetrieveResponse</a></code>
+- <code><a href="./src/resources/v1/connections/yaml.ts">YamlCommitResponse</a></code>
 
 Methods:
 
-- <code title="post /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">commitYaml</a>(connectionID, { ...params }) -> YamlCommitYamlResponse</code>
-- <code title="get /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">retrieveYaml</a>(connectionID) -> YamlRetrieveYamlResponse</code>
+- <code title="get /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">retrieve</a>(connectionID) -> YamlRetrieveResponse</code>
+- <code title="post /api/v1/connections/{connection_id}/yaml">client.v1.connections.yaml.<a href="./src/resources/v1/connections/yaml.ts">commit</a>(connectionID, { ...params }) -> YamlCommitResponse</code>
 
 ## GitHub
 
@@ -186,6 +186,7 @@ Types:
 - <code><a href="./src/resources/v1/tenants/tenants.ts">CreateTenant</a></code>
 - <code><a href="./src/resources/v1/tenants/tenants.ts">Tenant</a></code>
 - <code><a href="./src/resources/v1/tenants/tenants.ts">TenantListResponse</a></code>
+- <code><a href="./src/resources/v1/tenants/tenants.ts">TenantRetrieveSchemaResponse</a></code>
 
 Methods:
 
@@ -194,6 +195,7 @@ Methods:
 - <code title="patch /api/v1/tenants/{tenant_id}">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">update</a>(tenantID, { ...params }) -> Tenant</code>
 - <code title="get /api/v1/tenants">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">list</a>() -> TenantListResponse</code>
 - <code title="delete /api/v1/tenants/{tenant_id}">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">delete</a>(tenantID) -> void</code>
+- <code title="get /api/v1/tenants/schema">client.v1.tenants.<a href="./src/resources/v1/tenants/tenants.ts">retrieveSchema</a>() -> TenantRetrieveSchemaResponse</code>
 
 ### Batch
 
@@ -221,6 +223,16 @@ Methods:
 
 - <code title="post /api/v1/tenants/import/csv">client.v1.tenants.import.<a href="./src/resources/v1/tenants/import.ts">fromCsv</a>({ ...params }) -> ImportTenants</code>
 - <code title="post /api/v1/tenants/import/warehouse">client.v1.tenants.import.<a href="./src/resources/v1/tenants/import.ts">fromWarehouse</a>({ ...params }) -> ImportTenants</code>
+
+### Groups
+
+Types:
+
+- <code><a href="./src/resources/v1/tenants/groups.ts">GroupRetrieveSchemaResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/tenants/groups/schema">client.v1.tenants.groups.<a href="./src/resources/v1/tenants/groups.ts">retrieveSchema</a>() -> GroupRetrieveSchemaResponse</code>
 
 # Healthz
 

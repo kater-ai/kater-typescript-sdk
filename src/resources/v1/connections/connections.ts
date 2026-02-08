@@ -6,7 +6,7 @@ import { DatabaseDeleteSchemaParams, Databases } from './databases';
 import * as ViewsAPI from './views';
 import { ViewListParams, ViewListResponse, ViewRetrieveParams, ViewRetrieveResponse, Views } from './views';
 import * as YamlAPI from './yaml';
-import { Yaml, YamlCommitYamlParams, YamlCommitYamlResponse, YamlRetrieveYamlResponse } from './yaml';
+import { Yaml, YamlCommitParams, YamlCommitResponse, YamlRetrieveResponse } from './yaml';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -1898,8 +1898,8 @@ export declare namespace Connections {
 
   export {
     Yaml as Yaml,
-    type YamlCommitYamlResponse as YamlCommitYamlResponse,
-    type YamlRetrieveYamlResponse as YamlRetrieveYamlResponse,
-    type YamlCommitYamlParams as YamlCommitYamlParams,
+    type YamlRetrieveResponse as YamlRetrieveResponse,
+    type YamlCommitResponse as YamlCommitResponse,
+    type YamlCommitParams as YamlCommitParams,
   };
 }
