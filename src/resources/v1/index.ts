@@ -45,6 +45,7 @@ export {
   type CreateTenant,
   type Tenant,
   type TenantListResponse,
+  type TenantRetrieveSchemaResponse,
   type TenantCreateParams,
   type TenantUpdateParams,
 } from './tenants/index';

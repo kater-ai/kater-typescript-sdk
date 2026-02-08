@@ -7,28 +7,43 @@ import { path } from '../../../internal/utils/path';
 
 export class Yaml extends APIResource {
   /**
-   * Commit updated YAML to a new branch and create a PR.
+   * Read connection.yaml from the main branch of the repo.
    */
-  commitYaml(
-    connectionID: string,
-    body: YamlCommitYamlParams,
-    options?: RequestOptions,
-  ): APIPromise<YamlCommitYamlResponse> {
-    return this._client.post(path`/api/v1/connections/${connectionID}/yaml`, { body, ...options });
+  retrieve(connectionID: string, options?: RequestOptions): APIPromise<YamlRetrieveResponse> {
+    return this._client.get(path`/api/v1/connections/${connectionID}/yaml`, options);
   }
 
   /**
-   * Read connection.yaml from the main branch of the repo.
+   * Commit updated YAML to a new branch and create a PR.
    */
-  retrieveYaml(connectionID: string, options?: RequestOptions): APIPromise<YamlRetrieveYamlResponse> {
-    return this._client.get(path`/api/v1/connections/${connectionID}/yaml`, options);
+  commit(
+    connectionID: string,
+    body: YamlCommitParams,
+    options?: RequestOptions,
+  ): APIPromise<YamlCommitResponse> {
+    return this._client.post(path`/api/v1/connections/${connectionID}/yaml`, { body, ...options });
   }
+}
+
+/**
+ * Response for reading connection.yaml from repo.
+ */
+export interface YamlRetrieveResponse {
+  /**
+   * Folder name in the repo (e.g. 'prod_db_connection')
+   */
+  folder_name: string;
+
+  /**
+   * Raw YAML content of connection.yaml
+   */
+  yaml_content: string;
 }
 
 /**
  * Response for YAML commit endpoint.
  */
-export interface YamlCommitYamlResponse {
+export interface YamlCommitResponse {
   /**
    * Whether the PR was auto-merged
    */
@@ -45,22 +60,7 @@ export interface YamlCommitYamlResponse {
   pr_url: string;
 }
 
-/**
- * Response for reading connection.yaml from repo.
- */
-export interface YamlRetrieveYamlResponse {
-  /**
-   * Folder name in the repo (e.g. 'prod_db_connection')
-   */
-  folder_name: string;
-
-  /**
-   * Raw YAML content of connection.yaml
-   */
-  yaml_content: string;
-}
-
-export interface YamlCommitYamlParams {
+export interface YamlCommitParams {
   /**
    * Updated YAML content
    */
@@ -74,8 +74,8 @@ export interface YamlCommitYamlParams {
 
 export declare namespace Yaml {
   export {
-    type YamlCommitYamlResponse as YamlCommitYamlResponse,
-    type YamlRetrieveYamlResponse as YamlRetrieveYamlResponse,
-    type YamlCommitYamlParams as YamlCommitYamlParams,
+    type YamlRetrieveResponse as YamlRetrieveResponse,
+    type YamlCommitResponse as YamlCommitResponse,
+    type YamlCommitParams as YamlCommitParams,
   };
 }

@@ -30,9 +30,4 @@ export {
   type ViewRetrieveParams,
   type ViewListParams,
 } from './views';
-export {
-  Yaml,
-  type YamlCommitYamlResponse,
-  type YamlRetrieveYamlResponse,
-  type YamlCommitYamlParams,
-} from './yaml';
+export { Yaml, type YamlRetrieveResponse, type YamlCommitResponse, type YamlCommitParams } from './yaml';

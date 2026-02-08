@@ -52,6 +52,7 @@ import {
   Tenant,
   TenantCreateParams,
   TenantListResponse,
+  TenantRetrieveSchemaResponse,
   TenantUpdateParams,
   Tenants,
 } from './tenants/tenants';
@@ -123,6 +124,7 @@ export declare namespace V1 {
     type CreateTenant as CreateTenant,
     type Tenant as Tenant,
     type TenantListResponse as TenantListResponse,
+    type TenantRetrieveSchemaResponse as TenantRetrieveSchemaResponse,
     type TenantCreateParams as TenantCreateParams,
     type TenantUpdateParams as TenantUpdateParams,
   };

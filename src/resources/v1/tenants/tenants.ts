@@ -13,6 +13,8 @@ import {
   BatchUpdateParams,
   BatchUpdateResponse,
 } from './batch';
+import * as GroupsAPI from './groups';
+import { GroupRetrieveSchemaResponse, Groups } from './groups';
 import * as ImportAPI from './import';
 import { Import, ImportFromCsvParams, ImportFromWarehouseParams, ImportTenants } from './import';
 import { APIPromise } from '../../../core/api-promise';
@@ -23,6 +25,7 @@ import { path } from '../../../internal/utils/path';
 export class Tenants extends APIResource {
   batch: BatchAPI.Batch = new BatchAPI.Batch(this._client);
   import: ImportAPI.Import = new ImportAPI.Import(this._client);
+  groups: GroupsAPI.Groups = new GroupsAPI.Groups(this._client);
 
   /**
    * Create a new tenant.
@@ -101,6 +104,19 @@ export class Tenants extends APIResource {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
+  }
+
+  /**
+   * Get all tenants as a TenantSchema object.
+   *
+   * Returns tenants in the YAML-compatible schema format with group references.
+   * Supports content negotiation: JSON by default, YAML with Accept:
+   * application/yaml.
+   *
+   * RLS: Filtered to current client (ClientRLSDB).
+   */
+  retrieveSchema(options?: RequestOptions): APIPromise<TenantRetrieveSchemaResponse> {
+    return this._client.get('/api/v1/tenants/schema', options);
   }
 }
 
@@ -208,6 +224,40 @@ export namespace Tenant {
 
 export type TenantListResponse = Array<Tenant>;
 
+/**
+ * Schema for tenant configuration files
+ */
+export interface TenantRetrieveSchemaResponse {
+  /**
+   * Array of tenant configurations
+   */
+  tenants: Array<TenantRetrieveSchemaResponse.Tenant>;
+}
+
+export namespace TenantRetrieveSchemaResponse {
+  export interface Tenant {
+    /**
+     * Unique Kater identifier
+     */
+    kater_id: string;
+
+    /**
+     * Unique key identifier for the tenant (e.g., 'acme_corp')
+     */
+    tenant_key: string;
+
+    /**
+     * References to tenant groups this tenant belongs to
+     */
+    groups?: Array<string> | null;
+
+    /**
+     * Human-readable display name for the tenant
+     */
+    name?: string | null;
+  }
+}
+
 export interface TenantCreateParams {
   /**
    * Unique tenant identifier within the client
@@ -259,12 +309,14 @@ export interface TenantUpdateParams {
 
 Tenants.Batch = Batch;
 Tenants.Import = Import;
+Tenants.Groups = Groups;
 
 export declare namespace Tenants {
   export {
     type CreateTenant as CreateTenant,
     type Tenant as Tenant,
     type TenantListResponse as TenantListResponse,
+    type TenantRetrieveSchemaResponse as TenantRetrieveSchemaResponse,
     type TenantCreateParams as TenantCreateParams,
     type TenantUpdateParams as TenantUpdateParams,
   };
@@ -287,4 +339,6 @@ export declare namespace Tenants {
     type ImportFromCsvParams as ImportFromCsvParams,
     type ImportFromWarehouseParams as ImportFromWarehouseParams,
   };
+
+  export { Groups as Groups, type GroupRetrieveSchemaResponse as GroupRetrieveSchemaResponse };
 }
