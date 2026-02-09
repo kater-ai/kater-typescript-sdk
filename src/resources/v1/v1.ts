@@ -25,6 +25,7 @@ import {
   ConnectionUpdateParams,
   Connections,
   DatabaseConfig,
+  SyncEventResponse,
 } from './connections/connections';
 import * as GitHubAPI from './github/github';
 import {
@@ -78,6 +79,7 @@ export declare namespace V1 {
     Connections as Connections,
     type Connection as Connection,
     type DatabaseConfig as DatabaseConfig,
+    type SyncEventResponse as SyncEventResponse,
     type ConnectionListResponse as ConnectionListResponse,
     type ConnectionApproveSyncResponse as ConnectionApproveSyncResponse,
     type ConnectionListSyncsResponse as ConnectionListSyncsResponse,

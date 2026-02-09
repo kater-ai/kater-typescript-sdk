@@ -1,6 +1,7 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../../core/resource';
+import * as ConnectionsAPI from './connections';
 import * as DatabasesAPI from './databases';
 import { DatabaseDeleteSchemaParams, Databases } from './databases';
 import * as ViewsAPI from './views';
@@ -490,6 +491,41 @@ export namespace DatabaseConfig {
   }
 }
 
+/**
+ * Response model for a single sync event.
+ */
+export interface SyncEventResponse {
+  /**
+   * Event ID
+   */
+  id: string;
+
+  /**
+   * Event timestamp
+   */
+  created_at: string;
+
+  /**
+   * Event type: step_started, step_completed, progress, warning, error
+   */
+  event_type: string;
+
+  /**
+   * Human-readable event message
+   */
+  message: string;
+
+  /**
+   * Additional event data
+   */
+  metadata?: { [key: string]: unknown };
+
+  /**
+   * Step name if applicable
+   */
+  step_name?: string | null;
+}
+
 export type ConnectionListResponse = Array<Connection>;
 
 /**
@@ -536,7 +572,7 @@ export interface ConnectionApproveSyncResponse {
   /**
    * Sync event history
    */
-  events?: Array<ConnectionApproveSyncResponse.Event>;
+  events?: Array<SyncEventResponse>;
 
   /**
    * Hatchet workflow run ID
@@ -582,43 +618,6 @@ export interface ConnectionApproveSyncResponse {
    * Number of views updated (dimension changes or renames)
    */
   views_updated?: number | null;
-}
-
-export namespace ConnectionApproveSyncResponse {
-  /**
-   * Response model for a single sync event.
-   */
-  export interface Event {
-    /**
-     * Event ID
-     */
-    id: string;
-
-    /**
-     * Event timestamp
-     */
-    created_at: string;
-
-    /**
-     * Event type: step_started, step_completed, progress, warning, error
-     */
-    event_type: string;
-
-    /**
-     * Human-readable event message
-     */
-    message: string;
-
-    /**
-     * Additional event data
-     */
-    metadata?: { [key: string]: unknown };
-
-    /**
-     * Step name if applicable
-     */
-    step_name?: string | null;
-  }
 }
 
 export type ConnectionListSyncsResponse = Array<ConnectionListSyncsResponse.ConnectionListSyncsResponseItem>;
@@ -668,7 +667,7 @@ export namespace ConnectionListSyncsResponse {
     /**
      * Sync event history
      */
-    events?: Array<ConnectionListSyncsResponseItem.Event>;
+    events?: Array<ConnectionsAPI.SyncEventResponse>;
 
     /**
      * Hatchet workflow run ID
@@ -714,43 +713,6 @@ export namespace ConnectionListSyncsResponse {
      * Number of views updated (dimension changes or renames)
      */
     views_updated?: number | null;
-  }
-
-  export namespace ConnectionListSyncsResponseItem {
-    /**
-     * Response model for a single sync event.
-     */
-    export interface Event {
-      /**
-       * Event ID
-       */
-      id: string;
-
-      /**
-       * Event timestamp
-       */
-      created_at: string;
-
-      /**
-       * Event type: step_started, step_completed, progress, warning, error
-       */
-      event_type: string;
-
-      /**
-       * Human-readable event message
-       */
-      message: string;
-
-      /**
-       * Additional event data
-       */
-      metadata?: { [key: string]: unknown };
-
-      /**
-       * Step name if applicable
-       */
-      step_name?: string | null;
-    }
   }
 }
 
@@ -1242,7 +1204,7 @@ export interface ConnectionRetrieveSyncStatusResponse {
   /**
    * Sync event history
    */
-  events?: Array<ConnectionRetrieveSyncStatusResponse.Event>;
+  events?: Array<SyncEventResponse>;
 
   /**
    * Hatchet workflow run ID
@@ -1288,43 +1250,6 @@ export interface ConnectionRetrieveSyncStatusResponse {
    * Number of views updated (dimension changes or renames)
    */
   views_updated?: number | null;
-}
-
-export namespace ConnectionRetrieveSyncStatusResponse {
-  /**
-   * Response model for a single sync event.
-   */
-  export interface Event {
-    /**
-     * Event ID
-     */
-    id: string;
-
-    /**
-     * Event timestamp
-     */
-    created_at: string;
-
-    /**
-     * Event type: step_started, step_completed, progress, warning, error
-     */
-    event_type: string;
-
-    /**
-     * Human-readable event message
-     */
-    message: string;
-
-    /**
-     * Additional event data
-     */
-    metadata?: { [key: string]: unknown };
-
-    /**
-     * Step name if applicable
-     */
-    step_name?: string | null;
-  }
 }
 
 export type ConnectionStreamSyncProgressResponse = unknown;
@@ -1867,6 +1792,7 @@ export declare namespace Connections {
   export {
     type Connection as Connection,
     type DatabaseConfig as DatabaseConfig,
+    type SyncEventResponse as SyncEventResponse,
     type ConnectionListResponse as ConnectionListResponse,
     type ConnectionApproveSyncResponse as ConnectionApproveSyncResponse,
     type ConnectionListSyncsResponse as ConnectionListSyncsResponse,
