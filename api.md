@@ -6,6 +6,7 @@ Types:
 
 - <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">DatabaseConfig</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">SyncEventResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionApproveSyncResponse</a></code>
 - <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListSyncsResponse</a></code>

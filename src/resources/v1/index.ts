@@ -4,6 +4,7 @@ export {
   Connections,
   type Connection,
   type DatabaseConfig,
+  type SyncEventResponse,
   type ConnectionListResponse,
   type ConnectionApproveSyncResponse,
   type ConnectionListSyncsResponse,
