@@ -25,12 +25,32 @@ Methods:
 
 Types:
 
-- <code><a href="./src/resources/v1/connections.ts">Connection</a></code>
-- <code><a href="./src/resources/v1/connections.ts">ConnectionListConnectionsResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListConnectionsResponse</a></code>
 
 Methods:
 
-- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
+- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
+
+### Tenants
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/tenants/tenants.ts">TenantRetrieveSchemaResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/tenants/schema">client.v1.connections.tenants.<a href="./src/resources/v1/connections/tenants/tenants.ts">retrieveSchema</a>() -> TenantRetrieveSchemaResponse</code>
+
+#### Groups
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/tenants/groups.ts">GroupRetrieveSchemaResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/tenants/groups/schema">client.v1.connections.tenants.groups.<a href="./src/resources/v1/connections/tenants/groups.ts">retrieveSchema</a>() -> GroupRetrieveSchemaResponse</code>
 
 ## Tenants
 
