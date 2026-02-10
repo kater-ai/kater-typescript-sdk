@@ -8,7 +8,8 @@ export {
 } from './connections';
 export {
   Tenants,
+  type ImportTenantsResponse,
   type TenantImportFromCsvParams,
   type TenantImportFromWarehouseParams,
-} from './tenants/index';
+} from './tenants';
 export { V1 } from './v1';
