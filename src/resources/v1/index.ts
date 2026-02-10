@@ -5,7 +5,7 @@ export {
   type Connection,
   type ConnectionListConnectionsResponse,
   type ConnectionListConnectionsParams,
-} from './connections';
+} from './connections/index';
 export {
   Tenants,
   type ImportTenantsResponse,
