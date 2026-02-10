@@ -8,8 +8,13 @@ import {
   ConnectionListConnectionsResponse,
   Connections,
 } from './connections';
-import * as TenantsAPI from './tenants/tenants';
-import { TenantImportFromCsvParams, TenantImportFromWarehouseParams, Tenants } from './tenants/tenants';
+import * as TenantsAPI from './tenants';
+import {
+  ImportTenantsResponse,
+  TenantImportFromCsvParams,
+  TenantImportFromWarehouseParams,
+  Tenants,
+} from './tenants';
 
 export class V1 extends APIResource {
   connections: ConnectionsAPI.Connections = new ConnectionsAPI.Connections(this._client);
@@ -29,6 +34,7 @@ export declare namespace V1 {
 
   export {
     Tenants as Tenants,
+    type ImportTenantsResponse as ImportTenantsResponse,
     type TenantImportFromCsvParams as TenantImportFromCsvParams,
     type TenantImportFromWarehouseParams as TenantImportFromWarehouseParams,
   };
