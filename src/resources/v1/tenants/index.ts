@@ -1,7 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 export { Batch, type BatchTenantError, type BatchTenantSuccess } from './batch';
-export { Groups } from './groups';
 export {
   Import,
   type ImportTenants,
