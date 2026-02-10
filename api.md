@@ -4,12 +4,26 @@
 
 Types:
 
-- <code><a href="./src/resources/v1/connections.ts">Connection</a></code>
-- <code><a href="./src/resources/v1/connections.ts">ConnectionListConnectionsResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListConnectionsResponse</a></code>
 
 Methods:
 
-- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
+- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
+
+### Compiler
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/compiler.ts">CompilerCompileResponse</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">CompilerResolveResponse</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">CompilerValidateResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/compiler/compile">client.v1.connections.compiler.<a href="./src/resources/v1/connections/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
+- <code title="post /api/v1/compiler/resolve">client.v1.connections.compiler.<a href="./src/resources/v1/connections/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
+- <code title="post /api/v1/compiler/validate">client.v1.connections.compiler.<a href="./src/resources/v1/connections/compiler.ts">validate</a>({ ...params }) -> CompilerValidateResponse</code>
 
 ## Tenants
 

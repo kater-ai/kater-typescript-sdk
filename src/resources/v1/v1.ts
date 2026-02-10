@@ -1,13 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
-import * as ConnectionsAPI from './connections';
-import {
-  Connection,
-  ConnectionListConnectionsParams,
-  ConnectionListConnectionsResponse,
-  Connections,
-} from './connections';
 import * as TenantsAPI from './tenants';
 import {
   ImportTenantsResponse,
@@ -15,6 +8,13 @@ import {
   TenantImportFromWarehouseParams,
   Tenants,
 } from './tenants';
+import * as ConnectionsAPI from './connections/connections';
+import {
+  Connection,
+  ConnectionListConnectionsParams,
+  ConnectionListConnectionsResponse,
+  Connections,
+} from './connections/connections';
 
 export class V1 extends APIResource {
   connections: ConnectionsAPI.Connections = new ConnectionsAPI.Connections(this._client);
