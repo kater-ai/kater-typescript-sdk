@@ -35,12 +35,3 @@ jobs:
       - name: Publish to NPM
         run: |
           bash ./bin/publish-npm
-
-      - name: Trigger docs sync
-        if: success()
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.DOCS_REPO_TOKEN }}
-          repository: kater-ai/kater
-          event-type: sdk-docs-updated
-          client-payload: '{"sdk": "typescript", "version": "${{ github.ref_name }}"}'

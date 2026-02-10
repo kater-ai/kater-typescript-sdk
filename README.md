@@ -4,7 +4,7 @@
 
 This library provides convenient access to the Kater REST API from server-side TypeScript or JavaScript.
 
-The full API of this library can be found in [api.md](api.md).
+The REST API documentation can be found on [kater.ai](https://kater.ai). The full API of this library can be found in [api.md](api.md).
 
 It is generated with [Stainless](https://www.stainless.com/).
 
@@ -22,9 +22,11 @@ The full API of this library can be found in [api.md](api.md).
 ```js
 import Kater from '@katerai/sdk';
 
-const client = new Kater();
+const client = new Kater({
+  authToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
+});
 
-const connections = await client.v1.connections.list();
+const connections = await client.v1.connections.listConnections();
 ```
 
 ### Request & Response types
@@ -35,9 +37,12 @@ This library includes TypeScript definitions for all request params and response
 ```ts
 import Kater from '@katerai/sdk';
 
-const client = new Kater();
+const client = new Kater({
+  authToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
+});
 
-const connections: Kater.V1.ConnectionListResponse = await client.v1.connections.list();
+const connections: Kater.V1.ConnectionListConnectionsResponse =
+  await client.v1.connections.listConnections();
 ```
 
 Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
@@ -58,17 +63,17 @@ import Kater, { toFile } from '@katerai/sdk';
 const client = new Kater();
 
 // If you have access to Node `fs` we recommend using `fs.createReadStream()`:
-await client.v1.tenants.import.fromCsv({ file: fs.createReadStream('/path/to/file') });
+await client.v1.tenants.importFromCsv({ file: fs.createReadStream('/path/to/file') });
 
 // Or if you have the web `File` API you can pass a `File` instance:
-await client.v1.tenants.import.fromCsv({ file: new File(['my bytes'], 'file') });
+await client.v1.tenants.importFromCsv({ file: new File(['my bytes'], 'file') });
 
 // You can also pass a `fetch` `Response`:
-await client.v1.tenants.import.fromCsv({ file: await fetch('https://somesite/file') });
+await client.v1.tenants.importFromCsv({ file: await fetch('https://somesite/file') });
 
 // Finally, if none of the above are convenient, you can use our `toFile` helper:
-await client.v1.tenants.import.fromCsv({ file: await toFile(Buffer.from('my bytes'), 'file') });
-await client.v1.tenants.import.fromCsv({ file: await toFile(new Uint8Array([0, 1, 2]), 'file') });
+await client.v1.tenants.importFromCsv({ file: await toFile(Buffer.from('my bytes'), 'file') });
+await client.v1.tenants.importFromCsv({ file: await toFile(new Uint8Array([0, 1, 2]), 'file') });
 ```
 
 ## Handling errors
@@ -79,7 +84,7 @@ a subclass of `APIError` will be thrown:
 
 <!-- prettier-ignore -->
 ```ts
-const connections = await client.v1.connections.list().catch(async (err) => {
+const connections = await client.v1.connections.listConnections().catch(async (err) => {
   if (err instanceof Kater.APIError) {
     console.log(err.status); // 400
     console.log(err.name); // BadRequestError
@@ -119,7 +124,7 @@ const client = new Kater({
 });
 
 // Or, configure per-request:
-await client.v1.connections.list({
+await client.v1.connections.listConnections({
   maxRetries: 5,
 });
 ```
@@ -136,7 +141,7 @@ const client = new Kater({
 });
 
 // Override per-request:
-await client.v1.connections.list({
+await client.v1.connections.listConnections({
   timeout: 5 * 1000,
 });
 ```
@@ -159,11 +164,13 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 ```ts
 const client = new Kater();
 
-const response = await client.v1.connections.list().asResponse();
+const response = await client.v1.connections.listConnections().asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
-const { data: connections, response: raw } = await client.v1.connections.list().withResponse();
+const { data: connections, response: raw } = await client.v1.connections
+  .listConnections()
+  .withResponse();
 console.log(raw.headers.get('X-My-Header'));
 console.log(connections);
 ```
@@ -245,7 +252,7 @@ parameter. This library doesn't validate at runtime that the request matches the
 send will be sent as-is.
 
 ```ts
-client.v1.connections.list({
+client.v1.connections.listConnections({
   // ...
   // @ts-expect-error baz is not yet public
   baz: 'undocumented option',

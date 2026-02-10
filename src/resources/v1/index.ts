@@ -3,50 +3,13 @@
 export {
   Connections,
   type Connection,
-  type DatabaseConfig,
-  type ConnectionListResponse,
-  type ConnectionApproveSyncResponse,
-  type ConnectionListSyncsResponse,
-  type ConnectionRetrieveCredentialResponse,
-  type ConnectionRetrieveSchemaResponse,
-  type ConnectionRetrieveSyncStatusResponse,
-  type ConnectionStreamSyncProgressResponse,
-  type ConnectionSyncResponse,
-  type ConnectionUpdateCredentialsResponse,
-  type ConnectionCreateParams,
-  type ConnectionUpdateParams,
-  type ConnectionListParams,
-  type ConnectionApproveSyncParams,
-  type ConnectionListSyncsParams,
-  type ConnectionRetrieveSyncStatusParams,
-  type ConnectionStreamSyncProgressParams,
-  type ConnectionUpdateCredentialsParams,
-} from './connections/index';
-export {
-  GitHub,
-  type GitHubCallbackResponse,
-  type GitHubConnectResponse,
-  type GitHubGetInstallationLinkResponse,
-  type GitHubGetStatusResponse,
-  type GitHubCallbackParams,
-  type GitHubConnectParams,
-} from './github/index';
-export {
-  Groups,
-  type GroupDetail,
-  type GroupListResponse,
-  type GroupCreateParams,
-  type GroupUpdateParams,
-} from './groups/index';
-export { Me, type ClientUser, type ClientUserRole } from './me';
-export { Org } from './org/index';
+  type ConnectionListConnectionsResponse,
+  type ConnectionListConnectionsParams,
+} from './connections';
 export {
   Tenants,
-  type CreateTenant,
-  type Tenant,
-  type TenantListResponse,
-  type TenantRetrieveSchemaResponse,
-  type TenantCreateParams,
-  type TenantUpdateParams,
-} from './tenants/index';
+  type ImportTenantsResponse,
+  type TenantImportFromCsvParams,
+  type TenantImportFromWarehouseParams,
+} from './tenants';
 export { V1 } from './v1';

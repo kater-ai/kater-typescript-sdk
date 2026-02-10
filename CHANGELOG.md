@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0 (2026-02-10)
+
+Full Changelog: [v0.6.0...v0.7.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.6.0...v0.7.0)
+
+### Features
+
+* **api:** manual updates ([2986484](https://github.com/kater-ai/kater-typescript-sdk/commit/2986484057654a9ea156b5ae93ae56bffa5f8400))
+* **api:** manual updates ([9b7fa77](https://github.com/kater-ai/kater-typescript-sdk/commit/9b7fa7773bc45ff984bc48660f4e8199f6472b16))
+* **api:** manual updates ([13dd537](https://github.com/kater-ai/kater-typescript-sdk/commit/13dd537c35d7843c5e467fa7d35701bf08965fea))
+* **api:** manual updates ([73a4caf](https://github.com/kater-ai/kater-typescript-sdk/commit/73a4caff4d54b1774c2defa7ec56b851c09bc396))
+* **api:** manual updates ([0ab85eb](https://github.com/kater-ai/kater-typescript-sdk/commit/0ab85ebf9a05586e126e47810c6b8e1b62dfdf7a))
+* **api:** manual updates ([4956d2b](https://github.com/kater-ai/kater-typescript-sdk/commit/4956d2b8462af4d2f9731317d0d432c23616a705))
+
+
+### Bug Fixes
+
+* **api:** prune orphaned schemas and preserve auto-generated security… ([d11a548](https://github.com/kater-ai/kater-typescript-sdk/commit/d11a5482dd717191d6981017ec76d16a4135b6a1))
+
+
+### Chores
+
+* add internal route tagging, clean up CLI, and fix CI build issues ([9ba37ce](https://github.com/kater-ai/kater-typescript-sdk/commit/9ba37ceb6f47236e37389a4c44caef2c138a233d))
+
 ## 0.6.0 (2026-02-08)
 
 Full Changelog: [v0.5.0...v0.6.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.5.0...v0.6.0)
