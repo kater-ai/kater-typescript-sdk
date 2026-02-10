@@ -1,12 +1,12 @@
 {
-  "name": "kater",
+  "name": "@katerai/sdk",
   "version": "0.6.0",
   "description": "The official TypeScript library for the Kater API",
   "author": "Kater <support@kater.ai>",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
   "type": "commonjs",
-  "repository": "github:stainless-sdks/kater-typescript",
+  "repository": "github:kater-ai/kater-typescript-sdk",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.27.0",
   "files": [

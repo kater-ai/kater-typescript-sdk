@@ -1,6 +1,6 @@
 # Kater TypeScript API Library
 
-[![NPM version](<https://img.shields.io/npm/v/kater.svg?label=npm%20(stable)>)](https://npmjs.org/package/kater) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/kater)
+[![NPM version](<https://img.shields.io/npm/v/@katerai/sdk.svg?label=npm%20(stable)>)](https://npmjs.org/package/@katerai/sdk) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/@katerai/sdk)
 
 This library provides convenient access to the Kater REST API from server-side TypeScript or JavaScript.
 
@@ -11,11 +11,8 @@ It is generated with [Stainless](https://www.stainless.com/).
 ## Installation
 
 ```sh
-npm install git+ssh://git@github.com:stainless-sdks/kater-typescript.git
+npm install @katerai/sdk
 ```
-
-> [!NOTE]
-> Once this package is [published to npm](https://www.stainless.com/docs/guides/publish), this will become: `npm install kater`
 
 ## Usage
 
@@ -23,13 +20,13 @@ The full API of this library can be found in [api.md](api.md).
 
 <!-- prettier-ignore -->
 ```js
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 
 const client = new Kater({
-  apiKey: process.env['KATER_API_KEY'], // This is the default and can be omitted
+  authToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
 });
 
-const response = await client.v1.listConnections();
+const connections = await client.v1.connections.listConnections();
 ```
 
 ### Request & Response types
@@ -38,13 +35,14 @@ This library includes TypeScript definitions for all request params and response
 
 <!-- prettier-ignore -->
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 
 const client = new Kater({
-  apiKey: process.env['KATER_API_KEY'], // This is the default and can be omitted
+  authToken: process.env['KATER_AUTH_TOKEN'], // This is the default and can be omitted
 });
 
-const response: Kater.V1ListConnectionsResponse = await client.v1.listConnections();
+const connections: Kater.V1.ConnectionListConnectionsResponse =
+  await client.v1.connections.listConnections();
 ```
 
 Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
@@ -60,7 +58,7 @@ Request parameters that correspond to file uploads can be passed in many differe
 
 ```ts
 import fs from 'fs';
-import Kater, { toFile } from 'kater';
+import Kater, { toFile } from '@katerai/sdk';
 
 const client = new Kater();
 
@@ -86,7 +84,7 @@ a subclass of `APIError` will be thrown:
 
 <!-- prettier-ignore -->
 ```ts
-const response = await client.v1.listConnections().catch(async (err) => {
+const connections = await client.v1.connections.listConnections().catch(async (err) => {
   if (err instanceof Kater.APIError) {
     console.log(err.status); // 400
     console.log(err.name); // BadRequestError
@@ -126,7 +124,7 @@ const client = new Kater({
 });
 
 // Or, configure per-request:
-await client.v1.listConnections({
+await client.v1.connections.listConnections({
   maxRetries: 5,
 });
 ```
@@ -143,7 +141,7 @@ const client = new Kater({
 });
 
 // Override per-request:
-await client.v1.listConnections({
+await client.v1.connections.listConnections({
   timeout: 5 * 1000,
 });
 ```
@@ -166,13 +164,15 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 ```ts
 const client = new Kater();
 
-const response = await client.v1.listConnections().asResponse();
+const response = await client.v1.connections.listConnections().asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
-const { data: response, response: raw } = await client.v1.listConnections().withResponse();
+const { data: connections, response: raw } = await client.v1.connections
+  .listConnections()
+  .withResponse();
 console.log(raw.headers.get('X-My-Header'));
-console.log(response);
+console.log(connections);
 ```
 
 ### Logging
@@ -189,7 +189,7 @@ The log level can be configured in two ways:
 2. Using the `logLevel` client option (overrides the environment variable if set)
 
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 
 const client = new Kater({
   logLevel: 'debug', // Show all log messages
@@ -217,7 +217,7 @@ When providing a custom logger, the `logLevel` option still controls which messa
 below the configured level will not be sent to your logger.
 
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 import pino from 'pino';
 
 const logger = pino();
@@ -252,7 +252,7 @@ parameter. This library doesn't validate at runtime that the request matches the
 send will be sent as-is.
 
 ```ts
-client.v1.listConnections({
+client.v1.connections.listConnections({
   // ...
   // @ts-expect-error baz is not yet public
   baz: 'undocumented option',
@@ -286,7 +286,7 @@ globalThis.fetch = fetch;
 Or pass it to the client:
 
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 import fetch from 'my-fetch';
 
 const client = new Kater({ fetch });
@@ -297,7 +297,7 @@ const client = new Kater({ fetch });
 If you want to set custom `fetch` options without overriding the `fetch` function, you can provide a `fetchOptions` object when instantiating the client or making a request. (Request-specific options override client options.)
 
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 
 const client = new Kater({
   fetchOptions: {
@@ -314,7 +314,7 @@ options to requests:
 <img src="https://raw.githubusercontent.com/stainless-api/sdk-assets/refs/heads/main/node.svg" align="top" width="18" height="21"> **Node** <sup>[[docs](https://github.com/nodejs/undici/blob/main/docs/docs/api/ProxyAgent.md#example---proxyagent-with-fetch)]</sup>
 
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 import * as undici from 'undici';
 
 const proxyAgent = new undici.ProxyAgent('http://localhost:8888');
@@ -328,7 +328,7 @@ const client = new Kater({
 <img src="https://raw.githubusercontent.com/stainless-api/sdk-assets/refs/heads/main/bun.svg" align="top" width="18" height="21"> **Bun** <sup>[[docs](https://bun.sh/guides/http/proxy)]</sup>
 
 ```ts
-import Kater from 'kater';
+import Kater from '@katerai/sdk';
 
 const client = new Kater({
   fetchOptions: {
@@ -340,7 +340,7 @@ const client = new Kater({
 <img src="https://raw.githubusercontent.com/stainless-api/sdk-assets/refs/heads/main/deno.svg" align="top" width="18" height="21"> **Deno** <sup>[[docs](https://docs.deno.com/api/deno/~/Deno.createHttpClient)]</sup>
 
 ```ts
-import Kater from 'npm:kater';
+import Kater from 'npm:@katerai/sdk';
 
 const httpClient = Deno.createHttpClient({ proxy: { url: 'http://localhost:8888' } });
 const client = new Kater({
@@ -362,7 +362,7 @@ This package generally follows [SemVer](https://semver.org/spec/v2.0.0.html) con
 
 We take backwards-compatibility seriously and work hard to ensure you can rely on a smooth upgrade experience.
 
-We are keen for your feedback; please open an [issue](https://www.github.com/stainless-sdks/kater-typescript/issues) with questions, bugs, or suggestions.
+We are keen for your feedback; please open an [issue](https://www.github.com/kater-ai/kater-typescript-sdk/issues) with questions, bugs, or suggestions.
 
 ## Requirements
 

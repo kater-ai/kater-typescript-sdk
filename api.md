@@ -1,12 +1,15 @@
 # V1
 
+## Connections
+
 Types:
 
-- <code><a href="./src/resources/v1/v1.ts">V1ListConnectionsResponse</a></code>
+- <code><a href="./src/resources/v1/connections.ts">Connection</a></code>
+- <code><a href="./src/resources/v1/connections.ts">ConnectionListConnectionsResponse</a></code>
 
 Methods:
 
-- <code title="get /api/v1/connections">client.v1.<a href="./src/resources/v1/v1.ts">listConnections</a>({ ...params }) -> V1ListConnectionsResponse</code>
+- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
 
 ## Tenants
 
