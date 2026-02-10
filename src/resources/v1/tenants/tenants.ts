@@ -3,15 +3,12 @@
 import { APIResource } from '../../../core/resource';
 import * as BatchAPI from './batch';
 import { Batch, BatchTenantError, BatchTenantSuccess } from './batch';
-import * as GroupsAPI from './groups';
-import { Groups } from './groups';
 import * as ImportAPI from './import';
 import { Import, ImportFromCsvParams, ImportFromWarehouseParams, ImportTenants } from './import';
 
 export class Tenants extends APIResource {
   batch: BatchAPI.Batch = new BatchAPI.Batch(this._client);
   import: ImportAPI.Import = new ImportAPI.Import(this._client);
-  groups: GroupsAPI.Groups = new GroupsAPI.Groups(this._client);
 }
 
 /**
@@ -118,7 +115,6 @@ export namespace Tenant {
 
 Tenants.Batch = Batch;
 Tenants.Import = Import;
-Tenants.Groups = Groups;
 
 export declare namespace Tenants {
   export { type CreateTenant as CreateTenant, type Tenant as Tenant };
@@ -135,6 +131,4 @@ export declare namespace Tenants {
     type ImportFromCsvParams as ImportFromCsvParams,
     type ImportFromWarehouseParams as ImportFromWarehouseParams,
   };
-
-  export { Groups as Groups };
 }
