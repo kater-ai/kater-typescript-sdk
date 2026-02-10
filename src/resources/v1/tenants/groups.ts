@@ -1,8 +1,8 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../../../../core/resource';
-import { APIPromise } from '../../../../core/api-promise';
-import { RequestOptions } from '../../../../internal/request-options';
+import { APIResource } from '../../../core/resource';
+import { APIPromise } from '../../../core/api-promise';
+import { RequestOptions } from '../../../internal/request-options';
 
 export class Groups extends APIResource {
   /**
@@ -13,7 +13,7 @@ export class Groups extends APIResource {
    *
    * RLS: Filtered to current client (ClientRLSDB).
    */
-  retrieveSchema(options?: RequestOptions): APIPromise<GroupRetrieveSchemaResponse> {
+  getTenantGroupsSchema(options?: RequestOptions): APIPromise<GroupGetTenantGroupsSchemaResponse> {
     return this._client.get('/api/v1/tenants/groups/schema', options);
   }
 }
@@ -21,14 +21,14 @@ export class Groups extends APIResource {
 /**
  * Schema for tenant group configuration files
  */
-export interface GroupRetrieveSchemaResponse {
+export interface GroupGetTenantGroupsSchemaResponse {
   /**
    * Array of tenant group configurations
    */
-  tenant_groups: Array<GroupRetrieveSchemaResponse.TenantGroup>;
+  tenant_groups: Array<GroupGetTenantGroupsSchemaResponse.TenantGroup>;
 }
 
-export namespace GroupRetrieveSchemaResponse {
+export namespace GroupGetTenantGroupsSchemaResponse {
   export interface TenantGroup {
     /**
      * Unique Kater identifier
@@ -48,5 +48,5 @@ export namespace GroupRetrieveSchemaResponse {
 }
 
 export declare namespace Groups {
-  export { type GroupRetrieveSchemaResponse as GroupRetrieveSchemaResponse };
+  export { type GroupGetTenantGroupsSchemaResponse as GroupGetTenantGroupsSchemaResponse };
 }

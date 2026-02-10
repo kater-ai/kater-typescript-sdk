@@ -18,20 +18,21 @@ import {
   RefWithLabel,
   SubqueryCondition,
 } from './compiler';
-import * as TenantsAPI from './tenants';
-import {
-  ImportTenantsResponse,
-  TenantImportFromCsvParams,
-  TenantImportFromWarehouseParams,
-  Tenants,
-} from './tenants';
-import * as ConnectionsAPI from './connections/connections';
+import * as ConnectionsAPI from './connections';
 import {
   Connection,
   ConnectionListConnectionsParams,
   ConnectionListConnectionsResponse,
   Connections,
-} from './connections/connections';
+} from './connections';
+import * as TenantsAPI from './tenants/tenants';
+import {
+  ImportTenantsResponse,
+  TenantGetTenantsSchemaResponse,
+  TenantImportFromCsvParams,
+  TenantImportFromWarehouseParams,
+  Tenants,
+} from './tenants/tenants';
 
 export class V1 extends APIResource {
   compiler: CompilerAPI.Compiler = new CompilerAPI.Compiler(this._client);
@@ -71,6 +72,7 @@ export declare namespace V1 {
   export {
     Tenants as Tenants,
     type ImportTenantsResponse as ImportTenantsResponse,
+    type TenantGetTenantsSchemaResponse as TenantGetTenantsSchemaResponse,
     type TenantImportFromCsvParams as TenantImportFromCsvParams,
     type TenantImportFromWarehouseParams as TenantImportFromWarehouseParams,
   };

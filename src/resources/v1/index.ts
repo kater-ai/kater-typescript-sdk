@@ -21,11 +21,12 @@ export {
   type Connection,
   type ConnectionListConnectionsResponse,
   type ConnectionListConnectionsParams,
-} from './connections/index';
+} from './connections';
 export {
   Tenants,
   type ImportTenantsResponse,
+  type TenantGetTenantsSchemaResponse,
   type TenantImportFromCsvParams,
   type TenantImportFromWarehouseParams,
-} from './tenants';
+} from './tenants/index';
 export { V1 } from './v1';
