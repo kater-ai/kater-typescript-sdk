@@ -15,6 +15,13 @@ Methods:
 
 Types:
 
+- <code><a href="./src/resources/v1/connections/compiler.ts">ChartConfig</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">CompilerErrorItem</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">InlineField</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">Manifest</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">ManifestEntry</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">RefWithLabel</a></code>
+- <code><a href="./src/resources/v1/connections/compiler.ts">SubqueryCondition</a></code>
 - <code><a href="./src/resources/v1/connections/compiler.ts">CompilerCompileResponse</a></code>
 - <code><a href="./src/resources/v1/connections/compiler.ts">CompilerResolveResponse</a></code>
 - <code><a href="./src/resources/v1/connections/compiler.ts">CompilerValidateResponse</a></code>

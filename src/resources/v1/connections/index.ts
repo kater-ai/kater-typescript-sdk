@@ -2,6 +2,13 @@
 
 export {
   Compiler,
+  type ChartConfig,
+  type CompilerErrorItem,
+  type InlineField,
+  type Manifest,
+  type ManifestEntry,
+  type RefWithLabel,
+  type SubqueryCondition,
   type CompilerCompileResponse,
   type CompilerResolveResponse,
   type CompilerValidateResponse,
