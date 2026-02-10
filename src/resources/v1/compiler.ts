@@ -836,19 +836,14 @@ export interface CompilerValidateResponse {
   success: boolean;
 
   /**
-   * Dependency graph between schema objects.
+   * Per-connection validation results with dependency graphs
    */
-  dependency_graph?: CompilerValidateResponse.DependencyGraph | null;
+  connection_results?: Array<CompilerValidateResponse.ConnectionResult>;
 
   /**
    * Validation errors
    */
   errors?: Array<CompilerErrorItem>;
-
-  /**
-   * Compilation manifest with all named objects.
-   */
-  manifest?: Manifest | null;
 
   /**
    * Validation warnings
@@ -858,49 +853,86 @@ export interface CompilerValidateResponse {
 
 export namespace CompilerValidateResponse {
   /**
-   * Dependency graph between schema objects.
+   * Validation result for a single connection.
    */
-  export interface DependencyGraph {
+  export interface ConnectionResult {
     /**
-     * Edge relationships with UUID string keys
+     * Connection UUID
      */
-    edges: { [key: string]: { [key: string]: Array<string> } };
+    connection_id: string;
 
     /**
-     * UUID string to node mapping
+     * Connection name
      */
-    nodes: { [key: string]: DependencyGraph.Nodes };
+    connection_name: string;
+
+    /**
+     * Whether this connection validated without errors
+     */
+    success: boolean;
+
+    /**
+     * Dependency graph between schema objects.
+     */
+    dependency_graph?: ConnectionResult.DependencyGraph | null;
+
+    /**
+     * Validation errors for this connection
+     */
+    errors?: Array<CompilerAPI.CompilerErrorItem>;
+
+    /**
+     * Validation warnings for this connection
+     */
+    warnings?: Array<CompilerAPI.CompilerErrorItem>;
   }
 
-  export namespace DependencyGraph {
+  export namespace ConnectionResult {
     /**
-     * A node in the dependency graph.
+     * Dependency graph between schema objects.
      */
-    export interface Nodes {
+    export interface DependencyGraph {
       /**
-       * Source file path
+       * Edge relationships with UUID string keys
        */
-      file: string;
+      edges: { [key: string]: { [key: string]: Array<string> } };
 
       /**
-       * Fully qualified name (e.g. 'dim_customer.region')
+       * UUID string to node mapping
        */
-      fqn: string;
+      nodes: { [key: string]: DependencyGraph.Nodes };
+    }
 
+    export namespace DependencyGraph {
       /**
-       * UUID of the schema object
+       * A node in the dependency graph.
        */
-      kater_id: string;
+      export interface Nodes {
+        /**
+         * Source file path
+         */
+        file: string;
 
-      /**
-       * Line number in source file
-       */
-      line: number;
+        /**
+         * Fully qualified name (e.g. 'dim_customer.region')
+         */
+        fqn: string;
 
-      /**
-       * Node type: QUERY, VIEW, DIMENSION, MEASURE, FILTER, EXPRESSION
-       */
-      node_type: string;
+        /**
+         * UUID of the schema object
+         */
+        kater_id: string;
+
+        /**
+         * Line number in source file
+         */
+        line: number;
+
+        /**
+         * Node type: QUERY, VIEW, DIMENSION, MEASURE, FILTER, EXPRESSION
+         */
+        node_type: string;
+      }
     }
   }
 }
