@@ -25,7 +25,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: '^@katerai/sdk(/.*)?',
+              regex: '^kater(/.*)?',
               message: 'Use a relative import, not a package import.',
             },
           ],
