@@ -1,6 +1,7 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../../core/resource';
+import * as CompilerAPI from './compiler';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -71,6 +72,154 @@ export class Compiler extends APIResource {
 }
 
 /**
+ * Chart configuration with variable references
+ */
+export interface ChartConfig {
+  /**
+   * Field or variable reference for color grouping
+   */
+  color_by?: string | null;
+
+  /**
+   * Field or variable reference for size
+   */
+  size?: string | null;
+
+  /**
+   * Field or variable reference for stacking
+   */
+  stack_by?: string | null;
+
+  /**
+   * Field or variable reference for x-axis
+   */
+  x_axis?: string | null;
+
+  /**
+   * Field or variable reference for y-axis
+   */
+  y_axis?: string | null;
+}
+
+/**
+ * A single compiler validation or compilation error.
+ */
+export interface CompilerErrorItem {
+  /**
+   * Machine-readable error code
+   */
+  code: string;
+
+  /**
+   * Human-readable error description
+   */
+  message: string;
+
+  /**
+   * Source file path where the error occurred
+   */
+  file?: string | null;
+
+  /**
+   * Line number in the source file
+   */
+  line?: number | null;
+
+  /**
+   * Reference to the source element (e.g. view or query name)
+   */
+  ref?: string | null;
+
+  /**
+   * Suggested fix for this error
+   */
+  remediation?: string | null;
+}
+
+/**
+ * An inline field definition for dimensions/measures/calculations
+ */
+export interface InlineField {
+  /**
+   * Unique identifier for this inline field
+   */
+  kater_id: string;
+
+  /**
+   * Name of the inline field
+   */
+  name: string;
+
+  /**
+   * SQL expression for the field
+   */
+  sql: string;
+
+  /**
+   * Human-readable label
+   */
+  label?: string | null;
+}
+
+/**
+ * Compilation manifest with all named objects.
+ */
+export interface Manifest {
+  generated_at: string;
+
+  objects: { [key: string]: ManifestEntry };
+
+  schema_version?: string;
+}
+
+/**
+ * A single object entry in the manifest.
+ */
+export interface ManifestEntry {
+  kater_id: string;
+
+  name: string;
+
+  type: string;
+
+  label?: string | null;
+
+  parent_id?: string | null;
+
+  source_file?: string | null;
+}
+
+/**
+ * A reference with optional label override
+ */
+export interface RefWithLabel {
+  /**
+   * Reference using ref(), var(), or expr() syntax
+   */
+  ref: string;
+
+  /**
+   * Optional label override for this reference
+   */
+  label?: string | null;
+}
+
+/**
+ * A subquery condition for EXISTS/NOT EXISTS filters
+ */
+export interface SubqueryCondition {
+  /**
+   * Reference to the source view/table for the subquery
+   */
+  from: string;
+
+  /**
+   * WHERE conditions for the subquery
+   */
+  where: Array<string>;
+}
+
+/**
  * Response model for SQL compilation.
  */
 export interface CompilerCompileResponse {
@@ -87,12 +236,12 @@ export interface CompilerCompileResponse {
   /**
    * Compilation errors
    */
-  errors?: Array<CompilerCompileResponse.Error>;
+  errors?: Array<CompilerErrorItem>;
 
   /**
    * Compilation manifest with all named objects.
    */
-  manifest?: CompilerCompileResponse.Manifest | null;
+  manifest?: Manifest | null;
 
   /**
    * Compilation metadata from the compiler.
@@ -106,71 +255,6 @@ export interface CompilerCompileResponse {
 }
 
 export namespace CompilerCompileResponse {
-  /**
-   * A single compiler validation or compilation error.
-   */
-  export interface Error {
-    /**
-     * Machine-readable error code
-     */
-    code: string;
-
-    /**
-     * Human-readable error description
-     */
-    message: string;
-
-    /**
-     * Source file path where the error occurred
-     */
-    file?: string | null;
-
-    /**
-     * Line number in the source file
-     */
-    line?: number | null;
-
-    /**
-     * Reference to the source element (e.g. view or query name)
-     */
-    ref?: string | null;
-
-    /**
-     * Suggested fix for this error
-     */
-    remediation?: string | null;
-  }
-
-  /**
-   * Compilation manifest with all named objects.
-   */
-  export interface Manifest {
-    generated_at: string;
-
-    objects: { [key: string]: Manifest.Objects };
-
-    schema_version?: string;
-  }
-
-  export namespace Manifest {
-    /**
-     * A single object entry in the manifest.
-     */
-    export interface Objects {
-      kater_id: string;
-
-      name: string;
-
-      type: string;
-
-      label?: string | null;
-
-      parent_id?: string | null;
-
-      source_file?: string | null;
-    }
-  }
-
   /**
    * Compilation metadata from the compiler.
    */
@@ -224,7 +308,7 @@ export interface CompilerResolveResponse {
   /**
    * Compilation manifest with all named objects.
    */
-  manifest?: CompilerResolveResponse.Manifest | null;
+  manifest?: Manifest | null;
 }
 
 export namespace CompilerResolveResponse {
@@ -261,7 +345,7 @@ export namespace CompilerResolveResponse {
     /**
      * Merged required + selected optional calculations
      */
-    calculations?: Array<ResolvedQuery.RefWithLabel | ResolvedQuery.InlineField | string> | null;
+    calculations?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
      * Chart recommendations preserved for evaluation
@@ -281,7 +365,7 @@ export namespace CompilerResolveResponse {
     /**
      * Merged required + selected optional dimensions
      */
-    dimensions?: Array<ResolvedQuery.RefWithLabel | ResolvedQuery.InlineField | string> | null;
+    dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
      * Merged required + selected optional filters
@@ -311,7 +395,7 @@ export namespace CompilerResolveResponse {
     /**
      * Merged required + selected optional measures
      */
-    measures?: Array<ResolvedQuery.RefWithLabel | ResolvedQuery.InlineField | string> | null;
+    measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
      * Sort order specification for query results. Use desc for descending
@@ -342,53 +426,13 @@ export namespace CompilerResolveResponse {
 
   export namespace ResolvedQuery {
     /**
-     * A reference with optional label override
-     */
-    export interface RefWithLabel {
-      /**
-       * Reference using ref(), var(), or expr() syntax
-       */
-      ref: string;
-
-      /**
-       * Optional label override for this reference
-       */
-      label?: string | null;
-    }
-
-    /**
-     * An inline field definition for dimensions/measures/calculations
-     */
-    export interface InlineField {
-      /**
-       * Unique identifier for this inline field
-       */
-      kater_id: string;
-
-      /**
-       * Name of the inline field
-       */
-      name: string;
-
-      /**
-       * SQL expression for the field
-       */
-      sql: string;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    /**
      * A chart recommendation rule
      */
     export interface ChartHint1 {
       /**
        * Chart configuration with variable references
        */
-      config: ChartHint1.Config;
+      config: CompilerAPI.ChartConfig;
 
       /**
        * Type of chart visualization
@@ -412,38 +456,6 @@ export namespace CompilerResolveResponse {
       when: { [key: string]: string | Array<string> };
     }
 
-    export namespace ChartHint1 {
-      /**
-       * Chart configuration with variable references
-       */
-      export interface Config {
-        /**
-         * Field or variable reference for color grouping
-         */
-        color_by?: string | null;
-
-        /**
-         * Field or variable reference for size
-         */
-        size?: string | null;
-
-        /**
-         * Field or variable reference for stacking
-         */
-        stack_by?: string | null;
-
-        /**
-         * Field or variable reference for x-axis
-         */
-        x_axis?: string | null;
-
-        /**
-         * Field or variable reference for y-axis
-         */
-        y_axis?: string | null;
-      }
-    }
-
     /**
      * A chart recommendation rule
      */
@@ -456,7 +468,7 @@ export namespace CompilerResolveResponse {
         /**
          * Chart configuration with variable references
          */
-        config: Default.Config;
+        config: CompilerAPI.ChartConfig;
 
         /**
          * Type of chart visualization
@@ -473,78 +485,6 @@ export namespace CompilerResolveResponse {
           | 'heatmap'
           | 'single_value';
       }
-
-      export namespace Default {
-        /**
-         * Chart configuration with variable references
-         */
-        export interface Config {
-          /**
-           * Field or variable reference for color grouping
-           */
-          color_by?: string | null;
-
-          /**
-           * Field or variable reference for size
-           */
-          size?: string | null;
-
-          /**
-           * Field or variable reference for stacking
-           */
-          stack_by?: string | null;
-
-          /**
-           * Field or variable reference for x-axis
-           */
-          x_axis?: string | null;
-
-          /**
-           * Field or variable reference for y-axis
-           */
-          y_axis?: string | null;
-        }
-      }
-    }
-
-    /**
-     * A reference with optional label override
-     */
-    export interface RefWithLabel {
-      /**
-       * Reference using ref(), var(), or expr() syntax
-       */
-      ref: string;
-
-      /**
-       * Optional label override for this reference
-       */
-      label?: string | null;
-    }
-
-    /**
-     * An inline field definition for dimensions/measures/calculations
-     */
-    export interface InlineField {
-      /**
-       * Unique identifier for this inline field
-       */
-      kater_id: string;
-
-      /**
-       * Name of the inline field
-       */
-      name: string;
-
-      /**
-       * SQL expression for the field
-       */
-      sql: string;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
     }
 
     /**
@@ -601,7 +541,7 @@ export namespace CompilerResolveResponse {
       /**
        * EXISTS subquery condition
        */
-      exists: InlineExistsFilter1.Exists;
+      exists: CompilerAPI.SubqueryCondition;
 
       /**
        * Name of the inline filter
@@ -621,39 +561,7 @@ export namespace CompilerResolveResponse {
       /**
        * A subquery condition for EXISTS/NOT EXISTS filters
        */
-      not_exists?: InlineExistsFilter1.NotExists | null;
-    }
-
-    export namespace InlineExistsFilter1 {
-      /**
-       * EXISTS subquery condition
-       */
-      export interface Exists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      export interface NotExists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
+      not_exists?: CompilerAPI.SubqueryCondition | null;
     }
 
     /**
@@ -668,7 +576,7 @@ export namespace CompilerResolveResponse {
       /**
        * NOT EXISTS subquery condition
        */
-      not_exists: InlineExistsFilter2.NotExists;
+      not_exists: CompilerAPI.SubqueryCondition;
 
       /**
        * Description of the filter
@@ -678,79 +586,7 @@ export namespace CompilerResolveResponse {
       /**
        * A subquery condition for EXISTS/NOT EXISTS filters
        */
-      exists?: InlineExistsFilter2.Exists | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    export namespace InlineExistsFilter2 {
-      /**
-       * NOT EXISTS subquery condition
-       */
-      export interface NotExists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      export interface Exists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
-    }
-
-    /**
-     * A reference with optional label override
-     */
-    export interface RefWithLabel {
-      /**
-       * Reference using ref(), var(), or expr() syntax
-       */
-      ref: string;
-
-      /**
-       * Optional label override for this reference
-       */
-      label?: string | null;
-    }
-
-    /**
-     * An inline field definition for dimensions/measures/calculations
-     */
-    export interface InlineField {
-      /**
-       * Unique identifier for this inline field
-       */
-      kater_id: string;
-
-      /**
-       * Name of the inline field
-       */
-      name: string;
-
-      /**
-       * SQL expression for the field
-       */
-      sql: string;
+      exists?: CompilerAPI.SubqueryCondition | null;
 
       /**
        * Human-readable label
@@ -781,7 +617,7 @@ export namespace CompilerResolveResponse {
       /**
        * Chart configuration
        */
-      config: ResolvedChart.Config;
+      config: CompilerAPI.ChartConfig;
 
       /**
        * Recommended chart type
@@ -797,38 +633,6 @@ export namespace CompilerResolveResponse {
         | 'table'
         | 'heatmap'
         | 'single_value';
-    }
-
-    export namespace ResolvedChart {
-      /**
-       * Chart configuration
-       */
-      export interface Config {
-        /**
-         * Field or variable reference for color grouping
-         */
-        color_by?: string | null;
-
-        /**
-         * Field or variable reference for size
-         */
-        size?: string | null;
-
-        /**
-         * Field or variable reference for stacking
-         */
-        stack_by?: string | null;
-
-        /**
-         * Field or variable reference for x-axis
-         */
-        x_axis?: string | null;
-
-        /**
-         * Field or variable reference for y-axis
-         */
-        y_axis?: string | null;
-      }
     }
 
     /**
@@ -1020,36 +824,6 @@ export namespace CompilerResolveResponse {
       node_type: string;
     }
   }
-
-  /**
-   * Compilation manifest with all named objects.
-   */
-  export interface Manifest {
-    generated_at: string;
-
-    objects: { [key: string]: Manifest.Objects };
-
-    schema_version?: string;
-  }
-
-  export namespace Manifest {
-    /**
-     * A single object entry in the manifest.
-     */
-    export interface Objects {
-      kater_id: string;
-
-      name: string;
-
-      type: string;
-
-      label?: string | null;
-
-      parent_id?: string | null;
-
-      source_file?: string | null;
-    }
-  }
 }
 
 /**
@@ -1069,17 +843,17 @@ export interface CompilerValidateResponse {
   /**
    * Validation errors
    */
-  errors?: Array<CompilerValidateResponse.Error>;
+  errors?: Array<CompilerErrorItem>;
 
   /**
    * Compilation manifest with all named objects.
    */
-  manifest?: CompilerValidateResponse.Manifest | null;
+  manifest?: Manifest | null;
 
   /**
    * Validation warnings
    */
-  warnings?: Array<CompilerValidateResponse.Warning>;
+  warnings?: Array<CompilerErrorItem>;
 }
 
 export namespace CompilerValidateResponse {
@@ -1128,106 +902,6 @@ export namespace CompilerValidateResponse {
        */
       node_type: string;
     }
-  }
-
-  /**
-   * A single compiler validation or compilation error.
-   */
-  export interface Error {
-    /**
-     * Machine-readable error code
-     */
-    code: string;
-
-    /**
-     * Human-readable error description
-     */
-    message: string;
-
-    /**
-     * Source file path where the error occurred
-     */
-    file?: string | null;
-
-    /**
-     * Line number in the source file
-     */
-    line?: number | null;
-
-    /**
-     * Reference to the source element (e.g. view or query name)
-     */
-    ref?: string | null;
-
-    /**
-     * Suggested fix for this error
-     */
-    remediation?: string | null;
-  }
-
-  /**
-   * Compilation manifest with all named objects.
-   */
-  export interface Manifest {
-    generated_at: string;
-
-    objects: { [key: string]: Manifest.Objects };
-
-    schema_version?: string;
-  }
-
-  export namespace Manifest {
-    /**
-     * A single object entry in the manifest.
-     */
-    export interface Objects {
-      kater_id: string;
-
-      name: string;
-
-      type: string;
-
-      label?: string | null;
-
-      parent_id?: string | null;
-
-      source_file?: string | null;
-    }
-  }
-
-  /**
-   * A single compiler validation or compilation error.
-   */
-  export interface Warning {
-    /**
-     * Machine-readable error code
-     */
-    code: string;
-
-    /**
-     * Human-readable error description
-     */
-    message: string;
-
-    /**
-     * Source file path where the error occurred
-     */
-    file?: string | null;
-
-    /**
-     * Line number in the source file
-     */
-    line?: number | null;
-
-    /**
-     * Reference to the source element (e.g. view or query name)
-     */
-    ref?: string | null;
-
-    /**
-     * Suggested fix for this error
-     */
-    remediation?: string | null;
   }
 }
 
@@ -1292,7 +966,7 @@ export namespace CompilerCompileParams {
     /**
      * Merged required + selected optional calculations
      */
-    calculations?: Array<ResolvedQuery.RefWithLabel | ResolvedQuery.InlineField | string> | null;
+    calculations?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
      * Chart recommendations preserved for evaluation
@@ -1312,7 +986,7 @@ export namespace CompilerCompileParams {
     /**
      * Merged required + selected optional dimensions
      */
-    dimensions?: Array<ResolvedQuery.RefWithLabel | ResolvedQuery.InlineField | string> | null;
+    dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
      * Merged required + selected optional filters
@@ -1342,7 +1016,7 @@ export namespace CompilerCompileParams {
     /**
      * Merged required + selected optional measures
      */
-    measures?: Array<ResolvedQuery.RefWithLabel | ResolvedQuery.InlineField | string> | null;
+    measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
      * Sort order specification for query results. Use desc for descending
@@ -1373,53 +1047,13 @@ export namespace CompilerCompileParams {
 
   export namespace ResolvedQuery {
     /**
-     * A reference with optional label override
-     */
-    export interface RefWithLabel {
-      /**
-       * Reference using ref(), var(), or expr() syntax
-       */
-      ref: string;
-
-      /**
-       * Optional label override for this reference
-       */
-      label?: string | null;
-    }
-
-    /**
-     * An inline field definition for dimensions/measures/calculations
-     */
-    export interface InlineField {
-      /**
-       * Unique identifier for this inline field
-       */
-      kater_id: string;
-
-      /**
-       * Name of the inline field
-       */
-      name: string;
-
-      /**
-       * SQL expression for the field
-       */
-      sql: string;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    /**
      * A chart recommendation rule
      */
     export interface ChartHint1 {
       /**
        * Chart configuration with variable references
        */
-      config: ChartHint1.Config;
+      config: CompilerAPI.ChartConfig;
 
       /**
        * Type of chart visualization
@@ -1443,38 +1077,6 @@ export namespace CompilerCompileParams {
       when: { [key: string]: string | Array<string> };
     }
 
-    export namespace ChartHint1 {
-      /**
-       * Chart configuration with variable references
-       */
-      export interface Config {
-        /**
-         * Field or variable reference for color grouping
-         */
-        color_by?: string | null;
-
-        /**
-         * Field or variable reference for size
-         */
-        size?: string | null;
-
-        /**
-         * Field or variable reference for stacking
-         */
-        stack_by?: string | null;
-
-        /**
-         * Field or variable reference for x-axis
-         */
-        x_axis?: string | null;
-
-        /**
-         * Field or variable reference for y-axis
-         */
-        y_axis?: string | null;
-      }
-    }
-
     /**
      * A chart recommendation rule
      */
@@ -1487,7 +1089,7 @@ export namespace CompilerCompileParams {
         /**
          * Chart configuration with variable references
          */
-        config: Default.Config;
+        config: CompilerAPI.ChartConfig;
 
         /**
          * Type of chart visualization
@@ -1504,78 +1106,6 @@ export namespace CompilerCompileParams {
           | 'heatmap'
           | 'single_value';
       }
-
-      export namespace Default {
-        /**
-         * Chart configuration with variable references
-         */
-        export interface Config {
-          /**
-           * Field or variable reference for color grouping
-           */
-          color_by?: string | null;
-
-          /**
-           * Field or variable reference for size
-           */
-          size?: string | null;
-
-          /**
-           * Field or variable reference for stacking
-           */
-          stack_by?: string | null;
-
-          /**
-           * Field or variable reference for x-axis
-           */
-          x_axis?: string | null;
-
-          /**
-           * Field or variable reference for y-axis
-           */
-          y_axis?: string | null;
-        }
-      }
-    }
-
-    /**
-     * A reference with optional label override
-     */
-    export interface RefWithLabel {
-      /**
-       * Reference using ref(), var(), or expr() syntax
-       */
-      ref: string;
-
-      /**
-       * Optional label override for this reference
-       */
-      label?: string | null;
-    }
-
-    /**
-     * An inline field definition for dimensions/measures/calculations
-     */
-    export interface InlineField {
-      /**
-       * Unique identifier for this inline field
-       */
-      kater_id: string;
-
-      /**
-       * Name of the inline field
-       */
-      name: string;
-
-      /**
-       * SQL expression for the field
-       */
-      sql: string;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
     }
 
     /**
@@ -1632,7 +1162,7 @@ export namespace CompilerCompileParams {
       /**
        * EXISTS subquery condition
        */
-      exists: InlineExistsFilter1.Exists;
+      exists: CompilerAPI.SubqueryCondition;
 
       /**
        * Name of the inline filter
@@ -1652,39 +1182,7 @@ export namespace CompilerCompileParams {
       /**
        * A subquery condition for EXISTS/NOT EXISTS filters
        */
-      not_exists?: InlineExistsFilter1.NotExists | null;
-    }
-
-    export namespace InlineExistsFilter1 {
-      /**
-       * EXISTS subquery condition
-       */
-      export interface Exists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      export interface NotExists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
+      not_exists?: CompilerAPI.SubqueryCondition | null;
     }
 
     /**
@@ -1699,7 +1197,7 @@ export namespace CompilerCompileParams {
       /**
        * NOT EXISTS subquery condition
        */
-      not_exists: InlineExistsFilter2.NotExists;
+      not_exists: CompilerAPI.SubqueryCondition;
 
       /**
        * Description of the filter
@@ -1709,79 +1207,7 @@ export namespace CompilerCompileParams {
       /**
        * A subquery condition for EXISTS/NOT EXISTS filters
        */
-      exists?: InlineExistsFilter2.Exists | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    export namespace InlineExistsFilter2 {
-      /**
-       * NOT EXISTS subquery condition
-       */
-      export interface NotExists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      export interface Exists {
-        /**
-         * Reference to the source view/table for the subquery
-         */
-        from: string;
-
-        /**
-         * WHERE conditions for the subquery
-         */
-        where: Array<string>;
-      }
-    }
-
-    /**
-     * A reference with optional label override
-     */
-    export interface RefWithLabel {
-      /**
-       * Reference using ref(), var(), or expr() syntax
-       */
-      ref: string;
-
-      /**
-       * Optional label override for this reference
-       */
-      label?: string | null;
-    }
-
-    /**
-     * An inline field definition for dimensions/measures/calculations
-     */
-    export interface InlineField {
-      /**
-       * Unique identifier for this inline field
-       */
-      kater_id: string;
-
-      /**
-       * Name of the inline field
-       */
-      name: string;
-
-      /**
-       * SQL expression for the field
-       */
-      sql: string;
+      exists?: CompilerAPI.SubqueryCondition | null;
 
       /**
        * Human-readable label
@@ -1812,7 +1238,7 @@ export namespace CompilerCompileParams {
       /**
        * Chart configuration
        */
-      config: ResolvedChart.Config;
+      config: CompilerAPI.ChartConfig;
 
       /**
        * Recommended chart type
@@ -1828,38 +1254,6 @@ export namespace CompilerCompileParams {
         | 'table'
         | 'heatmap'
         | 'single_value';
-    }
-
-    export namespace ResolvedChart {
-      /**
-       * Chart configuration
-       */
-      export interface Config {
-        /**
-         * Field or variable reference for color grouping
-         */
-        color_by?: string | null;
-
-        /**
-         * Field or variable reference for size
-         */
-        size?: string | null;
-
-        /**
-         * Field or variable reference for stacking
-         */
-        stack_by?: string | null;
-
-        /**
-         * Field or variable reference for x-axis
-         */
-        x_axis?: string | null;
-
-        /**
-         * Field or variable reference for y-axis
-         */
-        y_axis?: string | null;
-      }
     }
 
     /**
@@ -2073,6 +1467,13 @@ export interface CompilerValidateParams {
 
 export declare namespace Compiler {
   export {
+    type ChartConfig as ChartConfig,
+    type CompilerErrorItem as CompilerErrorItem,
+    type InlineField as InlineField,
+    type Manifest as Manifest,
+    type ManifestEntry as ManifestEntry,
+    type RefWithLabel as RefWithLabel,
+    type SubqueryCondition as SubqueryCondition,
     type CompilerCompileResponse as CompilerCompileResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,

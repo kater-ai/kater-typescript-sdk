@@ -3,13 +3,20 @@
 import { APIResource } from '../../../core/resource';
 import * as CompilerAPI from './compiler';
 import {
+  ChartConfig,
   Compiler,
   CompilerCompileParams,
   CompilerCompileResponse,
+  CompilerErrorItem,
   CompilerResolveParams,
   CompilerResolveResponse,
   CompilerValidateParams,
   CompilerValidateResponse,
+  InlineField,
+  Manifest,
+  ManifestEntry,
+  RefWithLabel,
+  SubqueryCondition,
 } from './compiler';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
@@ -293,6 +300,13 @@ export declare namespace Connections {
 
   export {
     Compiler as Compiler,
+    type ChartConfig as ChartConfig,
+    type CompilerErrorItem as CompilerErrorItem,
+    type InlineField as InlineField,
+    type Manifest as Manifest,
+    type ManifestEntry as ManifestEntry,
+    type RefWithLabel as RefWithLabel,
+    type SubqueryCondition as SubqueryCondition,
     type CompilerCompileResponse as CompilerCompileResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,
