@@ -10,7 +10,7 @@ const client = new Kater({
 describe('resource compiler', () => {
   // Prism tests are disabled
   test.skip('compile: only required params', async () => {
-    const responsePromise = client.v1.connections.compiler.compile({
+    const responsePromise = client.v1.compiler.compile({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       resolved_query: {
         kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -30,7 +30,7 @@ describe('resource compiler', () => {
 
   // Prism tests are disabled
   test.skip('compile: required and optional params', async () => {
-    const response = await client.v1.connections.compiler.compile({
+    const response = await client.v1.compiler.compile({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       resolved_query: {
         kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -108,7 +108,7 @@ describe('resource compiler', () => {
 
   // Prism tests are disabled
   test.skip('resolve: only required params', async () => {
-    const responsePromise = client.v1.connections.compiler.resolve({
+    const responsePromise = client.v1.compiler.resolve({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       query_ref: 'query_ref',
     });
@@ -123,7 +123,7 @@ describe('resource compiler', () => {
 
   // Prism tests are disabled
   test.skip('resolve: required and optional params', async () => {
-    const response = await client.v1.connections.compiler.resolve({
+    const response = await client.v1.compiler.resolve({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       query_ref: 'query_ref',
       source: 'source',
@@ -138,7 +138,7 @@ describe('resource compiler', () => {
 
   // Prism tests are disabled
   test.skip('validate', async () => {
-    const responsePromise = client.v1.connections.compiler.validate({});
+    const responsePromise = client.v1.compiler.validate({});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
