@@ -5,8 +5,8 @@
   "compilerOptions": {
     "rootDir": "./dist/src",
     "paths": {
-      "@katerai/sdk/*": ["./dist/src/*"],
-      "@katerai/sdk": ["./dist/src/index.ts"]
+      "kater/*": ["./dist/src/*"],
+      "kater": ["./dist/src/index.ts"]
     },
     "noEmit": false,
     "declaration": true,
