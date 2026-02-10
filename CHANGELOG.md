@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 (2026-02-10)
+
+Full Changelog: [v0.7.0...v0.8.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.7.0...v0.8.0)
+
+### Features
+
+* **api:** expose tenant and tenant group schema endpoints in public API ([94c50e2](https://github.com/kater-ai/kater-typescript-sdk/commit/94c50e22964a84972d0546fdc30377cc1ce92482))
+* **api:** manual updates ([91b46b9](https://github.com/kater-ai/kater-typescript-sdk/commit/91b46b9c99ed337c34d463223faf2450c9467ac4))
+* **api:** manual updates ([41e058b](https://github.com/kater-ai/kater-typescript-sdk/commit/41e058b8dab4fac0f6caa277e3afa47018d9ff37))
+* **api:** manual updates ([0c98782](https://github.com/kater-ai/kater-typescript-sdk/commit/0c98782b402457ebbe5ebffe939342ec4bd69e7b))
+
 ## 0.7.0 (2026-02-10)
 
 Full Changelog: [v0.6.0...v0.7.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.6.0...v0.7.0)
