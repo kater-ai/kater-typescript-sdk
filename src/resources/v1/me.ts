@@ -1,22 +1,8 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
-import { APIPromise } from '../../core/api-promise';
-import { RequestOptions } from '../../internal/request-options';
 
-export class Me extends APIResource {
-  /**
-   * Get the current authenticated user's information.
-   *
-   * Returns the user's profile within their active organization. This endpoint only
-   * requires authentication - no special permissions needed.
-   *
-   * RLS: Filtered to current user's data only (RLSDB).
-   */
-  retrieve(options?: RequestOptions): APIPromise<ClientUser> {
-    return this._client.get('/api/v1/me', options);
-  }
-}
+export class Me extends APIResource {}
 
 /**
  * Response schema for a client user.

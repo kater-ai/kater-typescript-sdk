@@ -6,57 +6,20 @@ import { ClientUser, ClientUserRole, Me } from './me';
 import * as ConnectionsAPI from './connections/connections';
 import {
   Connection,
-  ConnectionApproveSyncParams,
-  ConnectionApproveSyncResponse,
-  ConnectionCreateParams,
   ConnectionListParams,
   ConnectionListResponse,
-  ConnectionListSyncsParams,
-  ConnectionListSyncsResponse,
-  ConnectionRetrieveCredentialResponse,
-  ConnectionRetrieveSchemaResponse,
-  ConnectionRetrieveSyncStatusParams,
-  ConnectionRetrieveSyncStatusResponse,
-  ConnectionStreamSyncProgressParams,
-  ConnectionStreamSyncProgressResponse,
-  ConnectionSyncResponse,
-  ConnectionUpdateCredentialsParams,
-  ConnectionUpdateCredentialsResponse,
-  ConnectionUpdateParams,
   Connections,
   DatabaseConfig,
   SyncEventResponse,
 } from './connections/connections';
 import * as GitHubAPI from './github/github';
-import {
-  GitHub,
-  GitHubCallbackParams,
-  GitHubCallbackResponse,
-  GitHubConnectParams,
-  GitHubConnectResponse,
-  GitHubGetInstallationLinkResponse,
-  GitHubGetStatusResponse,
-} from './github/github';
+import { GitHub } from './github/github';
 import * as GroupsAPI from './groups/groups';
-import {
-  GroupCreateParams,
-  GroupDetail,
-  GroupListResponse,
-  GroupUpdateParams,
-  Groups,
-} from './groups/groups';
+import { GroupDetail, Groups } from './groups/groups';
 import * as OrgAPI from './org/org';
 import { Org } from './org/org';
 import * as TenantsAPI from './tenants/tenants';
-import {
-  CreateTenant,
-  Tenant,
-  TenantCreateParams,
-  TenantListResponse,
-  TenantRetrieveSchemaResponse,
-  TenantUpdateParams,
-  Tenants,
-} from './tenants/tenants';
+import { CreateTenant, Tenant, Tenants } from './tenants/tenants';
 
 export class V1 extends APIResource {
   connections: ConnectionsAPI.Connections = new ConnectionsAPI.Connections(this._client);
@@ -81,53 +44,16 @@ export declare namespace V1 {
     type DatabaseConfig as DatabaseConfig,
     type SyncEventResponse as SyncEventResponse,
     type ConnectionListResponse as ConnectionListResponse,
-    type ConnectionApproveSyncResponse as ConnectionApproveSyncResponse,
-    type ConnectionListSyncsResponse as ConnectionListSyncsResponse,
-    type ConnectionRetrieveCredentialResponse as ConnectionRetrieveCredentialResponse,
-    type ConnectionRetrieveSchemaResponse as ConnectionRetrieveSchemaResponse,
-    type ConnectionRetrieveSyncStatusResponse as ConnectionRetrieveSyncStatusResponse,
-    type ConnectionStreamSyncProgressResponse as ConnectionStreamSyncProgressResponse,
-    type ConnectionSyncResponse as ConnectionSyncResponse,
-    type ConnectionUpdateCredentialsResponse as ConnectionUpdateCredentialsResponse,
-    type ConnectionCreateParams as ConnectionCreateParams,
-    type ConnectionUpdateParams as ConnectionUpdateParams,
     type ConnectionListParams as ConnectionListParams,
-    type ConnectionApproveSyncParams as ConnectionApproveSyncParams,
-    type ConnectionListSyncsParams as ConnectionListSyncsParams,
-    type ConnectionRetrieveSyncStatusParams as ConnectionRetrieveSyncStatusParams,
-    type ConnectionStreamSyncProgressParams as ConnectionStreamSyncProgressParams,
-    type ConnectionUpdateCredentialsParams as ConnectionUpdateCredentialsParams,
   };
 
-  export {
-    GitHub as GitHub,
-    type GitHubCallbackResponse as GitHubCallbackResponse,
-    type GitHubConnectResponse as GitHubConnectResponse,
-    type GitHubGetInstallationLinkResponse as GitHubGetInstallationLinkResponse,
-    type GitHubGetStatusResponse as GitHubGetStatusResponse,
-    type GitHubCallbackParams as GitHubCallbackParams,
-    type GitHubConnectParams as GitHubConnectParams,
-  };
+  export { GitHub as GitHub };
 
-  export {
-    Groups as Groups,
-    type GroupDetail as GroupDetail,
-    type GroupListResponse as GroupListResponse,
-    type GroupCreateParams as GroupCreateParams,
-    type GroupUpdateParams as GroupUpdateParams,
-  };
+  export { Groups as Groups, type GroupDetail as GroupDetail };
 
   export { Me as Me, type ClientUser as ClientUser, type ClientUserRole as ClientUserRole };
 
   export { Org as Org };
 
-  export {
-    Tenants as Tenants,
-    type CreateTenant as CreateTenant,
-    type Tenant as Tenant,
-    type TenantListResponse as TenantListResponse,
-    type TenantRetrieveSchemaResponse as TenantRetrieveSchemaResponse,
-    type TenantCreateParams as TenantCreateParams,
-    type TenantUpdateParams as TenantUpdateParams,
-  };
+  export { Tenants as Tenants, type CreateTenant as CreateTenant, type Tenant as Tenant };
 }

@@ -16,8 +16,8 @@ import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
 import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
-import { Healthz, HealthzCheckResponse } from './resources/healthz';
-import { Readyz, ReadyzCheckResponse } from './resources/readyz';
+import { Healthz } from './resources/healthz';
+import { Readyz } from './resources/readyz';
 import { V1 } from './resources/v1/v1';
 import { type Fetch } from './internal/builtin-types';
 import { HeadersLike, NullableHeaders, buildHeaders } from './internal/headers';
@@ -737,7 +737,7 @@ export declare namespace Kater {
 
   export { V1 as V1 };
 
-  export { Healthz as Healthz, type HealthzCheckResponse as HealthzCheckResponse };
+  export { Healthz as Healthz };
 
-  export { Readyz as Readyz, type ReadyzCheckResponse as ReadyzCheckResponse };
+  export { Readyz as Readyz };
 }
