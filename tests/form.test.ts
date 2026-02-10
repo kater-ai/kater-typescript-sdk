@@ -1,5 +1,5 @@
-import { multipartFormRequestOptions, createForm } from 'kater/internal/uploads';
-import { toFile } from 'kater/core/uploads';
+import { multipartFormRequestOptions, createForm } from '@katerai/sdk/internal/uploads';
+import { toFile } from '@katerai/sdk/core/uploads';
 
 describe('form data validation', () => {
   test('valid values do not error', async () => {

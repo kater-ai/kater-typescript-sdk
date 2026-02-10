@@ -1,287 +1,30 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
+import * as ConnectionsAPI from './connections';
+import {
+  Connection,
+  ConnectionListConnectionsParams,
+  ConnectionListConnectionsResponse,
+  Connections,
+} from './connections';
 import * as TenantsAPI from './tenants/tenants';
 import { TenantImportFromCsvParams, TenantImportFromWarehouseParams, Tenants } from './tenants/tenants';
-import { APIPromise } from '../../core/api-promise';
-import { RequestOptions } from '../../internal/request-options';
 
 export class V1 extends APIResource {
+  connections: ConnectionsAPI.Connections = new ConnectionsAPI.Connections(this._client);
   tenants: TenantsAPI.Tenants = new TenantsAPI.Tenants(this._client);
-
-  /**
-   * List warehouse connections for the client.
-   *
-   * Filter connections by approval status using the `status` query parameter:
-   *
-   * - `approved` (default): Only approved connections (is_pending_approval=false)
-   * - `pending`: Only connections awaiting PR approval (is_pending_approval=true)
-   * - `all`: All connections regardless of approval status
-   *
-   * Pending connections include their approval PR URLs when available. Returns empty
-   * list if GitHub is not configured.
-   *
-   * RLS: Filtered to current client (DualClientRLSDB).
-   */
-  listConnections(
-    query: V1ListConnectionsParams | null | undefined = {},
-    options?: RequestOptions,
-  ): APIPromise<V1ListConnectionsResponse> {
-    return this._client.get('/api/v1/connections', { query, ...options });
-  }
 }
 
-export type V1ListConnectionsResponse = Array<V1ListConnectionsResponse.V1ListConnectionsResponseItem>;
-
-export namespace V1ListConnectionsResponse {
-  /**
-   * Response model for a single connection.
-   *
-   * All data comes from the database (source of truth). For YAML-compatible output
-   * with 'kater_id', use the /schema endpoint instead.
-   */
-  export interface V1ListConnectionsResponseItem {
-    /**
-     * Connection ID
-     */
-    id: string;
-
-    /**
-     * Creation timestamp
-     */
-    created_at: string;
-
-    /**
-     * Credential ID
-     */
-    credential_id: string;
-
-    /**
-     * Databases in this connection
-     */
-    databases: Array<V1ListConnectionsResponseItem.Database>;
-
-    /**
-     * Connection name
-     */
-    name: string;
-
-    /**
-     * Last update timestamp
-     */
-    updated_at: string;
-
-    /**
-     * Warehouse-specific configuration
-     */
-    warehouse_metadata:
-      | V1ListConnectionsResponseItem.SnowflakeMetadata
-      | V1ListConnectionsResponseItem.PostgresqlMetadata
-      | V1ListConnectionsResponseItem.DatabricksMetadata
-      | V1ListConnectionsResponseItem.ClickhouseMetadata
-      | V1ListConnectionsResponseItem.MssqlMetadata;
-
-    /**
-     * Warehouse type (snowflake, postgresql, etc.)
-     */
-    warehouse_type: string;
-
-    /**
-     * GitHub PR URL for approving the connection (None if already approved)
-     */
-    approval_pr_url?: string | null;
-
-    /**
-     * Connection description
-     */
-    description?: string | null;
-
-    /**
-     * True if this connection is awaiting PR approval
-     */
-    is_pending_approval?: boolean;
-
-    /**
-     * Human-readable label
-     */
-    label?: string | null;
-
-    /**
-     * Query timeout in seconds
-     */
-    query_timeout?: number | null;
-
-    /**
-     * Timezone conversion mode (do_not_convert, convert_to_utc)
-     */
-    query_timezone_conversion?: string | null;
-  }
-
-  export namespace V1ListConnectionsResponseItem {
-    /**
-     * Database info from ConnectionSchema.
-     */
-    export interface Database {
-      /**
-       * Database ID
-       */
-      id: string;
-
-      /**
-       * Actual name of the database in the warehouse
-       */
-      database_object_name: string;
-
-      /**
-       * Database name
-       */
-      name: string;
-
-      /**
-       * Schemas in this database
-       */
-      schemas: Array<Database.Schema>;
-
-      /**
-       * Database description
-       */
-      description?: string | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-
-      /**
-       * Timezone for the database
-       */
-      timezone?: string | null;
-    }
-
-    export namespace Database {
-      /**
-       * Schema info from ConnectionSchema.
-       */
-      export interface Schema {
-        /**
-         * Schema ID
-         */
-        id: string;
-
-        /**
-         * Actual name of the schema in the warehouse
-         */
-        database_object_name: string;
-
-        /**
-         * Schema name
-         */
-        name: string;
-
-        /**
-         * Schema description
-         */
-        description?: string | null;
-
-        /**
-         * Human-readable label
-         */
-        label?: string | null;
-      }
-    }
-
-    export interface SnowflakeMetadata {
-      /**
-       * Authentication method
-       */
-      auth_method: 'username_password' | 'key_pair';
-
-      /**
-       * Snowflake role
-       */
-      role: string;
-
-      /**
-       * Snowflake account identifier
-       */
-      snowflake_account_id: string;
-
-      /**
-       * Snowflake compute warehouse name
-       */
-      warehouse: string;
-
-      warehouse_type: 'snowflake';
-    }
-
-    export interface PostgresqlMetadata {
-      /**
-       * Database host address
-       */
-      host: string;
-
-      /**
-       * Database port (default: 5432)
-       */
-      port: number;
-
-      warehouse_type: 'postgresql';
-    }
-
-    export interface DatabricksMetadata {
-      /**
-       * Databricks SQL warehouse HTTP path
-       */
-      http_path: string;
-
-      /**
-       * Databricks server hostname
-       */
-      server_hostname: string;
-
-      warehouse_type: 'databricks';
-    }
-
-    export interface ClickhouseMetadata {
-      /**
-       * ClickHouse host address
-       */
-      host: string;
-
-      /**
-       * ClickHouse port (default: 8443)
-       */
-      port: number;
-
-      warehouse_type: 'clickhouse';
-    }
-
-    export interface MssqlMetadata {
-      /**
-       * SQL Server host address
-       */
-      host: string;
-
-      /**
-       * SQL Server port (default: 1433)
-       */
-      port: number;
-
-      warehouse_type: 'mssql';
-    }
-  }
-}
-
-export interface V1ListConnectionsParams {
-  status?: 'approved' | 'pending' | 'all';
-}
-
+V1.Connections = Connections;
 V1.Tenants = Tenants;
 
 export declare namespace V1 {
   export {
-    type V1ListConnectionsResponse as V1ListConnectionsResponse,
-    type V1ListConnectionsParams as V1ListConnectionsParams,
+    Connections as Connections,
+    type Connection as Connection,
+    type ConnectionListConnectionsResponse as ConnectionListConnectionsResponse,
+    type ConnectionListConnectionsParams as ConnectionListConnectionsParams,
   };
 
   export {
