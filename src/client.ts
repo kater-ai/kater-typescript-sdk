@@ -208,7 +208,41 @@ export class Kater {
   }
 
   protected validateHeaders({ values, nulls }: NullableHeaders) {
-    return;
+    if (this.apiKey && values.get('x-api-key')) {
+      return;
+    }
+    if (nulls.has('x-api-key')) {
+      return;
+    }
+
+    if (this.bearerToken && values.get('authorization')) {
+      return;
+    }
+    if (nulls.has('authorization')) {
+      return;
+    }
+
+    throw new Error(
+      'Could not resolve authentication method. Expected either apiKey or bearerToken to be set. Or for one of the "X-API-Key" or "Authorization" headers to be explicitly omitted',
+    );
+  }
+
+  protected async authHeaders(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
+    return buildHeaders([await this.apiKeyAuth(opts), await this.propelAuth(opts)]);
+  }
+
+  protected async apiKeyAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
+    if (this.apiKey == null) {
+      return undefined;
+    }
+    return buildHeaders([{ 'X-API-Key': this.apiKey }]);
+  }
+
+  protected async propelAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
+    if (this.bearerToken == null) {
+      return undefined;
+    }
+    return buildHeaders([{ Authorization: `Bearer ${this.bearerToken}` }]);
   }
 
   /**
@@ -649,6 +683,7 @@ export class Kater {
         ...(options.timeout ? { 'X-Stainless-Timeout': String(Math.trunc(options.timeout / 1000)) } : {}),
         ...getPlatformHeaders(),
       },
+      await this.authHeaders(options),
       this._options.defaultHeaders,
       bodyHeaders,
       options.headers,

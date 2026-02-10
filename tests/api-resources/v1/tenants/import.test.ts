@@ -2,7 +2,10 @@
 
 import Kater, { toFile } from '@katerai/sdk';
 
-const client = new Kater({ baseURL: process.env['TEST_API_BASE_URL'] ?? 'http://127.0.0.1:4010' });
+const client = new Kater({
+  apiKey: 'My API Key',
+  baseURL: process.env['TEST_API_BASE_URL'] ?? 'http://127.0.0.1:4010',
+});
 
 describe('resource import', () => {
   // Prism tests are disabled

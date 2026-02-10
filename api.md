@@ -5,8 +5,6 @@
 Types:
 
 - <code><a href="./src/resources/v1/connections.ts">Connection</a></code>
-- <code><a href="./src/resources/v1/connections.ts">DatabaseConfig</a></code>
-- <code><a href="./src/resources/v1/connections.ts">SyncEventResponse</a></code>
 - <code><a href="./src/resources/v1/connections.ts">ConnectionListResponse</a></code>
 
 Methods:
@@ -15,17 +13,7 @@ Methods:
 
 ## Tenants
 
-Types:
-
-- <code><a href="./src/resources/v1/tenants/tenants.ts">CreateTenant</a></code>
-- <code><a href="./src/resources/v1/tenants/tenants.ts">Tenant</a></code>
-
 ### Batch
-
-Types:
-
-- <code><a href="./src/resources/v1/tenants/batch.ts">BatchTenantError</a></code>
-- <code><a href="./src/resources/v1/tenants/batch.ts">BatchTenantSuccess</a></code>
 
 ### Import
 
