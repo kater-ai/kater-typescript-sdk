@@ -18,13 +18,6 @@ import {
   RefWithLabel,
   SubqueryCondition,
 } from './compiler';
-import * as ConnectionsAPI from './connections';
-import {
-  Connection,
-  ConnectionListConnectionsParams,
-  ConnectionListConnectionsResponse,
-  Connections,
-} from './connections';
 import * as TenantsAPI from './tenants';
 import {
   ImportTenantsResponse,
@@ -32,6 +25,13 @@ import {
   TenantImportFromWarehouseParams,
   Tenants,
 } from './tenants';
+import * as ConnectionsAPI from './connections/connections';
+import {
+  Connection,
+  ConnectionListConnectionsParams,
+  ConnectionListConnectionsResponse,
+  Connections,
+} from './connections/connections';
 
 export class V1 extends APIResource {
   compiler: CompilerAPI.Compiler = new CompilerAPI.Compiler(this._client);
