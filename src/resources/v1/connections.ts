@@ -264,93 +264,6 @@ export namespace Connection {
   }
 }
 
-/**
- * Database configuration for connection creation request.
- */
-export interface DatabaseConfig {
-  /**
-   * Database name (also used as the warehouse object name)
-   */
-  name: string;
-
-  /**
-   * Description of the database
-   */
-  description?: string | null;
-
-  /**
-   * Human-readable label for the database (defaults to name if not set)
-   */
-  label?: string | null;
-
-  /**
-   * Schema configurations to include (empty = discover all schemas)
-   */
-  schemas?: Array<DatabaseConfig.Schema>;
-
-  /**
-   * Timezone for the database (e.g., 'UTC', 'America/New_York')
-   */
-  timezone?: string | null;
-}
-
-export namespace DatabaseConfig {
-  /**
-   * Schema configuration for connection creation request.
-   */
-  export interface Schema {
-    /**
-     * Schema name (also used as the warehouse object name)
-     */
-    name: string;
-
-    /**
-     * Description of the schema
-     */
-    description?: string | null;
-
-    /**
-     * Human-readable label for the schema (defaults to name if not set)
-     */
-    label?: string | null;
-  }
-}
-
-/**
- * Response model for a single sync event.
- */
-export interface SyncEventResponse {
-  /**
-   * Event ID
-   */
-  id: string;
-
-  /**
-   * Event timestamp
-   */
-  created_at: string;
-
-  /**
-   * Event type: step_started, step_completed, progress, warning, error
-   */
-  event_type: string;
-
-  /**
-   * Human-readable event message
-   */
-  message: string;
-
-  /**
-   * Additional event data
-   */
-  metadata?: { [key: string]: unknown };
-
-  /**
-   * Step name if applicable
-   */
-  step_name?: string | null;
-}
-
 export type ConnectionListResponse = Array<Connection>;
 
 export interface ConnectionListParams {
@@ -360,8 +273,6 @@ export interface ConnectionListParams {
 export declare namespace Connections {
   export {
     type Connection as Connection,
-    type DatabaseConfig as DatabaseConfig,
-    type SyncEventResponse as SyncEventResponse,
     type ConnectionListResponse as ConnectionListResponse,
     type ConnectionListParams as ConnectionListParams,
   };
