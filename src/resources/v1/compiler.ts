@@ -348,26 +348,6 @@ export namespace CompilerResolveResponse {
     ai_context?: string | null;
 
     /**
-     * Optional subset of widget types within the declared widget_category that may
-     * render this query
-     */
-    allowed_widget_types?: Array<
-      | 'kpi_card'
-      | 'line_chart'
-      | 'bar_chart'
-      | 'pie_chart'
-      | 'donut_chart'
-      | 'area_chart'
-      | 'scatter_chart'
-      | 'data_table'
-      | 'card_grid'
-      | 'heatmap'
-      | 'gauge'
-      | 'text'
-      | 'image'
-    > | null;
-
-    /**
      * Merged required + selected optional calculations
      */
     calculations?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
@@ -1038,26 +1018,6 @@ export namespace CompilerCompileParams {
      * Usage guidance for AI processing
      */
     ai_context?: string | null;
-
-    /**
-     * Optional subset of widget types within the declared widget_category that may
-     * render this query
-     */
-    allowed_widget_types?: Array<
-      | 'kpi_card'
-      | 'line_chart'
-      | 'bar_chart'
-      | 'pie_chart'
-      | 'donut_chart'
-      | 'area_chart'
-      | 'scatter_chart'
-      | 'data_table'
-      | 'card_grid'
-      | 'heatmap'
-      | 'gauge'
-      | 'text'
-      | 'image'
-    > | null;
 
     /**
      * Merged required + selected optional calculations

@@ -40,7 +40,6 @@ describe('resource compiler', () => {
         topic: 'ref(dim_customer.sale_price)',
         widget_category: 'axis',
         ai_context: 'ai_context',
-        allowed_widget_types: ['kpi_card'],
         calculations: [{ ref: 'ref', label: 'label' }],
         chart_hints: [
           {
