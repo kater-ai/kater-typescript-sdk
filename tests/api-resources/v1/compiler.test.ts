@@ -58,6 +58,7 @@ describe('resource compiler', () => {
         custom_properties: { foo: 'bar' },
         description: 'description',
         dimensions: [{ ref: 'ref', label: 'label' }],
+        disallowed_widget_types: ['kpi_card'],
         filters: [
           {
             field: 'ref(dim_customer.sale_price)',

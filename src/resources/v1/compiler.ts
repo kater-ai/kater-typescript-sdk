@@ -393,6 +393,25 @@ export namespace CompilerResolveResponse {
     dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
+     * Widget types within the declared widget_category that must NOT render this query
+     */
+    disallowed_widget_types?: Array<
+      | 'kpi_card'
+      | 'line_chart'
+      | 'bar_chart'
+      | 'pie_chart'
+      | 'donut_chart'
+      | 'area_chart'
+      | 'scatter_chart'
+      | 'data_table'
+      | 'card_grid'
+      | 'heatmap'
+      | 'gauge'
+      | 'text'
+      | 'image'
+    > | null;
+
+    /**
      * Merged required + selected optional filters
      */
     filters?: Array<
@@ -1064,6 +1083,25 @@ export namespace CompilerCompileParams {
      * Merged required + selected optional dimensions
      */
     dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
+
+    /**
+     * Widget types within the declared widget_category that must NOT render this query
+     */
+    disallowed_widget_types?: Array<
+      | 'kpi_card'
+      | 'line_chart'
+      | 'bar_chart'
+      | 'pie_chart'
+      | 'donut_chart'
+      | 'area_chart'
+      | 'scatter_chart'
+      | 'data_table'
+      | 'card_grid'
+      | 'heatmap'
+      | 'gauge'
+      | 'text'
+      | 'image'
+    > | null;
 
     /**
      * Merged required + selected optional filters
