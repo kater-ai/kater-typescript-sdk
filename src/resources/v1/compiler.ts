@@ -99,6 +99,8 @@ export interface ChartConfig {
    * Field or variable reference for y-axis
    */
   y_axis?: string | null;
+
+  [k: string]: unknown;
 }
 
 /**
@@ -389,6 +391,9 @@ export namespace CompilerResolveResponse {
       | 'gauge'
       | 'text'
       | 'image'
+      | 'styled_table'
+      | 'stat_cards'
+      | 'key_value_list'
     > | null;
 
     /**
@@ -1061,6 +1066,9 @@ export namespace CompilerCompileParams {
       | 'gauge'
       | 'text'
       | 'image'
+      | 'styled_table'
+      | 'stat_cards'
+      | 'key_value_list'
     > | null;
 
     /**
