@@ -338,9 +338,34 @@ export namespace CompilerResolveResponse {
     topic: string;
 
     /**
+     * Widget category that determines data shape constraints
+     */
+    widget_category: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static';
+
+    /**
      * Usage guidance for AI processing
      */
     ai_context?: string | null;
+
+    /**
+     * Optional subset of widget types within the declared widget_category that may
+     * render this query
+     */
+    allowed_widget_types?: Array<
+      | 'kpi_card'
+      | 'line_chart'
+      | 'bar_chart'
+      | 'pie_chart'
+      | 'donut_chart'
+      | 'area_chart'
+      | 'scatter_chart'
+      | 'data_table'
+      | 'card_grid'
+      | 'heatmap'
+      | 'gauge'
+      | 'text'
+      | 'image'
+    > | null;
 
     /**
      * Merged required + selected optional calculations
@@ -417,11 +442,6 @@ export namespace CompilerResolveResponse {
      * Full variable definitions with bound values
      */
     resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
-
-    /**
-     * Category of widget that determines data shape constraints for queries
-     */
-    widget_category?: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static' | null;
   }
 
   export namespace ResolvedQuery {
@@ -991,9 +1011,34 @@ export namespace CompilerCompileParams {
     topic: string;
 
     /**
+     * Widget category that determines data shape constraints
+     */
+    widget_category: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static';
+
+    /**
      * Usage guidance for AI processing
      */
     ai_context?: string | null;
+
+    /**
+     * Optional subset of widget types within the declared widget_category that may
+     * render this query
+     */
+    allowed_widget_types?: Array<
+      | 'kpi_card'
+      | 'line_chart'
+      | 'bar_chart'
+      | 'pie_chart'
+      | 'donut_chart'
+      | 'area_chart'
+      | 'scatter_chart'
+      | 'data_table'
+      | 'card_grid'
+      | 'heatmap'
+      | 'gauge'
+      | 'text'
+      | 'image'
+    > | null;
 
     /**
      * Merged required + selected optional calculations
@@ -1070,11 +1115,6 @@ export namespace CompilerCompileParams {
      * Full variable definitions with bound values
      */
     resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
-
-    /**
-     * Category of widget that determines data shape constraints for queries
-     */
-    widget_category?: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static' | null;
   }
 
   export namespace ResolvedQuery {

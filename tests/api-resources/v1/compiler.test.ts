@@ -17,6 +17,7 @@ describe('resource compiler', () => {
         name: 'x',
         source_query: 'ref(dim_customer.sale_price)',
         topic: 'ref(dim_customer.sale_price)',
+        widget_category: 'axis',
       },
     });
     const rawResponse = await responsePromise.asResponse();
@@ -37,7 +38,9 @@ describe('resource compiler', () => {
         name: 'x',
         source_query: 'ref(dim_customer.sale_price)',
         topic: 'ref(dim_customer.sale_price)',
+        widget_category: 'axis',
         ai_context: 'ai_context',
+        allowed_widget_types: ['kpi_card'],
         calculations: [{ ref: 'ref', label: 'label' }],
         chart_hints: [
           {
@@ -98,7 +101,6 @@ describe('resource compiler', () => {
             label: 'label',
           },
         ],
-        widget_category: 'axis',
       },
       source: 'source',
       tenant_database: 'tenant_database',
