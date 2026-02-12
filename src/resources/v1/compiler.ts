@@ -105,6 +105,11 @@ export interface ChartConfig {
   color_by?: string | null;
 
   /**
+   * Comparison mode for single_value widgets (e.g., previous_period, target)
+   */
+  comparison?: 'previous_period' | 'target' | null;
+
+  /**
    * Field or variable reference for size
    */
   size?: string | null;
@@ -115,6 +120,11 @@ export interface ChartConfig {
   stack_by?: string | null;
 
   /**
+   * Target value for comparison: target mode
+   */
+  target_value?: string | null;
+
+  /**
    * Field or variable reference for x-axis
    */
   x_axis?: string | null;
@@ -123,8 +133,6 @@ export interface ChartConfig {
    * Field or variable reference for y-axis
    */
   y_axis?: string | null;
-
-  [k: string]: unknown;
 }
 
 /**
@@ -140,6 +148,11 @@ export interface CompilerErrorItem {
    * Human-readable error description
    */
   message: string;
+
+  /**
+   * Column number in the source file
+   */
+  column?: number | null;
 
   /**
    * Source file path where the error occurred
@@ -473,7 +486,7 @@ export namespace CompilerResolveResponse {
     /**
      * Chart recommendations preserved for evaluation
      */
-    chart_hints?: Array<ResolvedQuery.ChartHint1 | ResolvedQuery.ChartHint2Output> | null;
+    chart_hints?: Array<ResolvedQuery.ChartHint1Output | ResolvedQuery.ChartHint2Output> | null;
 
     /**
      * Custom properties
@@ -568,7 +581,7 @@ export namespace CompilerResolveResponse {
     /**
      * A chart recommendation rule
      */
-    export interface ChartHint1 {
+    export interface ChartHint1Output {
       /**
        * Chart configuration with variable references
        */
@@ -962,6 +975,11 @@ export namespace CompilerResolveResponse {
        * Node type: QUERY, VIEW, DIMENSION, MEASURE, FILTER, EXPRESSION
        */
       node_type: string;
+
+      /**
+       * Column number in source file
+       */
+      column?: number;
     }
   }
 }
@@ -1072,6 +1090,11 @@ export namespace CompilerValidateResponse {
          * Node type: QUERY, VIEW, DIMENSION, MEASURE, FILTER, EXPRESSION
          */
         node_type: string;
+
+        /**
+         * Column number in source file
+         */
+        column?: number;
       }
     }
   }
@@ -1148,7 +1171,7 @@ export namespace CompilerCompileParams {
     /**
      * Chart recommendations preserved for evaluation
      */
-    chart_hints?: Array<ResolvedQuery.ChartHint1 | ResolvedQuery.ChartHint2Input> | null;
+    chart_hints?: Array<ResolvedQuery.ChartHint1Input | ResolvedQuery.ChartHint2Input> | null;
 
     /**
      * Custom properties
@@ -1243,7 +1266,7 @@ export namespace CompilerCompileParams {
     /**
      * A chart recommendation rule
      */
-    export interface ChartHint1 {
+    export interface ChartHint1Input {
       /**
        * Chart configuration with variable references
        */

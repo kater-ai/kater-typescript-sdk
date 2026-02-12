@@ -45,8 +45,10 @@ describe('resource compiler', () => {
           {
             config: {
               color_by: 'ref(created_date)',
+              comparison: 'previous_period',
               size: 'ref(created_date)',
               stack_by: 'ref(created_date)',
+              target_value: 'target_value',
               x_axis: 'ref(created_date)',
               y_axis: 'ref(created_date)',
             },
@@ -76,8 +78,10 @@ describe('resource compiler', () => {
         resolved_chart: {
           config: {
             color_by: 'ref(created_date)',
+            comparison: 'previous_period',
             size: 'ref(created_date)',
             stack_by: 'ref(created_date)',
+            target_value: 'target_value',
             x_axis: 'ref(created_date)',
             y_axis: 'ref(created_date)',
           },
