@@ -12,12 +12,14 @@ Types:
 - <code><a href="./src/resources/v1/compiler.ts">RefWithLabel</a></code>
 - <code><a href="./src/resources/v1/compiler.ts">SubqueryCondition</a></code>
 - <code><a href="./src/resources/v1/compiler.ts">CompilerCompileResponse</a></code>
+- <code><a href="./src/resources/v1/compiler.ts">CompilerEnumerateResponse</a></code>
 - <code><a href="./src/resources/v1/compiler.ts">CompilerResolveResponse</a></code>
 - <code><a href="./src/resources/v1/compiler.ts">CompilerValidateResponse</a></code>
 
 Methods:
 
 - <code title="post /api/v1/compiler/compile">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
+- <code title="post /api/v1/compiler/enumerate">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">enumerate</a>({ ...params }) -> CompilerEnumerateResponse</code>
 - <code title="post /api/v1/compiler/resolve">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
 - <code title="post /api/v1/compiler/validate">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">validate</a>({ ...params }) -> CompilerValidateResponse</code>
 

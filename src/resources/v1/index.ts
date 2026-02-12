@@ -10,9 +10,11 @@ export {
   type RefWithLabel,
   type SubqueryCondition,
   type CompilerCompileResponse,
+  type CompilerEnumerateResponse,
   type CompilerResolveResponse,
   type CompilerValidateResponse,
   type CompilerCompileParams,
+  type CompilerEnumerateParams,
   type CompilerResolveParams,
   type CompilerValidateParams,
 } from './compiler';
