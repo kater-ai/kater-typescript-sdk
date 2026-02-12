@@ -29,6 +29,30 @@ export class Compiler extends APIResource {
   }
 
   /**
+   * Enumerate every valid query configuration for a connection.
+   *
+   * Generates all valid combinations of optional dimensions, measures, calculations,
+   * filters, and variable values, constrained by widget category rules.
+   *
+   * RLS: Filtered to current client (ClientRLSDB).
+   */
+  enumerate(
+    params: CompilerEnumerateParams,
+    options?: RequestOptions,
+  ): APIPromise<CompilerEnumerateResponse> {
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
+    return this._client.post('/api/v1/compiler/enumerate', {
+      query: { source },
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+        options?.headers,
+      ]),
+    });
+  }
+
+  /**
    * Resolve a query template with user-selected parameters.
    *
    * Takes a query reference and variable selections, returns the fully resolved
@@ -236,6 +260,11 @@ export interface CompilerCompileResponse {
   success: boolean;
 
   /**
+   * Maps UUID column aliases to human-readable names and types
+   */
+  column_map?: Array<CompilerCompileResponse.ColumnMap>;
+
+  /**
    * Compilation errors
    */
   errors?: Array<CompilerErrorItem>;
@@ -257,6 +286,31 @@ export interface CompilerCompileResponse {
 }
 
 export namespace CompilerCompileResponse {
+  /**
+   * Maps a UUID column alias to its human-readable name and type.
+   */
+  export interface ColumnMap {
+    /**
+     * Field type: dimension, measure, or calculation
+     */
+    field_type: string;
+
+    /**
+     * UUID string used as SQL column alias
+     */
+    kater_id: string;
+
+    /**
+     * Human-readable column name
+     */
+    name: string;
+
+    /**
+     * Display label
+     */
+    label?: string | null;
+  }
+
   /**
    * Compilation metadata from the compiler.
    */
@@ -290,6 +344,68 @@ export namespace CompilerCompileResponse {
      * View names used in compilation
      */
     views_used?: Array<string>;
+  }
+}
+
+/**
+ * Response model for query combination enumeration.
+ */
+export interface CompilerEnumerateResponse {
+  /**
+   * All valid query configurations
+   */
+  combinations: Array<CompilerEnumerateResponse.Combination>;
+
+  /**
+   * Total number of combinations
+   */
+  total_count: number;
+}
+
+export namespace CompilerEnumerateResponse {
+  /**
+   * A single valid query configuration.
+   */
+  export interface Combination {
+    /**
+     * Query template reference (e.g. 'q:COMPLIANCE_OVERVIEW')
+     */
+    query_ref: string;
+
+    /**
+     * Widget category (e.g. 'axis', 'table')
+     */
+    widget_category: string;
+
+    /**
+     * Human-readable label for the query
+     */
+    query_label?: string | null;
+
+    /**
+     * Selected optional calculation names
+     */
+    selected_calculations?: Array<string>;
+
+    /**
+     * Selected optional dimension names
+     */
+    selected_dimensions?: Array<string>;
+
+    /**
+     * Selected optional filter names
+     */
+    selected_filters?: Array<string>;
+
+    /**
+     * Selected optional measure names
+     */
+    selected_measures?: Array<string>;
+
+    /**
+     * Variable name to value assignments
+     */
+    variable_assignments?: { [key: string]: unknown };
   }
 }
 
@@ -1478,6 +1594,29 @@ export namespace CompilerCompileParams {
   }
 }
 
+export interface CompilerEnumerateParams {
+  /**
+   * Body param: Connection to enumerate against
+   */
+  connection_id: string;
+
+  /**
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param: Optional query refs to limit enumeration. If omitted, enumerates all
+   * queries.
+   */
+  query_refs?: Array<string> | null;
+
+  /**
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
+}
+
 export interface CompilerResolveParams {
   /**
    * Body param: Connection to resolve against
@@ -1553,9 +1692,11 @@ export declare namespace Compiler {
     type RefWithLabel as RefWithLabel,
     type SubqueryCondition as SubqueryCondition,
     type CompilerCompileResponse as CompilerCompileResponse,
+    type CompilerEnumerateResponse as CompilerEnumerateResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,
     type CompilerCompileParams as CompilerCompileParams,
+    type CompilerEnumerateParams as CompilerEnumerateParams,
     type CompilerResolveParams as CompilerResolveParams,
     type CompilerValidateParams as CompilerValidateParams,
   };
