@@ -105,9 +105,23 @@ describe('resource compiler', () => {
             label: 'label',
           },
         ],
+        select_from: [
+          {
+            cte_alias: 'cte_alias',
+            output_columns: [
+              {
+                column_alias: 'column_alias',
+                field_name: 'field_name',
+                source_type: 'dimension',
+              },
+            ],
+            ref: 'ref(dim_customer.sale_price)',
+            variables: { foo: 'string' },
+          },
+        ],
       },
       source: 'source',
-      tenant_database: 'tenant_database',
+      tenant_key: 'tenant_key',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });

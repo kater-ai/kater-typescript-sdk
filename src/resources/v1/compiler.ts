@@ -575,6 +575,11 @@ export namespace CompilerResolveResponse {
      * Full variable definitions with bound values
      */
     resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
+
+    /**
+     * Resolved select_from entries with CTE metadata
+     */
+    select_from?: Array<ResolvedQuery.SelectFrom> | null;
   }
 
   export namespace ResolvedQuery {
@@ -929,6 +934,53 @@ export namespace CompilerResolveResponse {
         step?: number | null;
       }
     }
+
+    /**
+     * A resolved select_from entry with CTE metadata
+     */
+    export interface SelectFrom {
+      /**
+       * CTE alias used in the WITH clause (e.g., **sf_compliance_rate**base)
+       */
+      cte_alias: string;
+
+      /**
+       * Columns produced by the CTE, available as q:query_name.field_name in the parent
+       */
+      output_columns: Array<SelectFrom.OutputColumn>;
+
+      /**
+       * Reference to the source query
+       */
+      ref: string;
+
+      /**
+       * Variable overrides passed to the referenced query
+       */
+      variables?: { [key: string]: string | number | boolean } | null;
+    }
+
+    export namespace SelectFrom {
+      /**
+       * A column produced by a select_from CTE
+       */
+      export interface OutputColumn {
+        /**
+         * The SQL column alias in the CTE output
+         */
+        column_alias: string;
+
+        /**
+         * The field name used in q:query_name.field_name references
+         */
+        field_name: string;
+
+        /**
+         * Original type of the field in the source query
+         */
+        source_type: 'dimension' | 'measure' | 'calculation';
+      }
+    }
   }
 
   /**
@@ -1117,9 +1169,10 @@ export interface CompilerCompileParams {
   source?: string | null;
 
   /**
-   * Body param: Optional tenant database override
+   * Body param: Tenant key for multi-tenant compilation. For database tenancy, maps
+   * to the tenant's database. For row tenancy, used as the row-level filter value.
    */
-  tenant_database?: string | null;
+  tenant_key?: string | null;
 
   /**
    * Header param
@@ -1260,6 +1313,11 @@ export namespace CompilerCompileParams {
      * Full variable definitions with bound values
      */
     resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
+
+    /**
+     * Resolved select_from entries with CTE metadata
+     */
+    select_from?: Array<ResolvedQuery.SelectFrom> | null;
   }
 
   export namespace ResolvedQuery {
@@ -1612,6 +1670,53 @@ export namespace CompilerCompileParams {
          * Step increment for numeric input
          */
         step?: number | null;
+      }
+    }
+
+    /**
+     * A resolved select_from entry with CTE metadata
+     */
+    export interface SelectFrom {
+      /**
+       * CTE alias used in the WITH clause (e.g., **sf_compliance_rate**base)
+       */
+      cte_alias: string;
+
+      /**
+       * Columns produced by the CTE, available as q:query_name.field_name in the parent
+       */
+      output_columns: Array<SelectFrom.OutputColumn>;
+
+      /**
+       * Reference to the source query
+       */
+      ref: string;
+
+      /**
+       * Variable overrides passed to the referenced query
+       */
+      variables?: { [key: string]: string | number | boolean } | null;
+    }
+
+    export namespace SelectFrom {
+      /**
+       * A column produced by a select_from CTE
+       */
+      export interface OutputColumn {
+        /**
+         * The SQL column alias in the CTE output
+         */
+        column_alias: string;
+
+        /**
+         * The field name used in q:query_name.field_name references
+         */
+        field_name: string;
+
+        /**
+         * Original type of the field in the source query
+         */
+        source_type: 'dimension' | 'measure' | 'calculation';
       }
     }
   }
