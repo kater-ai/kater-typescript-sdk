@@ -171,11 +171,7 @@ describe('resource compiler', () => {
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       query_ref: 'query_ref',
       source: 'source',
-      include_calculations: ['string'],
-      include_dimensions: ['string'],
-      include_filters: ['string'],
-      include_measures: ['string'],
-      variables: { foo: 'bar' },
+      combination: 'combination',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });

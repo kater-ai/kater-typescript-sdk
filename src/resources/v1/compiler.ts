@@ -1762,29 +1762,12 @@ export interface CompilerResolveParams {
   source?: string | null;
 
   /**
-   * Body param: Calculation names to include
+   * Body param: Comma-separated slot selections and variable assignments. Reserved
+   * keys: measure, dimension, filter, calculation. All other keys are variable
+   * assignments. Example: 'measure=Compliance
+   * Rate,dimension=Department,breakdown=region'
    */
-  include_calculations?: Array<string>;
-
-  /**
-   * Body param: Dimension names to include
-   */
-  include_dimensions?: Array<string>;
-
-  /**
-   * Body param: Filter names to include
-   */
-  include_filters?: Array<string>;
-
-  /**
-   * Body param: Measure names to include
-   */
-  include_measures?: Array<string>;
-
-  /**
-   * Body param: User-selected variable values
-   */
-  variables?: { [key: string]: unknown };
+  combination?: string;
 
   /**
    * Header param
