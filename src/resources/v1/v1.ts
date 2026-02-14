@@ -1,7 +1,14 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
-import * as CompilerAPI from './compiler';
+import * as ConnectionsAPI from './connections';
+import {
+  Connection,
+  ConnectionListConnectionsParams,
+  ConnectionListConnectionsResponse,
+  Connections,
+} from './connections';
+import * as CompilerAPI from './compiler/compiler';
 import {
   ChartConfig,
   Compiler,
@@ -10,6 +17,8 @@ import {
   CompilerEnumerateParams,
   CompilerEnumerateResponse,
   CompilerErrorItem,
+  CompilerExecuteParams,
+  CompilerExecuteResponse,
   CompilerResolveParams,
   CompilerResolveResponse,
   CompilerValidateParams,
@@ -19,14 +28,7 @@ import {
   ManifestEntry,
   RefWithLabel,
   SubqueryCondition,
-} from './compiler';
-import * as ConnectionsAPI from './connections';
-import {
-  Connection,
-  ConnectionListConnectionsParams,
-  ConnectionListConnectionsResponse,
-  Connections,
-} from './connections';
+} from './compiler/compiler';
 import * as TenantsAPI from './tenants/tenants';
 import {
   ImportTenantsResponse,
@@ -58,10 +60,12 @@ export declare namespace V1 {
     type SubqueryCondition as SubqueryCondition,
     type CompilerCompileResponse as CompilerCompileResponse,
     type CompilerEnumerateResponse as CompilerEnumerateResponse,
+    type CompilerExecuteResponse as CompilerExecuteResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,
     type CompilerCompileParams as CompilerCompileParams,
     type CompilerEnumerateParams as CompilerEnumerateParams,
+    type CompilerExecuteParams as CompilerExecuteParams,
     type CompilerResolveParams as CompilerResolveParams,
     type CompilerValidateParams as CompilerValidateParams,
   };

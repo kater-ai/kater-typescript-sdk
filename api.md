@@ -4,24 +4,36 @@
 
 Types:
 
-- <code><a href="./src/resources/v1/compiler.ts">ChartConfig</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">CompilerErrorItem</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">InlineField</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">Manifest</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">ManifestEntry</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">RefWithLabel</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">SubqueryCondition</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">CompilerCompileResponse</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">CompilerEnumerateResponse</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">CompilerResolveResponse</a></code>
-- <code><a href="./src/resources/v1/compiler.ts">CompilerValidateResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">ChartConfig</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerErrorItem</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">InlineField</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">Manifest</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">ManifestEntry</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">RefWithLabel</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">SubqueryCondition</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerEnumerateResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerExecuteResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerResolveResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerValidateResponse</a></code>
 
 Methods:
 
-- <code title="post /api/v1/compiler/compile">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
-- <code title="post /api/v1/compiler/enumerate">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">enumerate</a>({ ...params }) -> CompilerEnumerateResponse</code>
-- <code title="post /api/v1/compiler/resolve">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
-- <code title="post /api/v1/compiler/validate">client.v1.compiler.<a href="./src/resources/v1/compiler.ts">validate</a>({ ...params }) -> CompilerValidateResponse</code>
+- <code title="post /api/v1/compiler/compile">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
+- <code title="post /api/v1/compiler/enumerate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">enumerate</a>({ ...params }) -> CompilerEnumerateResponse</code>
+- <code title="post /api/v1/compiler/execute">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">execute</a>({ ...params }) -> CompilerExecuteResponse</code>
+- <code title="post /api/v1/compiler/resolve">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
+- <code title="post /api/v1/compiler/validate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">validate</a>({ ...params }) -> CompilerValidateResponse</code>
+
+### Cache
+
+Types:
+
+- <code><a href="./src/resources/v1/compiler/cache.ts">CacheInvalidateResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/compiler/cache/invalidate">client.v1.compiler.cache.<a href="./src/resources/v1/compiler/cache.ts">invalidate</a>({ ...params }) -> CacheInvalidateResponse</code>
 
 ## Connections
 
