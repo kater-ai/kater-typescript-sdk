@@ -3,7 +3,7 @@
 import { APIResource } from '../../../core/resource';
 import * as CompilerAPI from './compiler';
 import * as CacheAPI from './cache';
-import { Cache, CacheInvalidateParams, CacheInvalidateResponse } from './cache';
+import { Cache } from './cache';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -2540,9 +2540,5 @@ export declare namespace Compiler {
     type CompilerValidateParams as CompilerValidateParams,
   };
 
-  export {
-    Cache as Cache,
-    type CacheInvalidateResponse as CacheInvalidateResponse,
-    type CacheInvalidateParams as CacheInvalidateParams,
-  };
+  export { Cache as Cache };
 }

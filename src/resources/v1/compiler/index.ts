@@ -1,6 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-export { Cache, type CacheInvalidateResponse, type CacheInvalidateParams } from './cache';
+export { Cache } from './cache';
 export {
   Compiler,
   type ChartConfig,
