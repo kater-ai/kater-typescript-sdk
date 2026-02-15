@@ -1,5 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
+export { Cache, type CacheInvalidateResponse, type CacheInvalidateParams } from './cache';
 export {
   Compiler,
   type ChartConfig,
@@ -19,18 +20,4 @@ export {
   type CompilerExecuteParams,
   type CompilerResolveParams,
   type CompilerValidateParams,
-} from './compiler/index';
-export {
-  Connections,
-  type Connection,
-  type ConnectionListConnectionsResponse,
-  type ConnectionListConnectionsParams,
-} from './connections';
-export {
-  Tenants,
-  type ImportTenantsResponse,
-  type TenantGetTenantsSchemaResponse,
-  type TenantImportFromCsvParams,
-  type TenantImportFromWarehouseParams,
-} from './tenants/index';
-export { V1 } from './v1';
+} from './compiler';

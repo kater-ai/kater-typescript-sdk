@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.10.0 (2026-02-14)
+
+Full Changelog: [v0.9.0...v0.10.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.9.0...v0.10.0)
+
+### Features
+
+* **cache:** add pre-aggregate query cache with DuckDB backend ([9c267de](https://github.com/kater-ai/kater-typescript-sdk/commit/9c267de0ad7c319ed1dc329d25741b15024458dc))
+* **compiler:** add select_from for CTE-based query composition ([9f747d8](https://github.com/kater-ai/kater-typescript-sdk/commit/9f747d80821e766fec5128f3ed66f92dbe2c4463))
+* **compiler:** replace structured resolve fields with combination st… ([87919a5](https://github.com/kater-ai/kater-typescript-sdk/commit/87919a52577d3982c1ea4bfbc249d1c4c137da8c))
+* feat(all) shippable widgets ([e1fdaed](https://github.com/kater-ai/kater-typescript-sdk/commit/e1fdaed13c4f48423b65087a9de309451b8eb7f1))
+* Feat/calculation widget mapping ([ed40771](https://github.com/kater-ai/kater-typescript-sdk/commit/ed407717f28d764c5763af1f2c0bd1a248ef3d86))
+* Feat/compiler widget validation ([fcd8a90](https://github.com/kater-ai/kater-typescript-sdk/commit/fcd8a90133905bb4f6c18ec1d737a568bc452c9c))
+* Feat/landing page ([570d2b1](https://github.com/kater-ai/kater-typescript-sdk/commit/570d2b1bb9675ccb560558cf54d1d118bbb8d253))
+* **schema:** make widget_category required and add allowed_widget_ty… ([ea5f24e](https://github.com/kater-ai/kater-typescript-sdk/commit/ea5f24e3311b8a9f221b8877a7490fa17e6854d1))
+* **schema:** make widget_category required and add disallowed_widget… ([c6b4449](https://github.com/kater-ai/kater-typescript-sdk/commit/c6b444985aa1a42d5dbe1adec6eefd7b1e2e3313))
+
+
+### Chores
+
+* **internal:** avoid type checking errors with ts-reset ([900bccd](https://github.com/kater-ai/kater-typescript-sdk/commit/900bccdb4dba9c823996a1e513b81a9872105828))
+
 ## 0.9.0 (2026-02-10)
 
 Full Changelog: [v0.8.0...v0.9.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.8.0...v0.9.0)
