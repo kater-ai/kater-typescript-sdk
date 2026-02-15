@@ -27,14 +27,6 @@ Methods:
 
 ### Cache
 
-Types:
-
-- <code><a href="./src/resources/v1/compiler/cache.ts">CacheInvalidateResponse</a></code>
-
-Methods:
-
-- <code title="post /api/v1/compiler/cache/invalidate">client.v1.compiler.cache.<a href="./src/resources/v1/compiler/cache.ts">invalidate</a>({ ...params }) -> CacheInvalidateResponse</code>
-
 ## Connections
 
 Types:
