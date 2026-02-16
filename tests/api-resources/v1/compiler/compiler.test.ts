@@ -59,7 +59,7 @@ describe('resource compiler', () => {
         custom_properties: { foo: 'bar' },
         description: 'description',
         dimensions: [{ ref: 'ref', label: 'label' }],
-        disallowed_widget_types: ['kpi_card'],
+        disallowed_widget_types: ['axis_metric_by_dimension'],
         filters: [
           {
             field: 'ref(dim_customer.sale_price)',
@@ -201,7 +201,7 @@ describe('resource compiler', () => {
         custom_properties: { foo: 'bar' },
         description: 'description',
         dimensions: [{ ref: 'ref', label: 'label' }],
-        disallowed_widget_types: ['kpi_card'],
+        disallowed_widget_types: ['axis_metric_by_dimension'],
         filters: [
           {
             field: 'ref(dim_customer.sale_price)',
