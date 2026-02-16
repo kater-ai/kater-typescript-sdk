@@ -595,6 +595,11 @@ export interface CompilerResolveResponse {
    * Compilation manifest with all named objects.
    */
   manifest?: Manifest | null;
+
+  /**
+   * Files auto-fixed due to renamed refs. None when no renames detected.
+   */
+  ref_fixes?: Array<CompilerResolveResponse.RefFix> | null;
 }
 
 export namespace CompilerResolveResponse {
@@ -1192,6 +1197,53 @@ export namespace CompilerResolveResponse {
       column?: number;
     }
   }
+
+  /**
+   * A file that was modified by auto-fix with its replacements.
+   */
+  export interface RefFix {
+    /**
+     * Path to the modified file
+     */
+    file_path: string;
+
+    /**
+     * Full updated file content after fixes
+     */
+    new_content: string;
+
+    /**
+     * Individual ref replacements made in this file
+     */
+    replacements: Array<RefFix.Replacement>;
+  }
+
+  export namespace RefFix {
+    /**
+     * A single ref replacement within a file.
+     */
+    export interface Replacement {
+      /**
+       * Path to the file containing the replaced ref
+       */
+      file_path: string;
+
+      /**
+       * Line number where the replacement occurred
+       */
+      line_number: number;
+
+      /**
+       * Updated reference string
+       */
+      new_ref: string;
+
+      /**
+       * Original reference string
+       */
+      old_ref: string;
+    }
+  }
 }
 
 /**
@@ -1250,6 +1302,16 @@ export namespace CompilerValidateResponse {
     errors?: Array<CompilerAPI.CompilerErrorItem>;
 
     /**
+     * Compilation manifest with all named objects.
+     */
+    manifest?: CompilerAPI.Manifest | null;
+
+    /**
+     * Files auto-fixed due to renamed refs. None when no renames detected.
+     */
+    ref_fixes?: Array<ConnectionResult.RefFix> | null;
+
+    /**
      * Validation warnings for this connection
      */
     warnings?: Array<CompilerAPI.CompilerErrorItem>;
@@ -1305,6 +1367,53 @@ export namespace CompilerValidateResponse {
          * Column number in source file
          */
         column?: number;
+      }
+    }
+
+    /**
+     * A file that was modified by auto-fix with its replacements.
+     */
+    export interface RefFix {
+      /**
+       * Path to the modified file
+       */
+      file_path: string;
+
+      /**
+       * Full updated file content after fixes
+       */
+      new_content: string;
+
+      /**
+       * Individual ref replacements made in this file
+       */
+      replacements: Array<RefFix.Replacement>;
+    }
+
+    export namespace RefFix {
+      /**
+       * A single ref replacement within a file.
+       */
+      export interface Replacement {
+        /**
+         * Path to the file containing the replaced ref
+         */
+        file_path: string;
+
+        /**
+         * Line number where the replacement occurred
+         */
+        line_number: number;
+
+        /**
+         * Updated reference string
+         */
+        new_ref: string;
+
+        /**
+         * Original reference string
+         */
+        old_ref: string;
       }
     }
   }
@@ -2495,6 +2604,11 @@ export interface CompilerResolveParams {
   source?: string | null;
 
   /**
+   * Body param: Automatically fix broken refs caused by renames. Defaults to True.
+   */
+  auto_fix?: boolean;
+
+  /**
    * Body param: Comma-separated slot selections and variable assignments. Reserved
    * keys: measure, dimension, filter, calculation. All other keys are variable
    * assignments. Example: 'measure=Compliance
@@ -2513,6 +2627,11 @@ export interface CompilerValidateParams {
    * Query param
    */
   source?: string | null;
+
+  /**
+   * Body param: Automatically fix broken refs caused by renames. Defaults to True.
+   */
+  auto_fix?: boolean;
 
   /**
    * Body param: Optional connection IDs to validate. If omitted, validates all
