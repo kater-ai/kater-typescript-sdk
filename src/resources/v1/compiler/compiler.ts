@@ -1133,7 +1133,7 @@ export namespace CompilerResolveResponse {
         /**
          * Original type of the field in the source query
          */
-        source_type: 'dimension' | 'measure' | 'calculation';
+        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
       }
     }
   }
@@ -1871,7 +1871,7 @@ export namespace CompilerCompileParams {
         /**
          * Original type of the field in the source query
          */
-        source_type: 'dimension' | 'measure' | 'calculation';
+        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
       }
     }
   }
@@ -2463,7 +2463,7 @@ export namespace CompilerExecuteParams {
         /**
          * Original type of the field in the source query
          */
-        source_type: 'dimension' | 'measure' | 'calculation';
+        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
       }
     }
   }
