@@ -91,6 +91,7 @@ describe('resource compiler', () => {
           {
             bound_value: 'string',
             default: 'string',
+            kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
             name: 'x',
             type: 'STRING',
             allowed_values: { static: [{ value: 'string', label: 'label' }] },
@@ -102,6 +103,7 @@ describe('resource compiler', () => {
             },
             description: 'description',
             is_default: true,
+            is_runtime: true,
             label: 'label',
           },
         ],
@@ -233,6 +235,7 @@ describe('resource compiler', () => {
           {
             bound_value: 'string',
             default: 'string',
+            kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
             name: 'x',
             type: 'STRING',
             allowed_values: { static: [{ value: 'string', label: 'label' }] },
@@ -244,6 +247,7 @@ describe('resource compiler', () => {
             },
             description: 'description',
             is_default: true,
+            is_runtime: true,
             label: 'label',
           },
         ],

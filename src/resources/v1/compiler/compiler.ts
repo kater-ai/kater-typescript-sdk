@@ -971,6 +971,11 @@ export namespace CompilerResolveResponse {
       default: string | number | boolean;
 
       /**
+       * Unique identifier for this variable
+       */
+      kater_id: string;
+
+      /**
        * Variable name identifier
        */
       name: string;
@@ -1012,6 +1017,13 @@ export namespace CompilerResolveResponse {
        * True if bound_value equals the default value
        */
       is_default?: boolean | null;
+
+      /**
+       * True if this is a runtime variable (not resolved at compile time). Runtime
+       * variables have var() placeholders left in compiled SQL for literal substitution
+       * at execution time.
+       */
+      is_runtime?: boolean | null;
 
       /**
        * Human-readable label for the variable
@@ -1816,6 +1828,11 @@ export namespace CompilerCompileParams {
       default: string | number | boolean;
 
       /**
+       * Unique identifier for this variable
+       */
+      kater_id: string;
+
+      /**
        * Variable name identifier
        */
       name: string;
@@ -1857,6 +1874,13 @@ export namespace CompilerCompileParams {
        * True if bound_value equals the default value
        */
       is_default?: boolean | null;
+
+      /**
+       * True if this is a runtime variable (not resolved at compile time). Runtime
+       * variables have var() placeholders left in compiled SQL for literal substitution
+       * at execution time.
+       */
+      is_runtime?: boolean | null;
 
       /**
        * Human-readable label for the variable
@@ -2411,6 +2435,11 @@ export namespace CompilerExecuteParams {
       default: string | number | boolean;
 
       /**
+       * Unique identifier for this variable
+       */
+      kater_id: string;
+
+      /**
        * Variable name identifier
        */
       name: string;
@@ -2452,6 +2481,13 @@ export namespace CompilerExecuteParams {
        * True if bound_value equals the default value
        */
       is_default?: boolean | null;
+
+      /**
+       * True if this is a runtime variable (not resolved at compile time). Runtime
+       * variables have var() placeholders left in compiled SQL for literal substitution
+       * at execution time.
+       */
+      is_runtime?: boolean | null;
 
       /**
        * Human-readable label for the variable
