@@ -4,12 +4,19 @@ import { APIResource } from '../../../core/resource';
 import * as CompilerAPI from './compiler';
 import * as CacheAPI from './cache';
 import { Cache } from './cache';
+import * as CombinationAPI from './combination';
+import {
+  Combination as CombinationAPICombination,
+  CombinationPreviewParams,
+  CombinationPreviewResponse,
+} from './combination';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 
 export class Compiler extends APIResource {
   cache: CacheAPI.Cache = new CacheAPI.Cache(this._client);
+  combination: CombinationAPI.Combination = new CombinationAPI.Combination(this._client);
 
   /**
    * Compile a resolved query to SQL.
@@ -22,6 +29,30 @@ export class Compiler extends APIResource {
   compile(params: CompilerCompileParams, options?: RequestOptions): APIPromise<CompilerCompileResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
     return this._client.post('/api/v1/compiler/compile', {
+      query: { source },
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+        options?.headers,
+      ]),
+    });
+  }
+
+  /**
+   * Compile a dashboard YAML file into fully resolved widget data.
+   *
+   * Reads a dashboard YAML from the client repo, resolves all data slots, executes
+   * queries, applies filters, and returns renderable widget data.
+   *
+   * RLS: Filtered to current client (ClientRLSDB).
+   */
+  compileDashboard(
+    params: CompilerCompileDashboardParams,
+    options?: RequestOptions,
+  ): APIPromise<CompilerCompileDashboardResponse> {
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
+    return this._client.post('/api/v1/compiler/dashboard', {
       query: { source },
       body,
       ...options,
@@ -319,6 +350,11 @@ export interface CompilerCompileResponse {
   metadata?: CompilerCompileResponse.Metadata | null;
 
   /**
+   * Write-back request ID. Non-null when files were dispatched to CLI via WebSocket.
+   */
+  request_id?: string | null;
+
+  /**
    * Generated SQL statement
    */
   sql?: string | null;
@@ -393,6 +429,270 @@ export namespace CompilerCompileResponse {
 }
 
 /**
+ * Response from dashboard compilation — fully resolved dashboard.
+ */
+export interface CompilerCompileDashboardResponse {
+  /**
+   * Dashboard context for widgets
+   */
+  context: CompilerCompileDashboardResponse.Context;
+
+  /**
+   * Dashboard metadata
+   */
+  dashboard: CompilerCompileDashboardResponse.Dashboard;
+
+  /**
+   * Dashboard-level compilation errors
+   */
+  errors?: Array<CompilerErrorItem>;
+
+  /**
+   * Resolved filter definitions with current values
+   */
+  filters?: Array<CompilerCompileDashboardResponse.Filter>;
+
+  /**
+   * Fully resolved widgets with data + config
+   */
+  widgets?: Array<CompilerCompileDashboardResponse.Widget>;
+}
+
+export namespace CompilerCompileDashboardResponse {
+  /**
+   * Dashboard context for widgets
+   */
+  export interface Context {
+    /**
+     * Active filter values: {name: {value, label}}
+     */
+    filters?: { [key: string]: { [key: string]: unknown } } | null;
+
+    /**
+     * Active timeframe: {label, start, end}
+     */
+    timeframe?: { [key: string]: string } | null;
+
+    /**
+     * Dashboard topic: {label, time_dimension}
+     */
+    topic?: { [key: string]: string } | null;
+  }
+
+  /**
+   * Dashboard metadata
+   */
+  export interface Dashboard {
+    /**
+     * Dashboard name
+     */
+    name: string;
+
+    /**
+     * Dashboard description
+     */
+    description?: string | null;
+
+    /**
+     * Dashboard kater_id
+     */
+    kater_id?: string | null;
+
+    /**
+     * Dashboard display label
+     */
+    label?: string | null;
+
+    /**
+     * Dashboard topic reference
+     */
+    topic?: string | null;
+  }
+
+  /**
+   * A resolved dashboard filter with current value and presets.
+   */
+  export interface Filter {
+    /**
+     * Filter type: date_range, multi_select, select
+     */
+    filter_type: string;
+
+    /**
+     * Filter name
+     */
+    name: string;
+
+    /**
+     * Whether null (All) is allowed
+     */
+    allow_null?: boolean;
+
+    /**
+     * Whether filter auto-applies to queries
+     */
+    auto_apply?: boolean;
+
+    /**
+     * Current filter value
+     */
+    current_value?: string | Array<string> | null;
+
+    /**
+     * Default value specification
+     */
+    default?: { [key: string]: string } | null;
+
+    /**
+     * Field reference for data-driven filters
+     */
+    field?: string | null;
+
+    /**
+     * Label for null/All option
+     */
+    null_label?: string | null;
+
+    /**
+     * Available presets
+     */
+    presets?: Array<{ [key: string]: string }> | null;
+  }
+
+  /**
+   * A fully resolved widget ready for rendering.
+   */
+  export interface Widget {
+    /**
+     * Column metadata (single or multi-query)
+     */
+    column_map: Array<Widget.UnionMember0> | Array<Array<Widget.UnionMember1>>;
+
+    /**
+     * Fully resolved WidgetConfig
+     */
+    config: { [key: string]: unknown };
+
+    /**
+     * Query result data (single or multi-query)
+     */
+    data: Array<{ [key: string]: unknown }> | Array<Array<{ [key: string]: unknown }>>;
+
+    /**
+     * Grid position
+     */
+    grid: Widget.Grid;
+
+    /**
+     * Widget unique identifier
+     */
+    kater_id: string;
+
+    /**
+     * Widget name
+     */
+    name: string;
+
+    /**
+     * Display mode for multi-query: 'tabs' or 'grid'
+     */
+    display_mode?: string | null;
+
+    /**
+     * Per-widget compilation errors
+     */
+    errors?: Array<CompilerAPI.CompilerErrorItem>;
+
+    /**
+     * Per-slot configs for multi-query containers
+     */
+    slot_configs?: Array<{ [key: string]: unknown }> | null;
+
+    /**
+     * Resolved widget type
+     */
+    widget_type?: string | null;
+  }
+
+  export namespace Widget {
+    /**
+     * Maps a UUID column alias to its human-readable name and type.
+     */
+    export interface UnionMember0 {
+      /**
+       * Field type: dimension, measure, or calculation
+       */
+      field_type: string;
+
+      /**
+       * UUID string used as SQL column alias
+       */
+      kater_id: string;
+
+      /**
+       * Human-readable column name
+       */
+      name: string;
+
+      /**
+       * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
+       * non-measures.
+       */
+      aggregation?: string | null;
+
+      /**
+       * Display label
+       */
+      label?: string | null;
+    }
+
+    /**
+     * Maps a UUID column alias to its human-readable name and type.
+     */
+    export interface UnionMember1 {
+      /**
+       * Field type: dimension, measure, or calculation
+       */
+      field_type: string;
+
+      /**
+       * UUID string used as SQL column alias
+       */
+      kater_id: string;
+
+      /**
+       * Human-readable column name
+       */
+      name: string;
+
+      /**
+       * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
+       * non-measures.
+       */
+      aggregation?: string | null;
+
+      /**
+       * Display label
+       */
+      label?: string | null;
+    }
+
+    /**
+     * Grid position
+     */
+    export interface Grid {
+      h?: number;
+
+      w?: number;
+
+      x?: number;
+
+      y?: number;
+    }
+  }
+}
+
+/**
  * Response model for query combination enumeration.
  */
 export interface CompilerEnumerateResponse {
@@ -423,9 +723,19 @@ export namespace CompilerEnumerateResponse {
     widget_category: string;
 
     /**
+     * Deterministic UUID v5 for this combination
+     */
+    combination_id?: string | null;
+
+    /**
      * Human-readable label for the query
      */
     query_label?: string | null;
+
+    /**
+     * Field-to-role mapping (e.g. {'due_month': 'x_axis'})
+     */
+    roles?: { [key: string]: string };
 
     /**
      * Selected optional calculation names
@@ -451,6 +761,11 @@ export namespace CompilerEnumerateResponse {
      * Variable name to value assignments
      */
     variable_assignments?: { [key: string]: unknown };
+
+    /**
+     * Resolved widget type (e.g. 'axis_metric_by_dimensiondate')
+     */
+    widget_type?: string | null;
   }
 }
 
@@ -600,6 +915,12 @@ export interface CompilerResolveResponse {
    * Files auto-fixed due to renamed refs. None when no renames detected.
    */
   ref_fixes?: Array<CompilerResolveResponse.RefFix> | null;
+
+  /**
+   * Write-back request ID. Non-null when ref-fix files were dispatched to CLI via
+   * WebSocket.
+   */
+  request_id?: string | null;
 }
 
 export namespace CompilerResolveResponse {
@@ -1276,6 +1597,11 @@ export interface CompilerValidateResponse {
    * Validation errors
    */
   errors?: Array<CompilerErrorItem>;
+
+  /**
+   * Write-back request ID. Non-null when files were dispatched to CLI via WebSocket.
+   */
+  request_id?: string | null;
 
   /**
    * Validation warnings
@@ -2016,6 +2342,39 @@ export namespace CompilerCompileParams {
   }
 }
 
+export interface CompilerCompileDashboardParams {
+  /**
+   * Body param: Connection to compile against
+   */
+  connection_id: string;
+
+  /**
+   * Body param: Relative path within the connection (e.g.
+   * 'dashboards/compliance_overview')
+   */
+  dashboard_path: string;
+
+  /**
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param: Optional filter overrides from UI
+   */
+  filters?: { [key: string]: string | Array<string> | null } | null;
+
+  /**
+   * Body param: Optional tenant key for multi-tenant execution
+   */
+  tenant_key?: string | null;
+
+  /**
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
+}
+
 export interface CompilerEnumerateParams {
   /**
    * Body param: Connection to enumerate against
@@ -2682,6 +3041,7 @@ export interface CompilerValidateParams {
 }
 
 Compiler.Cache = Cache;
+Compiler.Combination = CombinationAPICombination;
 
 export declare namespace Compiler {
   export {
@@ -2693,11 +3053,13 @@ export declare namespace Compiler {
     type RefWithLabel as RefWithLabel,
     type SubqueryCondition as SubqueryCondition,
     type CompilerCompileResponse as CompilerCompileResponse,
+    type CompilerCompileDashboardResponse as CompilerCompileDashboardResponse,
     type CompilerEnumerateResponse as CompilerEnumerateResponse,
     type CompilerExecuteResponse as CompilerExecuteResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,
     type CompilerCompileParams as CompilerCompileParams,
+    type CompilerCompileDashboardParams as CompilerCompileDashboardParams,
     type CompilerEnumerateParams as CompilerEnumerateParams,
     type CompilerExecuteParams as CompilerExecuteParams,
     type CompilerResolveParams as CompilerResolveParams,
@@ -2705,4 +3067,10 @@ export declare namespace Compiler {
   };
 
   export { Cache as Cache };
+
+  export {
+    CombinationAPICombination as Combination,
+    type CombinationPreviewResponse as CombinationPreviewResponse,
+    type CombinationPreviewParams as CombinationPreviewParams,
+  };
 }
