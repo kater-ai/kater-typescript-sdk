@@ -1013,7 +1013,7 @@ export namespace CompilerResolveResponse {
      * Merged required + selected optional filters
      */
     filters?: Array<
-      | ResolvedQuery.InlineFieldFilter
+      | ResolvedQuery.InlineFormulaFilter
       | string
       | ResolvedQuery.InlineExistsFilter1
       | ResolvedQuery.InlineExistsFilter2
@@ -1130,50 +1130,18 @@ export namespace CompilerResolveResponse {
     }
 
     /**
-     * An inline filter using field + operator + values
+     * An inline filter using a SQL/expression formula.
      */
-    export interface InlineFieldFilter {
-      /**
-       * Reference to the field to filter on
-       */
-      field: string;
-
+    export interface InlineFormulaFilter {
       /**
        * Name of the inline filter
        */
       name: string;
 
       /**
-       * Filter operator to apply
+       * SQL expression for the filter condition
        */
-      operator:
-        | 'equals'
-        | 'not_equals'
-        | 'in'
-        | 'not_in'
-        | 'greater_than'
-        | 'less_than'
-        | 'greater_than_or_equals'
-        | 'less_than_or_equals'
-        | 'between'
-        | 'in_the_last'
-        | 'in_the_next'
-        | 'contains'
-        | 'not_contains'
-        | 'starts_with'
-        | 'ends_with'
-        | 'is_null'
-        | 'is_not_null';
-
-      /**
-       * SQL expression for the filter value
-       */
-      sql_value?: string | null;
-
-      /**
-       * Fixed values for the filter
-       */
-      static_values?: Array<string | number | boolean> | null;
+      sql: string;
     }
 
     /**
@@ -1284,12 +1252,24 @@ export namespace CompilerResolveResponse {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value: string | number | boolean;
+      bound_value:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | ResolvedVariable.RelativeDateDefault
+        | null;
 
       /**
        * Default value for this variable
        */
-      default: string | number | boolean;
+      default:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | ResolvedVariable.RelativeDateDefault
+        | null;
 
       /**
        * Unique identifier for this variable
@@ -1311,6 +1291,10 @@ export namespace CompilerResolveResponse {
         | 'DATE'
         | 'TIMESTAMP'
         | 'BOOL'
+        | 'STRING[]'
+        | 'INT[]'
+        | 'FLOAT[]'
+        | 'DATE[]'
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
@@ -1353,6 +1337,38 @@ export namespace CompilerResolveResponse {
     }
 
     export namespace ResolvedVariable {
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: string;
+      }
+
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: string;
+      }
+
       /**
        * Allowed values for a variable - either static list or from column
        */
@@ -1875,7 +1891,7 @@ export namespace CompilerCompileParams {
      * Merged required + selected optional filters
      */
     filters?: Array<
-      | ResolvedQuery.InlineFieldFilter
+      | ResolvedQuery.InlineFormulaFilter
       | string
       | ResolvedQuery.InlineExistsFilter1
       | ResolvedQuery.InlineExistsFilter2
@@ -1992,50 +2008,18 @@ export namespace CompilerCompileParams {
     }
 
     /**
-     * An inline filter using field + operator + values
+     * An inline filter using a SQL/expression formula.
      */
-    export interface InlineFieldFilter {
-      /**
-       * Reference to the field to filter on
-       */
-      field: string;
-
+    export interface InlineFormulaFilter {
       /**
        * Name of the inline filter
        */
       name: string;
 
       /**
-       * Filter operator to apply
+       * SQL expression for the filter condition
        */
-      operator:
-        | 'equals'
-        | 'not_equals'
-        | 'in'
-        | 'not_in'
-        | 'greater_than'
-        | 'less_than'
-        | 'greater_than_or_equals'
-        | 'less_than_or_equals'
-        | 'between'
-        | 'in_the_last'
-        | 'in_the_next'
-        | 'contains'
-        | 'not_contains'
-        | 'starts_with'
-        | 'ends_with'
-        | 'is_null'
-        | 'is_not_null';
-
-      /**
-       * SQL expression for the filter value
-       */
-      sql_value?: string | null;
-
-      /**
-       * Fixed values for the filter
-       */
-      static_values?: Array<string | number | boolean> | null;
+      sql: string;
     }
 
     /**
@@ -2146,12 +2130,24 @@ export namespace CompilerCompileParams {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value: string | number | boolean;
+      bound_value:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | ResolvedVariable.RelativeDateDefault
+        | null;
 
       /**
        * Default value for this variable
        */
-      default: string | number | boolean;
+      default:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | ResolvedVariable.RelativeDateDefault
+        | null;
 
       /**
        * Unique identifier for this variable
@@ -2173,6 +2169,10 @@ export namespace CompilerCompileParams {
         | 'DATE'
         | 'TIMESTAMP'
         | 'BOOL'
+        | 'STRING[]'
+        | 'INT[]'
+        | 'FLOAT[]'
+        | 'DATE[]'
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
@@ -2215,6 +2215,38 @@ export namespace CompilerCompileParams {
     }
 
     export namespace ResolvedVariable {
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: string;
+      }
+
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: string;
+      }
+
       /**
        * Allowed values for a variable - either static list or from column
        */
@@ -2515,7 +2547,7 @@ export namespace CompilerExecuteParams {
      * Merged required + selected optional filters
      */
     filters?: Array<
-      | ResolvedQuery.InlineFieldFilter
+      | ResolvedQuery.InlineFormulaFilter
       | string
       | ResolvedQuery.InlineExistsFilter1
       | ResolvedQuery.InlineExistsFilter2
@@ -2632,50 +2664,18 @@ export namespace CompilerExecuteParams {
     }
 
     /**
-     * An inline filter using field + operator + values
+     * An inline filter using a SQL/expression formula.
      */
-    export interface InlineFieldFilter {
-      /**
-       * Reference to the field to filter on
-       */
-      field: string;
-
+    export interface InlineFormulaFilter {
       /**
        * Name of the inline filter
        */
       name: string;
 
       /**
-       * Filter operator to apply
+       * SQL expression for the filter condition
        */
-      operator:
-        | 'equals'
-        | 'not_equals'
-        | 'in'
-        | 'not_in'
-        | 'greater_than'
-        | 'less_than'
-        | 'greater_than_or_equals'
-        | 'less_than_or_equals'
-        | 'between'
-        | 'in_the_last'
-        | 'in_the_next'
-        | 'contains'
-        | 'not_contains'
-        | 'starts_with'
-        | 'ends_with'
-        | 'is_null'
-        | 'is_not_null';
-
-      /**
-       * SQL expression for the filter value
-       */
-      sql_value?: string | null;
-
-      /**
-       * Fixed values for the filter
-       */
-      static_values?: Array<string | number | boolean> | null;
+      sql: string;
     }
 
     /**
@@ -2786,12 +2786,24 @@ export namespace CompilerExecuteParams {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value: string | number | boolean;
+      bound_value:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | ResolvedVariable.RelativeDateDefault
+        | null;
 
       /**
        * Default value for this variable
        */
-      default: string | number | boolean;
+      default:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | ResolvedVariable.RelativeDateDefault
+        | null;
 
       /**
        * Unique identifier for this variable
@@ -2813,6 +2825,10 @@ export namespace CompilerExecuteParams {
         | 'DATE'
         | 'TIMESTAMP'
         | 'BOOL'
+        | 'STRING[]'
+        | 'INT[]'
+        | 'FLOAT[]'
+        | 'DATE[]'
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
@@ -2855,6 +2871,38 @@ export namespace CompilerExecuteParams {
     }
 
     export namespace ResolvedVariable {
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: string;
+      }
+
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: string;
+      }
+
       /**
        * Allowed values for a variable - either static list or from column
        */
