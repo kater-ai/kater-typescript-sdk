@@ -8,7 +8,7 @@ const client = new Kater({
 });
 
 describe('resource connections', () => {
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('listConnections', async () => {
     const responsePromise = client.v1.connections.listConnections();
     const rawResponse = await responsePromise.asResponse();
@@ -20,7 +20,7 @@ describe('resource connections', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('listConnections: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(

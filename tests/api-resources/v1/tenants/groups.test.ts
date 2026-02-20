@@ -8,7 +8,7 @@ const client = new Kater({
 });
 
 describe('resource groups', () => {
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('getTenantGroupsSchema', async () => {
     const responsePromise = client.v1.tenants.groups.getTenantGroupsSchema();
     const rawResponse = await responsePromise.asResponse();

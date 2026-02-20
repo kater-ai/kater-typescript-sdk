@@ -8,7 +8,7 @@ const client = new Kater({
 });
 
 describe('resource tenants', () => {
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('getTenantsSchema', async () => {
     const responsePromise = client.v1.tenants.getTenantsSchema();
     const rawResponse = await responsePromise.asResponse();
@@ -20,7 +20,7 @@ describe('resource tenants', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromCsv: only required params', async () => {
     const responsePromise = client.v1.tenants.importFromCsv({
       file: await toFile(Buffer.from('# my file contents'), 'README.md'),
@@ -34,14 +34,14 @@ describe('resource tenants', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromCsv: required and optional params', async () => {
     const response = await client.v1.tenants.importFromCsv({
       file: await toFile(Buffer.from('# my file contents'), 'README.md'),
     });
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromWarehouse: only required params', async () => {
     const responsePromise = client.v1.tenants.importFromWarehouse({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -59,7 +59,7 @@ describe('resource tenants', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromWarehouse: required and optional params', async () => {
     const response = await client.v1.tenants.importFromWarehouse({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
