@@ -8,7 +8,7 @@ const client = new Kater({
 });
 
 describe('resource combination', () => {
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('preview: only required params', async () => {
     const responsePromise = client.v1.compiler.combination.preview({
       combination: 'combination',
@@ -24,7 +24,7 @@ describe('resource combination', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('preview: required and optional params', async () => {
     const response = await client.v1.compiler.combination.preview({
       combination: 'combination',
