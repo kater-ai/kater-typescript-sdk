@@ -167,6 +167,7 @@ describe('resource compiler', () => {
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       source: 'source',
       query_refs: ['string'],
+      tenant_key: 'tenant_key',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });

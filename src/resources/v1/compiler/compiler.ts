@@ -2425,6 +2425,12 @@ export interface CompilerEnumerateParams {
   query_refs?: Array<string> | null;
 
   /**
+   * Body param: Tenant key for multi-tenant clients. Required when the client uses
+   * row or database tenancy.
+   */
+  tenant_key?: string | null;
+
+  /**
    * Header param
    */
   'X-Kater-CLI-ID'?: string;
