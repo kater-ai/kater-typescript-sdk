@@ -39,6 +39,16 @@ Methods:
 
 - <code title="post /api/v1/compiler/combination/preview">client.v1.compiler.combination.<a href="./src/resources/v1/compiler/combination.ts">preview</a>({ ...params }) -> CombinationPreviewResponse</code>
 
+### Manifest
+
+Types:
+
+- <code><a href="./src/resources/v1/compiler/manifest.ts">ManifestRegenerateAndCreatePrResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/compiler/manifest/recovery-pr">client.v1.compiler.manifest.<a href="./src/resources/v1/compiler/manifest.ts">regenerateAndCreatePr</a>({ ...params }) -> ManifestRegenerateAndCreatePrResponse</code>
+
 ## Connections
 
 Types:
