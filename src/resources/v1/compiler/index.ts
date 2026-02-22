@@ -24,3 +24,7 @@ export {
   type CompilerResolveParams,
   type CompilerValidateParams,
 } from './compiler';
+export {
+  type ManifestRegenerateAndCreatePrResponse,
+  type ManifestRegenerateAndCreatePrParams,
+} from './manifest';

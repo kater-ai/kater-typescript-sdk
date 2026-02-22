@@ -10,6 +10,8 @@ import {
   CombinationPreviewParams,
   CombinationPreviewResponse,
 } from './combination';
+import * as ManifestAPI from './manifest';
+import { ManifestRegenerateAndCreatePrParams, ManifestRegenerateAndCreatePrResponse } from './manifest';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
@@ -17,6 +19,7 @@ import { RequestOptions } from '../../../internal/request-options';
 export class Compiler extends APIResource {
   cache: CacheAPI.Cache = new CacheAPI.Cache(this._client);
   combination: CombinationAPI.Combination = new CombinationAPI.Combination(this._client);
+  manifest: ManifestAPI.Manifest = new ManifestAPI.Manifest(this._client);
 
   /**
    * Compile a resolved query to SQL.
@@ -3126,5 +3129,10 @@ export declare namespace Compiler {
     CombinationAPICombination as Combination,
     type CombinationPreviewResponse as CombinationPreviewResponse,
     type CombinationPreviewParams as CombinationPreviewParams,
+  };
+
+  export {
+    type ManifestRegenerateAndCreatePrResponse as ManifestRegenerateAndCreatePrResponse,
+    type ManifestRegenerateAndCreatePrParams as ManifestRegenerateAndCreatePrParams,
   };
 }
