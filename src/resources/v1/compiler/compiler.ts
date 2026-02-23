@@ -1049,11 +1049,6 @@ export namespace CompilerResolveResponse {
     order_by?: ResolvedQuery.OrderBy | null;
 
     /**
-     * Access grants required to use this query
-     */
-    required_access_grants?: Array<string> | null;
-
-    /**
      * The matched chart recommendation after evaluating chart hints
      */
     resolved_chart?: ResolvedQuery.ResolvedChart | null;
@@ -1133,7 +1128,7 @@ export namespace CompilerResolveResponse {
     }
 
     /**
-     * An inline filter using a SQL/expression formula.
+     * An inline filter using a SQL/expression formula
      */
     export interface InlineFormulaFilter {
       /**
@@ -1255,24 +1250,12 @@ export namespace CompilerResolveResponse {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value:
-        | string
-        | number
-        | boolean
-        | Array<string | number | boolean>
-        | ResolvedVariable.RelativeDateDefault
-        | null;
+      bound_value: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Default value for this variable
        */
-      default:
-        | string
-        | number
-        | boolean
-        | Array<string | number | boolean>
-        | ResolvedVariable.RelativeDateDefault
-        | null;
+      default: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Unique identifier for this variable
@@ -1340,38 +1323,6 @@ export namespace CompilerResolveResponse {
     }
 
     export namespace ResolvedVariable {
-      /**
-       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
-       * relative to the current date at resolve time.
-       */
-      export interface RelativeDateDefault {
-        /**
-         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
-         */
-        amount: number;
-
-        /**
-         * Time unit for the offset
-         */
-        unit: string;
-      }
-
-      /**
-       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
-       * relative to the current date at resolve time.
-       */
-      export interface RelativeDateDefault {
-        /**
-         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
-         */
-        amount: number;
-
-        /**
-         * Time unit for the offset
-         */
-        unit: string;
-      }
-
       /**
        * Allowed values for a variable - either static list or from column
        */
@@ -1927,11 +1878,6 @@ export namespace CompilerCompileParams {
     order_by?: ResolvedQuery.OrderBy | null;
 
     /**
-     * Access grants required to use this query
-     */
-    required_access_grants?: Array<string> | null;
-
-    /**
      * The matched chart recommendation after evaluating chart hints
      */
     resolved_chart?: ResolvedQuery.ResolvedChart | null;
@@ -2011,7 +1957,7 @@ export namespace CompilerCompileParams {
     }
 
     /**
-     * An inline filter using a SQL/expression formula.
+     * An inline filter using a SQL/expression formula
      */
     export interface InlineFormulaFilter {
       /**
@@ -2133,24 +2079,12 @@ export namespace CompilerCompileParams {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value:
-        | string
-        | number
-        | boolean
-        | Array<string | number | boolean>
-        | ResolvedVariable.RelativeDateDefault
-        | null;
+      bound_value: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Default value for this variable
        */
-      default:
-        | string
-        | number
-        | boolean
-        | Array<string | number | boolean>
-        | ResolvedVariable.RelativeDateDefault
-        | null;
+      default: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Unique identifier for this variable
@@ -2218,38 +2152,6 @@ export namespace CompilerCompileParams {
     }
 
     export namespace ResolvedVariable {
-      /**
-       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
-       * relative to the current date at resolve time.
-       */
-      export interface RelativeDateDefault {
-        /**
-         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
-         */
-        amount: number;
-
-        /**
-         * Time unit for the offset
-         */
-        unit: string;
-      }
-
-      /**
-       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
-       * relative to the current date at resolve time.
-       */
-      export interface RelativeDateDefault {
-        /**
-         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
-         */
-        amount: number;
-
-        /**
-         * Time unit for the offset
-         */
-        unit: string;
-      }
-
       /**
        * Allowed values for a variable - either static list or from column
        */
@@ -2589,11 +2491,6 @@ export namespace CompilerExecuteParams {
     order_by?: ResolvedQuery.OrderBy | null;
 
     /**
-     * Access grants required to use this query
-     */
-    required_access_grants?: Array<string> | null;
-
-    /**
      * The matched chart recommendation after evaluating chart hints
      */
     resolved_chart?: ResolvedQuery.ResolvedChart | null;
@@ -2673,7 +2570,7 @@ export namespace CompilerExecuteParams {
     }
 
     /**
-     * An inline filter using a SQL/expression formula.
+     * An inline filter using a SQL/expression formula
      */
     export interface InlineFormulaFilter {
       /**
@@ -2795,24 +2692,12 @@ export namespace CompilerExecuteParams {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value:
-        | string
-        | number
-        | boolean
-        | Array<string | number | boolean>
-        | ResolvedVariable.RelativeDateDefault
-        | null;
+      bound_value: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Default value for this variable
        */
-      default:
-        | string
-        | number
-        | boolean
-        | Array<string | number | boolean>
-        | ResolvedVariable.RelativeDateDefault
-        | null;
+      default: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Unique identifier for this variable
@@ -2880,38 +2765,6 @@ export namespace CompilerExecuteParams {
     }
 
     export namespace ResolvedVariable {
-      /**
-       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
-       * relative to the current date at resolve time.
-       */
-      export interface RelativeDateDefault {
-        /**
-         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
-         */
-        amount: number;
-
-        /**
-         * Time unit for the offset
-         */
-        unit: string;
-      }
-
-      /**
-       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
-       * relative to the current date at resolve time.
-       */
-      export interface RelativeDateDefault {
-        /**
-         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
-         */
-        amount: number;
-
-        /**
-         * Time unit for the offset
-         */
-        unit: string;
-      }
-
       /**
        * Allowed values for a variable - either static list or from column
        */

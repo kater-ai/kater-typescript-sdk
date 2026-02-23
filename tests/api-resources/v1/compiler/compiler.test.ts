@@ -66,7 +66,6 @@ describe('resource compiler', () => {
         limit: 1,
         measures: [{ ref: 'ref', label: 'label' }],
         order_by: { asc: ['string'], desc: ['string'] },
-        required_access_grants: ['string'],
         resolved_chart: {
           config: {
             color_by: 'ref(created_date)',
@@ -230,7 +229,6 @@ describe('resource compiler', () => {
         limit: 1,
         measures: [{ ref: 'ref', label: 'label' }],
         order_by: { asc: ['string'], desc: ['string'] },
-        required_access_grants: ['string'],
         resolved_chart: {
           config: {
             color_by: 'ref(created_date)',
