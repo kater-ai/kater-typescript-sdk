@@ -38,6 +38,9 @@ describe('resource tenants', () => {
   test.skip('importFromCsv: required and optional params', async () => {
     const response = await client.v1.tenants.importFromCsv({
       file: await toFile(Buffer.from('# my file contents'), 'README.md'),
+      source: 'source',
+      attribute_columns: 'attribute_columns',
+      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 
@@ -67,8 +70,11 @@ describe('resource tenants', () => {
       schema: 'x',
       table: 'x',
       tenant_key_column: 'x',
+      source: 'source',
+      attribute_columns: { foo: 'string' },
       tenant_group_column: 'tenant_group_column',
       tenant_name_column: 'tenant_name_column',
+      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 });
