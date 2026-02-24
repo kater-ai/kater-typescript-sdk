@@ -60,7 +60,7 @@ $ yarn link @katerai/sdk
 # With pnpm
 $ pnpm link --global
 $ cd ../my-package
-$ pnpm link -—global @katerai/sdk
+$ pnpm link --global @katerai/sdk
 ```
 
 ## Running tests
