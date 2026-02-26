@@ -3,13 +3,23 @@
 import { APIResource } from '../../../core/resource';
 import * as CompilerAPI from './compiler';
 import * as CacheAPI from './cache';
-import { Cache, CacheInvalidateParams, CacheInvalidateResponse } from './cache';
+import { Cache } from './cache';
+import * as CombinationAPI from './combination';
+import {
+  Combination as CombinationAPICombination,
+  CombinationPreviewParams,
+  CombinationPreviewResponse,
+} from './combination';
+import * as ManifestAPI from './manifest';
+import { ManifestRegenerateAndCreatePrParams, ManifestRegenerateAndCreatePrResponse } from './manifest';
 import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 
 export class Compiler extends APIResource {
   cache: CacheAPI.Cache = new CacheAPI.Cache(this._client);
+  combination: CombinationAPI.Combination = new CombinationAPI.Combination(this._client);
+  manifest: ManifestAPI.Manifest = new ManifestAPI.Manifest(this._client);
 
   /**
    * Compile a resolved query to SQL.
@@ -22,6 +32,30 @@ export class Compiler extends APIResource {
   compile(params: CompilerCompileParams, options?: RequestOptions): APIPromise<CompilerCompileResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
     return this._client.post('/api/v1/compiler/compile', {
+      query: { source },
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+        options?.headers,
+      ]),
+    });
+  }
+
+  /**
+   * Compile a dashboard YAML file into fully resolved widget data.
+   *
+   * Reads a dashboard YAML from the client repo, resolves all data slots, executes
+   * queries, applies filters, and returns renderable widget data.
+   *
+   * RLS: Filtered to current client (ClientRLSDB).
+   */
+  compileDashboard(
+    params: CompilerCompileDashboardParams,
+    options?: RequestOptions,
+  ): APIPromise<CompilerCompileDashboardResponse> {
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
+    return this._client.post('/api/v1/compiler/dashboard', {
       query: { source },
       body,
       ...options,
@@ -319,6 +353,11 @@ export interface CompilerCompileResponse {
   metadata?: CompilerCompileResponse.Metadata | null;
 
   /**
+   * Write-back request ID. Non-null when files were dispatched to CLI via WebSocket.
+   */
+  request_id?: string | null;
+
+  /**
    * Generated SQL statement
    */
   sql?: string | null;
@@ -393,6 +432,270 @@ export namespace CompilerCompileResponse {
 }
 
 /**
+ * Response from dashboard compilation — fully resolved dashboard.
+ */
+export interface CompilerCompileDashboardResponse {
+  /**
+   * Dashboard context for widgets
+   */
+  context: CompilerCompileDashboardResponse.Context;
+
+  /**
+   * Dashboard metadata
+   */
+  dashboard: CompilerCompileDashboardResponse.Dashboard;
+
+  /**
+   * Dashboard-level compilation errors
+   */
+  errors?: Array<CompilerErrorItem>;
+
+  /**
+   * Resolved filter definitions with current values
+   */
+  filters?: Array<CompilerCompileDashboardResponse.Filter>;
+
+  /**
+   * Fully resolved widgets with data + config
+   */
+  widgets?: Array<CompilerCompileDashboardResponse.Widget>;
+}
+
+export namespace CompilerCompileDashboardResponse {
+  /**
+   * Dashboard context for widgets
+   */
+  export interface Context {
+    /**
+     * Active filter values: {name: {value, label}}
+     */
+    filters?: { [key: string]: { [key: string]: unknown } } | null;
+
+    /**
+     * Active timeframe: {label, start, end}
+     */
+    timeframe?: { [key: string]: string } | null;
+
+    /**
+     * Dashboard topic: {label, time_dimension}
+     */
+    topic?: { [key: string]: string } | null;
+  }
+
+  /**
+   * Dashboard metadata
+   */
+  export interface Dashboard {
+    /**
+     * Dashboard name
+     */
+    name: string;
+
+    /**
+     * Dashboard description
+     */
+    description?: string | null;
+
+    /**
+     * Dashboard kater_id
+     */
+    kater_id?: string | null;
+
+    /**
+     * Dashboard display label
+     */
+    label?: string | null;
+
+    /**
+     * Dashboard topic reference
+     */
+    topic?: string | null;
+  }
+
+  /**
+   * A resolved dashboard filter with current value and presets.
+   */
+  export interface Filter {
+    /**
+     * Filter type: date_range, multi_select, select
+     */
+    filter_type: string;
+
+    /**
+     * Filter name
+     */
+    name: string;
+
+    /**
+     * Whether null (All) is allowed
+     */
+    allow_null?: boolean;
+
+    /**
+     * Whether filter auto-applies to queries
+     */
+    auto_apply?: boolean;
+
+    /**
+     * Current filter value
+     */
+    current_value?: string | Array<string> | null;
+
+    /**
+     * Default value specification
+     */
+    default?: { [key: string]: string } | null;
+
+    /**
+     * Field reference for data-driven filters
+     */
+    field?: string | null;
+
+    /**
+     * Label for null/All option
+     */
+    null_label?: string | null;
+
+    /**
+     * Available presets
+     */
+    presets?: Array<{ [key: string]: string }> | null;
+  }
+
+  /**
+   * A fully resolved widget ready for rendering.
+   */
+  export interface Widget {
+    /**
+     * Column metadata (single or multi-query)
+     */
+    column_map: Array<Widget.UnionMember0> | Array<Array<Widget.UnionMember1>>;
+
+    /**
+     * Fully resolved WidgetConfig
+     */
+    config: { [key: string]: unknown };
+
+    /**
+     * Query result data (single or multi-query)
+     */
+    data: Array<{ [key: string]: unknown }> | Array<Array<{ [key: string]: unknown }>>;
+
+    /**
+     * Grid position
+     */
+    grid: Widget.Grid;
+
+    /**
+     * Widget unique identifier
+     */
+    kater_id: string;
+
+    /**
+     * Widget name
+     */
+    name: string;
+
+    /**
+     * Display mode for multi-query: 'tabs' or 'grid'
+     */
+    display_mode?: string | null;
+
+    /**
+     * Per-widget compilation errors
+     */
+    errors?: Array<CompilerAPI.CompilerErrorItem>;
+
+    /**
+     * Per-slot configs for multi-query containers
+     */
+    slot_configs?: Array<{ [key: string]: unknown }> | null;
+
+    /**
+     * Resolved widget type
+     */
+    widget_type?: string | null;
+  }
+
+  export namespace Widget {
+    /**
+     * Maps a UUID column alias to its human-readable name and type.
+     */
+    export interface UnionMember0 {
+      /**
+       * Field type: dimension, measure, or calculation
+       */
+      field_type: string;
+
+      /**
+       * UUID string used as SQL column alias
+       */
+      kater_id: string;
+
+      /**
+       * Human-readable column name
+       */
+      name: string;
+
+      /**
+       * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
+       * non-measures.
+       */
+      aggregation?: string | null;
+
+      /**
+       * Display label
+       */
+      label?: string | null;
+    }
+
+    /**
+     * Maps a UUID column alias to its human-readable name and type.
+     */
+    export interface UnionMember1 {
+      /**
+       * Field type: dimension, measure, or calculation
+       */
+      field_type: string;
+
+      /**
+       * UUID string used as SQL column alias
+       */
+      kater_id: string;
+
+      /**
+       * Human-readable column name
+       */
+      name: string;
+
+      /**
+       * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
+       * non-measures.
+       */
+      aggregation?: string | null;
+
+      /**
+       * Display label
+       */
+      label?: string | null;
+    }
+
+    /**
+     * Grid position
+     */
+    export interface Grid {
+      h?: number;
+
+      w?: number;
+
+      x?: number;
+
+      y?: number;
+    }
+  }
+}
+
+/**
  * Response model for query combination enumeration.
  */
 export interface CompilerEnumerateResponse {
@@ -423,9 +726,19 @@ export namespace CompilerEnumerateResponse {
     widget_category: string;
 
     /**
+     * Deterministic UUID v5 for this combination
+     */
+    combination_id?: string | null;
+
+    /**
      * Human-readable label for the query
      */
     query_label?: string | null;
+
+    /**
+     * Field-to-role mapping (e.g. {'due_month': 'x_axis'})
+     */
+    roles?: { [key: string]: string };
 
     /**
      * Selected optional calculation names
@@ -451,6 +764,11 @@ export namespace CompilerEnumerateResponse {
      * Variable name to value assignments
      */
     variable_assignments?: { [key: string]: unknown };
+
+    /**
+     * Resolved widget type (e.g. 'axis_metric_by_dimensiondate')
+     */
+    widget_type?: string | null;
   }
 }
 
@@ -595,6 +913,17 @@ export interface CompilerResolveResponse {
    * Compilation manifest with all named objects.
    */
   manifest?: Manifest | null;
+
+  /**
+   * Files auto-fixed due to renamed refs. None when no renames detected.
+   */
+  ref_fixes?: Array<CompilerResolveResponse.RefFix> | null;
+
+  /**
+   * Write-back request ID. Non-null when ref-fix files were dispatched to CLI via
+   * WebSocket.
+   */
+  request_id?: string | null;
 }
 
 export namespace CompilerResolveResponse {
@@ -626,7 +955,7 @@ export namespace CompilerResolveResponse {
     /**
      * Widget category that determines data shape constraints
      */
-    widget_category: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static';
+    widget_category: 'axis' | 'funnel' | 'heatmap' | 'image' | 'kpi_card' | 'pie' | 'table' | 'text';
 
     /**
      * Usage guidance for AI processing
@@ -662,29 +991,32 @@ export namespace CompilerResolveResponse {
      * Widget types within the declared widget_category that must NOT render this query
      */
     disallowed_widget_types?: Array<
-      | 'kpi_card'
-      | 'line_chart'
-      | 'bar_chart'
-      | 'pie_chart'
-      | 'donut_chart'
-      | 'area_chart'
-      | 'scatter_chart'
-      | 'data_table'
-      | 'card_grid'
-      | 'heatmap'
-      | 'gauge'
-      | 'text'
-      | 'image'
-      | 'styled_table'
-      | 'stat_cards'
-      | 'key_value_list'
+      | 'axis_metric_by_dimension'
+      | 'axis_metric_by_dimensiondate'
+      | 'axis_metric_by_dimensiondate_sliced_by_dimension'
+      | 'axis_scatter_plot'
+      | 'funnel_funnel_chart'
+      | 'heatmap_heatmap'
+      | 'image_image_grid'
+      | 'image_single_image'
+      | 'kpi_measure_with_dimension_expression'
+      | 'kpi_measure_with_secondary_metric'
+      | 'kpi_single_measure_compared_to_prev_period_sparkline'
+      | 'kpi_single_value'
+      | 'pie_pie_chart'
+      | 'table_data_table'
+      | 'table_fancy_subtotal_table'
+      | 'table_key_value_list'
+      | 'table_styled_table'
+      | 'text_data_readout_with_sparkline'
+      | 'text_narrative_text'
     > | null;
 
     /**
      * Merged required + selected optional filters
      */
     filters?: Array<
-      | ResolvedQuery.InlineFieldFilter
+      | ResolvedQuery.InlineFormulaFilter
       | string
       | ResolvedQuery.InlineExistsFilter1
       | ResolvedQuery.InlineExistsFilter2
@@ -715,11 +1047,6 @@ export namespace CompilerResolveResponse {
      * (highest/newest first) and asc for ascending (lowest/oldest first).
      */
     order_by?: ResolvedQuery.OrderBy | null;
-
-    /**
-     * Access grants required to use this query
-     */
-    required_access_grants?: Array<string> | null;
 
     /**
      * The matched chart recommendation after evaluating chart hints
@@ -801,50 +1128,18 @@ export namespace CompilerResolveResponse {
     }
 
     /**
-     * An inline filter using field + operator + values
+     * An inline filter using a SQL/expression formula
      */
-    export interface InlineFieldFilter {
-      /**
-       * Reference to the field to filter on
-       */
-      field: string;
-
+    export interface InlineFormulaFilter {
       /**
        * Name of the inline filter
        */
       name: string;
 
       /**
-       * Filter operator to apply
+       * SQL expression for the filter condition
        */
-      operator:
-        | 'equals'
-        | 'not_equals'
-        | 'in'
-        | 'not_in'
-        | 'greater_than'
-        | 'less_than'
-        | 'greater_than_or_equals'
-        | 'less_than_or_equals'
-        | 'between'
-        | 'in_the_last'
-        | 'in_the_next'
-        | 'contains'
-        | 'not_contains'
-        | 'starts_with'
-        | 'ends_with'
-        | 'is_null'
-        | 'is_not_null';
-
-      /**
-       * SQL expression for the filter value
-       */
-      sql_value?: string | null;
-
-      /**
-       * Fixed values for the filter
-       */
-      static_values?: Array<string | number | boolean> | null;
+      sql: string;
     }
 
     /**
@@ -955,12 +1250,17 @@ export namespace CompilerResolveResponse {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value: string | number | boolean;
+      bound_value: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Default value for this variable
        */
-      default: string | number | boolean;
+      default: string | number | boolean | Array<string | number | boolean>;
+
+      /**
+       * Unique identifier for this variable
+       */
+      kater_id: string;
 
       /**
        * Variable name identifier
@@ -977,6 +1277,10 @@ export namespace CompilerResolveResponse {
         | 'DATE'
         | 'TIMESTAMP'
         | 'BOOL'
+        | 'STRING[]'
+        | 'INT[]'
+        | 'FLOAT[]'
+        | 'DATE[]'
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
@@ -1004,6 +1308,13 @@ export namespace CompilerResolveResponse {
        * True if bound_value equals the default value
        */
       is_default?: boolean | null;
+
+      /**
+       * True if this is a runtime variable (not resolved at compile time). Runtime
+       * variables have var() placeholders left in compiled SQL for literal substitution
+       * at execution time.
+       */
+      is_runtime?: boolean | null;
 
       /**
        * Human-readable label for the variable
@@ -1133,7 +1444,7 @@ export namespace CompilerResolveResponse {
         /**
          * Original type of the field in the source query
          */
-        source_type: 'dimension' | 'measure' | 'calculation';
+        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
       }
     }
   }
@@ -1189,6 +1500,53 @@ export namespace CompilerResolveResponse {
       column?: number;
     }
   }
+
+  /**
+   * A file that was modified by auto-fix with its replacements.
+   */
+  export interface RefFix {
+    /**
+     * Path to the modified file
+     */
+    file_path: string;
+
+    /**
+     * Full updated file content after fixes
+     */
+    new_content: string;
+
+    /**
+     * Individual ref replacements made in this file
+     */
+    replacements: Array<RefFix.Replacement>;
+  }
+
+  export namespace RefFix {
+    /**
+     * A single ref replacement within a file.
+     */
+    export interface Replacement {
+      /**
+       * Path to the file containing the replaced ref
+       */
+      file_path: string;
+
+      /**
+       * Line number where the replacement occurred
+       */
+      line_number: number;
+
+      /**
+       * Updated reference string
+       */
+      new_ref: string;
+
+      /**
+       * Original reference string
+       */
+      old_ref: string;
+    }
+  }
 }
 
 /**
@@ -1209,6 +1567,11 @@ export interface CompilerValidateResponse {
    * Validation errors
    */
   errors?: Array<CompilerErrorItem>;
+
+  /**
+   * Write-back request ID. Non-null when files were dispatched to CLI via WebSocket.
+   */
+  request_id?: string | null;
 
   /**
    * Validation warnings
@@ -1245,6 +1608,16 @@ export namespace CompilerValidateResponse {
      * Validation errors for this connection
      */
     errors?: Array<CompilerAPI.CompilerErrorItem>;
+
+    /**
+     * Compilation manifest with all named objects.
+     */
+    manifest?: CompilerAPI.Manifest | null;
+
+    /**
+     * Files auto-fixed due to renamed refs. None when no renames detected.
+     */
+    ref_fixes?: Array<ConnectionResult.RefFix> | null;
 
     /**
      * Validation warnings for this connection
@@ -1302,6 +1675,53 @@ export namespace CompilerValidateResponse {
          * Column number in source file
          */
         column?: number;
+      }
+    }
+
+    /**
+     * A file that was modified by auto-fix with its replacements.
+     */
+    export interface RefFix {
+      /**
+       * Path to the modified file
+       */
+      file_path: string;
+
+      /**
+       * Full updated file content after fixes
+       */
+      new_content: string;
+
+      /**
+       * Individual ref replacements made in this file
+       */
+      replacements: Array<RefFix.Replacement>;
+    }
+
+    export namespace RefFix {
+      /**
+       * A single ref replacement within a file.
+       */
+      export interface Replacement {
+        /**
+         * Path to the file containing the replaced ref
+         */
+        file_path: string;
+
+        /**
+         * Line number where the replacement occurred
+         */
+        line_number: number;
+
+        /**
+         * Updated reference string
+         */
+        new_ref: string;
+
+        /**
+         * Original reference string
+         */
+        old_ref: string;
       }
     }
   }
@@ -1364,7 +1784,7 @@ export namespace CompilerCompileParams {
     /**
      * Widget category that determines data shape constraints
      */
-    widget_category: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static';
+    widget_category: 'axis' | 'funnel' | 'heatmap' | 'image' | 'kpi_card' | 'pie' | 'table' | 'text';
 
     /**
      * Usage guidance for AI processing
@@ -1400,29 +1820,32 @@ export namespace CompilerCompileParams {
      * Widget types within the declared widget_category that must NOT render this query
      */
     disallowed_widget_types?: Array<
-      | 'kpi_card'
-      | 'line_chart'
-      | 'bar_chart'
-      | 'pie_chart'
-      | 'donut_chart'
-      | 'area_chart'
-      | 'scatter_chart'
-      | 'data_table'
-      | 'card_grid'
-      | 'heatmap'
-      | 'gauge'
-      | 'text'
-      | 'image'
-      | 'styled_table'
-      | 'stat_cards'
-      | 'key_value_list'
+      | 'axis_metric_by_dimension'
+      | 'axis_metric_by_dimensiondate'
+      | 'axis_metric_by_dimensiondate_sliced_by_dimension'
+      | 'axis_scatter_plot'
+      | 'funnel_funnel_chart'
+      | 'heatmap_heatmap'
+      | 'image_image_grid'
+      | 'image_single_image'
+      | 'kpi_measure_with_dimension_expression'
+      | 'kpi_measure_with_secondary_metric'
+      | 'kpi_single_measure_compared_to_prev_period_sparkline'
+      | 'kpi_single_value'
+      | 'pie_pie_chart'
+      | 'table_data_table'
+      | 'table_fancy_subtotal_table'
+      | 'table_key_value_list'
+      | 'table_styled_table'
+      | 'text_data_readout_with_sparkline'
+      | 'text_narrative_text'
     > | null;
 
     /**
      * Merged required + selected optional filters
      */
     filters?: Array<
-      | ResolvedQuery.InlineFieldFilter
+      | ResolvedQuery.InlineFormulaFilter
       | string
       | ResolvedQuery.InlineExistsFilter1
       | ResolvedQuery.InlineExistsFilter2
@@ -1453,11 +1876,6 @@ export namespace CompilerCompileParams {
      * (highest/newest first) and asc for ascending (lowest/oldest first).
      */
     order_by?: ResolvedQuery.OrderBy | null;
-
-    /**
-     * Access grants required to use this query
-     */
-    required_access_grants?: Array<string> | null;
 
     /**
      * The matched chart recommendation after evaluating chart hints
@@ -1539,50 +1957,18 @@ export namespace CompilerCompileParams {
     }
 
     /**
-     * An inline filter using field + operator + values
+     * An inline filter using a SQL/expression formula
      */
-    export interface InlineFieldFilter {
-      /**
-       * Reference to the field to filter on
-       */
-      field: string;
-
+    export interface InlineFormulaFilter {
       /**
        * Name of the inline filter
        */
       name: string;
 
       /**
-       * Filter operator to apply
+       * SQL expression for the filter condition
        */
-      operator:
-        | 'equals'
-        | 'not_equals'
-        | 'in'
-        | 'not_in'
-        | 'greater_than'
-        | 'less_than'
-        | 'greater_than_or_equals'
-        | 'less_than_or_equals'
-        | 'between'
-        | 'in_the_last'
-        | 'in_the_next'
-        | 'contains'
-        | 'not_contains'
-        | 'starts_with'
-        | 'ends_with'
-        | 'is_null'
-        | 'is_not_null';
-
-      /**
-       * SQL expression for the filter value
-       */
-      sql_value?: string | null;
-
-      /**
-       * Fixed values for the filter
-       */
-      static_values?: Array<string | number | boolean> | null;
+      sql: string;
     }
 
     /**
@@ -1693,12 +2079,17 @@ export namespace CompilerCompileParams {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value: string | number | boolean;
+      bound_value: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Default value for this variable
        */
-      default: string | number | boolean;
+      default: string | number | boolean | Array<string | number | boolean>;
+
+      /**
+       * Unique identifier for this variable
+       */
+      kater_id: string;
 
       /**
        * Variable name identifier
@@ -1715,6 +2106,10 @@ export namespace CompilerCompileParams {
         | 'DATE'
         | 'TIMESTAMP'
         | 'BOOL'
+        | 'STRING[]'
+        | 'INT[]'
+        | 'FLOAT[]'
+        | 'DATE[]'
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
@@ -1742,6 +2137,13 @@ export namespace CompilerCompileParams {
        * True if bound_value equals the default value
        */
       is_default?: boolean | null;
+
+      /**
+       * True if this is a runtime variable (not resolved at compile time). Runtime
+       * variables have var() placeholders left in compiled SQL for literal substitution
+       * at execution time.
+       */
+      is_runtime?: boolean | null;
 
       /**
        * Human-readable label for the variable
@@ -1871,10 +2273,43 @@ export namespace CompilerCompileParams {
         /**
          * Original type of the field in the source query
          */
-        source_type: 'dimension' | 'measure' | 'calculation';
+        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
       }
     }
   }
+}
+
+export interface CompilerCompileDashboardParams {
+  /**
+   * Body param: Connection to compile against
+   */
+  connection_id: string;
+
+  /**
+   * Body param: Relative path within the connection (e.g.
+   * 'dashboards/compliance_overview')
+   */
+  dashboard_path: string;
+
+  /**
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param: Optional filter overrides from UI
+   */
+  filters?: { [key: string]: string | Array<string> | null } | null;
+
+  /**
+   * Body param: Optional tenant key for multi-tenant execution
+   */
+  tenant_key?: string | null;
+
+  /**
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
 }
 
 export interface CompilerEnumerateParams {
@@ -1893,6 +2328,12 @@ export interface CompilerEnumerateParams {
    * queries.
    */
   query_refs?: Array<string> | null;
+
+  /**
+   * Body param: Tenant key for multi-tenant clients. Required when the client uses
+   * row or database tenancy.
+   */
+  tenant_key?: string | null;
 
   /**
    * Header param
@@ -1956,7 +2397,7 @@ export namespace CompilerExecuteParams {
     /**
      * Widget category that determines data shape constraints
      */
-    widget_category: 'axis' | 'pie' | 'single_value' | 'heatmap' | 'table' | 'static';
+    widget_category: 'axis' | 'funnel' | 'heatmap' | 'image' | 'kpi_card' | 'pie' | 'table' | 'text';
 
     /**
      * Usage guidance for AI processing
@@ -1992,29 +2433,32 @@ export namespace CompilerExecuteParams {
      * Widget types within the declared widget_category that must NOT render this query
      */
     disallowed_widget_types?: Array<
-      | 'kpi_card'
-      | 'line_chart'
-      | 'bar_chart'
-      | 'pie_chart'
-      | 'donut_chart'
-      | 'area_chart'
-      | 'scatter_chart'
-      | 'data_table'
-      | 'card_grid'
-      | 'heatmap'
-      | 'gauge'
-      | 'text'
-      | 'image'
-      | 'styled_table'
-      | 'stat_cards'
-      | 'key_value_list'
+      | 'axis_metric_by_dimension'
+      | 'axis_metric_by_dimensiondate'
+      | 'axis_metric_by_dimensiondate_sliced_by_dimension'
+      | 'axis_scatter_plot'
+      | 'funnel_funnel_chart'
+      | 'heatmap_heatmap'
+      | 'image_image_grid'
+      | 'image_single_image'
+      | 'kpi_measure_with_dimension_expression'
+      | 'kpi_measure_with_secondary_metric'
+      | 'kpi_single_measure_compared_to_prev_period_sparkline'
+      | 'kpi_single_value'
+      | 'pie_pie_chart'
+      | 'table_data_table'
+      | 'table_fancy_subtotal_table'
+      | 'table_key_value_list'
+      | 'table_styled_table'
+      | 'text_data_readout_with_sparkline'
+      | 'text_narrative_text'
     > | null;
 
     /**
      * Merged required + selected optional filters
      */
     filters?: Array<
-      | ResolvedQuery.InlineFieldFilter
+      | ResolvedQuery.InlineFormulaFilter
       | string
       | ResolvedQuery.InlineExistsFilter1
       | ResolvedQuery.InlineExistsFilter2
@@ -2045,11 +2489,6 @@ export namespace CompilerExecuteParams {
      * (highest/newest first) and asc for ascending (lowest/oldest first).
      */
     order_by?: ResolvedQuery.OrderBy | null;
-
-    /**
-     * Access grants required to use this query
-     */
-    required_access_grants?: Array<string> | null;
 
     /**
      * The matched chart recommendation after evaluating chart hints
@@ -2131,50 +2570,18 @@ export namespace CompilerExecuteParams {
     }
 
     /**
-     * An inline filter using field + operator + values
+     * An inline filter using a SQL/expression formula
      */
-    export interface InlineFieldFilter {
-      /**
-       * Reference to the field to filter on
-       */
-      field: string;
-
+    export interface InlineFormulaFilter {
       /**
        * Name of the inline filter
        */
       name: string;
 
       /**
-       * Filter operator to apply
+       * SQL expression for the filter condition
        */
-      operator:
-        | 'equals'
-        | 'not_equals'
-        | 'in'
-        | 'not_in'
-        | 'greater_than'
-        | 'less_than'
-        | 'greater_than_or_equals'
-        | 'less_than_or_equals'
-        | 'between'
-        | 'in_the_last'
-        | 'in_the_next'
-        | 'contains'
-        | 'not_contains'
-        | 'starts_with'
-        | 'ends_with'
-        | 'is_null'
-        | 'is_not_null';
-
-      /**
-       * SQL expression for the filter value
-       */
-      sql_value?: string | null;
-
-      /**
-       * Fixed values for the filter
-       */
-      static_values?: Array<string | number | boolean> | null;
+      sql: string;
     }
 
     /**
@@ -2285,12 +2692,17 @@ export namespace CompilerExecuteParams {
       /**
        * The concrete value bound for this resolution
        */
-      bound_value: string | number | boolean;
+      bound_value: string | number | boolean | Array<string | number | boolean>;
 
       /**
        * Default value for this variable
        */
-      default: string | number | boolean;
+      default: string | number | boolean | Array<string | number | boolean>;
+
+      /**
+       * Unique identifier for this variable
+       */
+      kater_id: string;
 
       /**
        * Variable name identifier
@@ -2307,6 +2719,10 @@ export namespace CompilerExecuteParams {
         | 'DATE'
         | 'TIMESTAMP'
         | 'BOOL'
+        | 'STRING[]'
+        | 'INT[]'
+        | 'FLOAT[]'
+        | 'DATE[]'
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
@@ -2334,6 +2750,13 @@ export namespace CompilerExecuteParams {
        * True if bound_value equals the default value
        */
       is_default?: boolean | null;
+
+      /**
+       * True if this is a runtime variable (not resolved at compile time). Runtime
+       * variables have var() placeholders left in compiled SQL for literal substitution
+       * at execution time.
+       */
+      is_runtime?: boolean | null;
 
       /**
        * Human-readable label for the variable
@@ -2463,7 +2886,7 @@ export namespace CompilerExecuteParams {
         /**
          * Original type of the field in the source query
          */
-        source_type: 'dimension' | 'measure' | 'calculation';
+        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
       }
     }
   }
@@ -2486,6 +2909,11 @@ export interface CompilerResolveParams {
   source?: string | null;
 
   /**
+   * Body param: Automatically fix broken refs caused by renames. Defaults to True.
+   */
+  auto_fix?: boolean;
+
+  /**
    * Body param: Comma-separated slot selections and variable assignments. Reserved
    * keys: measure, dimension, filter, calculation. All other keys are variable
    * assignments. Example: 'measure=Compliance
@@ -2506,6 +2934,11 @@ export interface CompilerValidateParams {
   source?: string | null;
 
   /**
+   * Body param: Automatically fix broken refs caused by renames. Defaults to True.
+   */
+  auto_fix?: boolean;
+
+  /**
    * Body param: Optional connection IDs to validate. If omitted, validates all
    * connections.
    */
@@ -2518,6 +2951,7 @@ export interface CompilerValidateParams {
 }
 
 Compiler.Cache = Cache;
+Compiler.Combination = CombinationAPICombination;
 
 export declare namespace Compiler {
   export {
@@ -2529,20 +2963,29 @@ export declare namespace Compiler {
     type RefWithLabel as RefWithLabel,
     type SubqueryCondition as SubqueryCondition,
     type CompilerCompileResponse as CompilerCompileResponse,
+    type CompilerCompileDashboardResponse as CompilerCompileDashboardResponse,
     type CompilerEnumerateResponse as CompilerEnumerateResponse,
     type CompilerExecuteResponse as CompilerExecuteResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,
     type CompilerCompileParams as CompilerCompileParams,
+    type CompilerCompileDashboardParams as CompilerCompileDashboardParams,
     type CompilerEnumerateParams as CompilerEnumerateParams,
     type CompilerExecuteParams as CompilerExecuteParams,
     type CompilerResolveParams as CompilerResolveParams,
     type CompilerValidateParams as CompilerValidateParams,
   };
 
+  export { Cache as Cache };
+
   export {
-    Cache as Cache,
-    type CacheInvalidateResponse as CacheInvalidateResponse,
-    type CacheInvalidateParams as CacheInvalidateParams,
+    CombinationAPICombination as Combination,
+    type CombinationPreviewResponse as CombinationPreviewResponse,
+    type CombinationPreviewParams as CombinationPreviewParams,
+  };
+
+  export {
+    type ManifestRegenerateAndCreatePrResponse as ManifestRegenerateAndCreatePrResponse,
+    type ManifestRegenerateAndCreatePrParams as ManifestRegenerateAndCreatePrParams,
   };
 }

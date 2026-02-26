@@ -8,7 +8,7 @@ const client = new Kater({
 });
 
 describe('resource compiler', () => {
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('compile: only required params', async () => {
     const responsePromise = client.v1.compiler.compile({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -29,7 +29,7 @@ describe('resource compiler', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('compile: required and optional params', async () => {
     const response = await client.v1.compiler.compile({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -59,22 +59,13 @@ describe('resource compiler', () => {
         custom_properties: { foo: 'bar' },
         description: 'description',
         dimensions: [{ ref: 'ref', label: 'label' }],
-        disallowed_widget_types: ['kpi_card'],
-        filters: [
-          {
-            field: 'ref(dim_customer.sale_price)',
-            name: 'x',
-            operator: 'equals',
-            sql_value: 'SUM(ref(sale_price))',
-            static_values: ['string'],
-          },
-        ],
+        disallowed_widget_types: ['axis_metric_by_dimension'],
+        filters: [{ name: 'x', sql: 'sql' }],
         inheritance_chain: ['string'],
         label: 'label',
         limit: 1,
         measures: [{ ref: 'ref', label: 'label' }],
         order_by: { asc: ['string'], desc: ['string'] },
-        required_access_grants: ['string'],
         resolved_chart: {
           config: {
             color_by: 'ref(created_date)',
@@ -91,6 +82,7 @@ describe('resource compiler', () => {
           {
             bound_value: 'string',
             default: 'string',
+            kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
             name: 'x',
             type: 'STRING',
             allowed_values: { static: [{ value: 'string', label: 'label' }] },
@@ -102,6 +94,7 @@ describe('resource compiler', () => {
             },
             description: 'description',
             is_default: true,
+            is_runtime: true,
             label: 'label',
           },
         ],
@@ -126,7 +119,34 @@ describe('resource compiler', () => {
     });
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
+  test.skip('compileDashboard: only required params', async () => {
+    const responsePromise = client.v1.compiler.compileDashboard({
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      dashboard_path: 'dashboard_path',
+    });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('compileDashboard: required and optional params', async () => {
+    const response = await client.v1.compiler.compileDashboard({
+      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      dashboard_path: 'dashboard_path',
+      source: 'source',
+      filters: { foo: 'string' },
+      tenant_key: 'tenant_key',
+      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
+    });
+  });
+
+  // Mock server tests are disabled
   test.skip('enumerate: only required params', async () => {
     const responsePromise = client.v1.compiler.enumerate({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -140,17 +160,18 @@ describe('resource compiler', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('enumerate: required and optional params', async () => {
     const response = await client.v1.compiler.enumerate({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       source: 'source',
       query_refs: ['string'],
+      tenant_key: 'tenant_key',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('execute: only required params', async () => {
     const responsePromise = client.v1.compiler.execute({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -171,7 +192,7 @@ describe('resource compiler', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('execute: required and optional params', async () => {
     const response = await client.v1.compiler.execute({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -201,22 +222,13 @@ describe('resource compiler', () => {
         custom_properties: { foo: 'bar' },
         description: 'description',
         dimensions: [{ ref: 'ref', label: 'label' }],
-        disallowed_widget_types: ['kpi_card'],
-        filters: [
-          {
-            field: 'ref(dim_customer.sale_price)',
-            name: 'x',
-            operator: 'equals',
-            sql_value: 'SUM(ref(sale_price))',
-            static_values: ['string'],
-          },
-        ],
+        disallowed_widget_types: ['axis_metric_by_dimension'],
+        filters: [{ name: 'x', sql: 'sql' }],
         inheritance_chain: ['string'],
         label: 'label',
         limit: 1,
         measures: [{ ref: 'ref', label: 'label' }],
         order_by: { asc: ['string'], desc: ['string'] },
-        required_access_grants: ['string'],
         resolved_chart: {
           config: {
             color_by: 'ref(created_date)',
@@ -233,6 +245,7 @@ describe('resource compiler', () => {
           {
             bound_value: 'string',
             default: 'string',
+            kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
             name: 'x',
             type: 'STRING',
             allowed_values: { static: [{ value: 'string', label: 'label' }] },
@@ -244,6 +257,7 @@ describe('resource compiler', () => {
             },
             description: 'description',
             is_default: true,
+            is_runtime: true,
             label: 'label',
           },
         ],
@@ -268,7 +282,7 @@ describe('resource compiler', () => {
     });
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('resolve: only required params', async () => {
     const responsePromise = client.v1.compiler.resolve({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -283,18 +297,19 @@ describe('resource compiler', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('resolve: required and optional params', async () => {
     const response = await client.v1.compiler.resolve({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       query_ref: 'query_ref',
       source: 'source',
+      auto_fix: true,
       combination: 'combination',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('validate', async () => {
     const responsePromise = client.v1.compiler.validate({});
     const rawResponse = await responsePromise.asResponse();

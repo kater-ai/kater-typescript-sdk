@@ -8,7 +8,7 @@ const client = new Kater({
 });
 
 describe('resource tenants', () => {
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('getTenantsSchema', async () => {
     const responsePromise = client.v1.tenants.getTenantsSchema();
     const rawResponse = await responsePromise.asResponse();
@@ -20,7 +20,7 @@ describe('resource tenants', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromCsv: only required params', async () => {
     const responsePromise = client.v1.tenants.importFromCsv({
       file: await toFile(Buffer.from('# my file contents'), 'README.md'),
@@ -34,14 +34,17 @@ describe('resource tenants', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromCsv: required and optional params', async () => {
     const response = await client.v1.tenants.importFromCsv({
       file: await toFile(Buffer.from('# my file contents'), 'README.md'),
+      source: 'source',
+      attribute_columns: 'attribute_columns',
+      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromWarehouse: only required params', async () => {
     const responsePromise = client.v1.tenants.importFromWarehouse({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -59,7 +62,7 @@ describe('resource tenants', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  // Prism tests are disabled
+  // Mock server tests are disabled
   test.skip('importFromWarehouse: required and optional params', async () => {
     const response = await client.v1.tenants.importFromWarehouse({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -67,8 +70,11 @@ describe('resource tenants', () => {
       schema: 'x',
       table: 'x',
       tenant_key_column: 'x',
+      source: 'source',
+      attribute_columns: { foo: 'string' },
       tenant_group_column: 'tenant_group_column',
       tenant_name_column: 'tenant_name_column',
+      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 });

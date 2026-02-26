@@ -5,6 +5,7 @@ import * as GroupsAPI from './groups';
 import { GroupGetTenantGroupsSchemaResponse, Groups } from './groups';
 import { APIPromise } from '../../../core/api-promise';
 import { type Uploadable } from '../../../core/uploads';
+import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { multipartFormRequestOptions } from '../../../internal/uploads';
 
@@ -32,9 +33,13 @@ export class Tenants extends APIResource {
    * - tenant_key (required): Unique tenant identifier
    * - tenant_name (optional): Human-readable name
    * - group_names (optional): Comma-separated list of group names
+   * - Additional columns can be mapped to attributes via attribute_columns
    *
    * Creates new tenants and updates existing ones with new name/groups. Groups are
    * added additively (not replaced) and auto-created if needed.
+   *
+   * Optionally processes attribute columns: values are validated against
+   * attributes.yaml, stored additively, and validation errors are non-fatal.
    *
    * RLS: Filtered to current client (ClientRLSDB).
    *
@@ -42,12 +47,24 @@ export class Tenants extends APIResource {
    * TenantCreationNotAllowedError: If tenancy type is NONE (400)
    */
   importFromCsv(
-    body: TenantImportFromCsvParams,
+    params: TenantImportFromCsvParams,
     options?: RequestOptions,
   ): APIPromise<ImportTenantsResponse> {
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
     return this._client.post(
       '/api/v1/tenants/import/csv',
-      multipartFormRequestOptions({ body, ...options }, this._client),
+      multipartFormRequestOptions(
+        {
+          query: { source },
+          body,
+          ...options,
+          headers: buildHeaders([
+            { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+            options?.headers,
+          ]),
+        },
+        this._client,
+      ),
     );
   }
 
@@ -69,10 +86,19 @@ export class Tenants extends APIResource {
    * TenantCreationNotAllowedError: If tenancy type is NONE (400)
    */
   importFromWarehouse(
-    body: TenantImportFromWarehouseParams,
+    params: TenantImportFromWarehouseParams,
     options?: RequestOptions,
   ): APIPromise<ImportTenantsResponse> {
-    return this._client.post('/api/v1/tenants/import/warehouse', { body, ...options });
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
+    return this._client.post('/api/v1/tenants/import/warehouse', {
+      query: { source },
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+        options?.headers,
+      ]),
+    });
   }
 }
 
@@ -96,6 +122,11 @@ export interface ImportTenantsResponse {
   total_updated: number;
 
   /**
+   * Non-fatal attribute validation errors during import
+   */
+  attribute_errors?: Array<ImportTenantsResponse.AttributeError>;
+
+  /**
    * Tenant-specific errors
    */
   errors?: Array<ImportTenantsResponse.Error>;
@@ -107,6 +138,31 @@ export interface ImportTenantsResponse {
 }
 
 export namespace ImportTenantsResponse {
+  /**
+   * Error for a single attribute during import.
+   */
+  export interface AttributeError {
+    /**
+     * Attribute name that failed
+     */
+    attribute: string;
+
+    /**
+     * Error message
+     */
+    error: string;
+
+    /**
+     * Tenant key for which attribute processing failed
+     */
+    tenant_key: string;
+
+    /**
+     * Value that caused the error
+     */
+    value: string;
+  }
+
   /**
    * Error for a single tenant during import.
    */
@@ -164,46 +220,77 @@ export namespace TenantGetTenantsSchemaResponse {
 
 export interface TenantImportFromCsvParams {
   /**
-   * CSV file with tenant data
+   * Body param: CSV file with tenant data
    */
   file: Uploadable;
+
+  /**
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param: JSON mapping: attribute_name -> csv_column_name
+   */
+  attribute_columns?: string | null;
+
+  /**
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
 }
 
 export interface TenantImportFromWarehouseParams {
   /**
-   * Warehouse connection ID to query
+   * Body param: Warehouse connection ID to query
    */
   connection_id: string;
 
   /**
-   * Database name containing the tenant table
+   * Body param: Database name containing the tenant table
    */
   database: string;
 
   /**
-   * Schema name containing the tenant table
+   * Body param: Schema name containing the tenant table
    */
   schema: string;
 
   /**
-   * Table name containing tenant data
+   * Body param: Table name containing tenant data
    */
   table: string;
 
   /**
-   * Column name for tenant key
+   * Body param: Column name for tenant key
    */
   tenant_key_column: string;
 
   /**
-   * Column name for tenant group (optional)
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param: Mapping of attribute names to warehouse column names for attribute
+   * import
+   */
+  attribute_columns?: { [key: string]: string } | null;
+
+  /**
+   * Body param: Column name for tenant group (optional)
    */
   tenant_group_column?: string | null;
 
   /**
-   * Column name for tenant display name (optional)
+   * Body param: Column name for tenant display name (optional)
    */
   tenant_name_column?: string | null;
+
+  /**
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
 }
 
 Tenants.Groups = Groups;

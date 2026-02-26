@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.11.0 (2026-02-24)
+
+Full Changelog: [v0.10.0...v0.11.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.10.0...v0.11.0)
+
+### Features
+
+* **cli,compiler,cache:** add `kater run` command, SDK 0.9 combinatio… ([e357321](https://github.com/kater-ai/kater-typescript-sdk/commit/e3573211ecc9893953bbd87f849a5552c076a340))
+* **compiler,api,cli:** auto-fix broken refs when developers rename o… ([ea056aa](https://github.com/kater-ai/kater-typescript-sdk/commit/ea056aaf5c99429ca24794f9068a692d347fc080))
+* **compiler,attributes:** tenant user attribute system + compiler access filter enforcement ([60e2c3f](https://github.com/kater-ai/kater-typescript-sdk/commit/60e2c3ffeccd54811701c8cd7200209b8b6406c1))
+* **compiler:** add per-tenant isolation support across compiler and … ([a1dcdd6](https://github.com/kater-ai/kater-typescript-sdk/commit/a1dcdd6fc139a214a41906db31d53a38303b4d58))
+* feat(all) updated file structures ([d081f04](https://github.com/kater-ai/kater-typescript-sdk/commit/d081f047690d2b0c45cba61ad2ea3347044d5f3b))
+* feat/yvonne ([8ebfaa6](https://github.com/kater-ai/kater-typescript-sdk/commit/8ebfaa64717ba5753a589c0cb812f6bed8f11b09))
+* Feat/yvonne ([6a0ecc9](https://github.com/kater-ai/kater-typescript-sdk/commit/6a0ecc974f1882bd79817983d066c21efb6706e4))
+* **sandbox:** query gallery, manifest lookup, and compiler updates ([6907f61](https://github.com/kater-ai/kater-typescript-sdk/commit/6907f61b2567c6951399b4986c3e3515458bb754))
+* **schema,compiler:** remove dynamic filters, extend variable system… ([7ad0354](https://github.com/kater-ai/kater-typescript-sdk/commit/7ad0354d364f9fc62e7933a8b461878158af5b0a))
+
+
+### Bug Fixes
+
+* address PR feedback and resolve errors (iteration 1) ([7539851](https://github.com/kater-ai/kater-typescript-sdk/commit/75398519df5f771da1c37e24f58a81ff9d2661d5))
+* address PR feedback and resolve errors (iteration 1) ([ad69044](https://github.com/kater-ai/kater-typescript-sdk/commit/ad6904469a72be2433f6eabc4f239b6494ad7312))
+* **docs/contributing:** correct pnpm link command ([456b5f9](https://github.com/kater-ai/kater-typescript-sdk/commit/456b5f9ecbf042b25d1c18c1b71527ce8651989c))
+
+
+### Chores
+
+* **internal/client:** fix form-urlencoded requests ([1417ad5](https://github.com/kater-ai/kater-typescript-sdk/commit/1417ad5ecb73df58e323fc044caa6e6789a41e68))
+* **internal:** remove mock server code ([baedf02](https://github.com/kater-ai/kater-typescript-sdk/commit/baedf02470f3070b821f9f420c2810dbc2c071d7))
+* **internal:** upgrade pnpm version ([b5e698d](https://github.com/kater-ai/kater-typescript-sdk/commit/b5e698d949b5a5c504758b5c4d9e631af179720c))
+* update mock server docs ([fad0c94](https://github.com/kater-ai/kater-typescript-sdk/commit/fad0c94bdbcbd4eab532e7b392fa781911d670ac))
+
 ## 0.10.0 (2026-02-14)
 
 Full Changelog: [v0.9.0...v0.10.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.9.0...v0.10.0)

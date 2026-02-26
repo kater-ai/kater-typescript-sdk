@@ -12,6 +12,7 @@ Types:
 - <code><a href="./src/resources/v1/compiler/compiler.ts">RefWithLabel</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">SubqueryCondition</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileDashboardResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerEnumerateResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerExecuteResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerResolveResponse</a></code>
@@ -20,6 +21,7 @@ Types:
 Methods:
 
 - <code title="post /api/v1/compiler/compile">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
+- <code title="post /api/v1/compiler/dashboard">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compileDashboard</a>({ ...params }) -> CompilerCompileDashboardResponse</code>
 - <code title="post /api/v1/compiler/enumerate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">enumerate</a>({ ...params }) -> CompilerEnumerateResponse</code>
 - <code title="post /api/v1/compiler/execute">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">execute</a>({ ...params }) -> CompilerExecuteResponse</code>
 - <code title="post /api/v1/compiler/resolve">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
@@ -27,13 +29,25 @@ Methods:
 
 ### Cache
 
+### Combination
+
 Types:
 
-- <code><a href="./src/resources/v1/compiler/cache.ts">CacheInvalidateResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/combination.ts">CombinationPreviewResponse</a></code>
 
 Methods:
 
-- <code title="post /api/v1/compiler/cache/invalidate">client.v1.compiler.cache.<a href="./src/resources/v1/compiler/cache.ts">invalidate</a>({ ...params }) -> CacheInvalidateResponse</code>
+- <code title="post /api/v1/compiler/combination/preview">client.v1.compiler.combination.<a href="./src/resources/v1/compiler/combination.ts">preview</a>({ ...params }) -> CombinationPreviewResponse</code>
+
+### Manifest
+
+Types:
+
+- <code><a href="./src/resources/v1/compiler/manifest.ts">ManifestRegenerateAndCreatePrResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/compiler/manifest/recovery-pr">client.v1.compiler.manifest.<a href="./src/resources/v1/compiler/manifest.ts">regenerateAndCreatePr</a>({ ...params }) -> ManifestRegenerateAndCreatePrResponse</code>
 
 ## Connections
 
