@@ -4,6 +4,9 @@ import { APIResource } from '../../core/resource';
 import { APIPromise } from '../../core/api-promise';
 import { RequestOptions } from '../../internal/request-options';
 
+/**
+ * Manage database connections to your data warehouse
+ */
 export class Connections extends APIResource {
   /**
    * List warehouse connections for the client.

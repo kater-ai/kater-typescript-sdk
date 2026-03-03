@@ -16,6 +16,9 @@ import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Validate, resolve, and compile query templates to SQL
+ */
 export class Compiler extends APIResource {
   cache: CacheAPI.Cache = new CacheAPI.Cache(this._client);
   combination: CombinationAPI.Combination = new CombinationAPI.Combination(this._client);
