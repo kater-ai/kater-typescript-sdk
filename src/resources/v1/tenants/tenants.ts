@@ -9,6 +9,9 @@ import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { multipartFormRequestOptions } from '../../../internal/uploads';
 
+/**
+ * Manage tenants (your end customers)
+ */
 export class Tenants extends APIResource {
   groups: GroupsAPI.Groups = new GroupsAPI.Groups(this._client);
 

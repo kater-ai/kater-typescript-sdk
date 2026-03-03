@@ -5,6 +5,9 @@ import { APIPromise } from '../../../core/api-promise';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Validate, resolve, and compile query templates to SQL
+ */
 export class Manifest extends APIResource {
   /**
    * Regenerate manifest through compiler validation and open a PR.
