@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.1 (2026-03-03)
+
+Full Changelog: [v0.11.0...v0.11.1](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.11.0...v0.11.1)
+
+### Chores
+
+* **internal:** codegen related update ([79fc924](https://github.com/kater-ai/kater-typescript-sdk/commit/79fc9244f958be4e34ddce3917fef76b6a1f657c))
+* **internal:** move stringifyQuery implementation to internal function ([831e91b](https://github.com/kater-ai/kater-typescript-sdk/commit/831e91b1715595db187e59feb2350fbb88805466))
+
 ## 0.11.0 (2026-02-24)
 
 Full Changelog: [v0.10.0...v0.11.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.10.0...v0.11.0)

@@ -1,8 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { Kater } from '@katerai/sdk';
-
-const { stringifyQuery } = Kater.prototype as any;
+import { stringifyQuery } from '@katerai/sdk/internal/utils/query';
 
 describe(stringifyQuery, () => {
   for (const [input, expected] of [
@@ -15,7 +13,7 @@ describe(stringifyQuery, () => {
         'e=f',
       )}=${encodeURIComponent('g&h')}`,
     ],
-  ]) {
+  ] as const) {
     it(`${JSON.stringify(input)} -> ${expected}`, () => {
       expect(stringifyQuery(input)).toEqual(expected);
     });

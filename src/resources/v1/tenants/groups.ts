@@ -4,6 +4,9 @@ import { APIResource } from '../../../core/resource';
 import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 
+/**
+ * Manage tenants (your end customers)
+ */
 export class Groups extends APIResource {
   /**
    * Get all tenant groups as a TenantGroupSchema object.
