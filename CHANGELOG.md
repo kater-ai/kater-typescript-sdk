@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0 (2026-03-05)
+
+Full Changelog: [v0.11.1...v0.12.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.11.1...v0.12.0)
+
+### Features
+
+* Feat/query id fix ([a006636](https://github.com/kater-ai/kater-typescript-sdk/commit/a00663643c4edbf38a8e67bad0c082f1cb023cf2))
+* **security:** make tenant_key required on all API endpoints and cod… ([8375066](https://github.com/kater-ai/kater-typescript-sdk/commit/837506614c2b574a9518a08481674c60b7a3bcfb))
+
 ## 0.11.1 (2026-03-03)
 
 Full Changelog: [v0.11.0...v0.11.1](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.11.0...v0.11.1)

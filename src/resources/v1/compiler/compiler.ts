@@ -734,6 +734,11 @@ export namespace CompilerEnumerateResponse {
     combination_id?: string | null;
 
     /**
+     * UUID of the query template
+     */
+    query_kater_id?: string | null;
+
+    /**
      * Human-readable label for the query
      */
     query_label?: string | null;
@@ -1742,15 +1747,16 @@ export interface CompilerCompileParams {
   resolved_query: CompilerCompileParams.ResolvedQuery;
 
   /**
+   * Body param: Tenant key for multi-tenant compilation. Use 'kater_global_tenant'
+   * for no-tenancy clients or to bypass tenant isolation. For database tenancy, maps
+   * to the tenant's database. For row tenancy, used as the row-level filter value.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Tenant key for multi-tenant compilation. For database tenancy, maps
-   * to the tenant's database. For row tenancy, used as the row-level filter value.
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
@@ -2295,6 +2301,12 @@ export interface CompilerCompileDashboardParams {
   dashboard_path: string;
 
   /**
+   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
+   * no-tenancy clients.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
@@ -2303,11 +2315,6 @@ export interface CompilerCompileDashboardParams {
    * Body param: Optional filter overrides from UI
    */
   filters?: { [key: string]: string | Array<string> | null } | null;
-
-  /**
-   * Body param: Optional tenant key for multi-tenant execution
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
@@ -2322,21 +2329,21 @@ export interface CompilerEnumerateParams {
   connection_id: string;
 
   /**
+   * Body param: Tenant key for multi-tenant clients. Use 'kater_global_tenant' for
+   * no-tenancy clients or when no tenant isolation is needed.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
 
   /**
-   * Body param: Optional query refs to limit enumeration. If omitted, enumerates all
-   * queries.
+   * Body param: Optional query UUIDs to limit enumeration. If omitted, enumerates
+   * all queries.
    */
-  query_refs?: Array<string> | null;
-
-  /**
-   * Body param: Tenant key for multi-tenant clients. Required when the client uses
-   * row or database tenancy.
-   */
-  tenant_key?: string | null;
+  query_ids?: Array<string> | null;
 
   /**
    * Header param
@@ -2356,14 +2363,15 @@ export interface CompilerExecuteParams {
   resolved_query: CompilerExecuteParams.ResolvedQuery;
 
   /**
+   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
+   * no-tenancy clients.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Tenant key for multi-tenant execution
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
@@ -2902,9 +2910,9 @@ export interface CompilerResolveParams {
   connection_id: string;
 
   /**
-   * Body param: Reference to the query template (e.g. 'ref(MY_QUERY)')
+   * Body param: UUID of the query template
    */
-  query_ref: string;
+  query_id: string;
 
   /**
    * Query param
@@ -2923,6 +2931,12 @@ export interface CompilerResolveParams {
    * Rate,dimension=Department,breakdown=region'
    */
   combination?: string;
+
+  /**
+   * Body param: Optional pinned variant name (e.g. '\_base'). Selects a specific
+   * pinned configuration.
+   */
+  pinned_variant?: string | null;
 
   /**
    * Header param

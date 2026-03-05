@@ -13,7 +13,8 @@ describe('resource combination', () => {
     const responsePromise = client.v1.compiler.combination.preview({
       combination: 'combination',
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      query_ref: 'query_ref',
+      query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      tenant_key: 'tenant_key',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -29,9 +30,10 @@ describe('resource combination', () => {
     const response = await client.v1.compiler.combination.preview({
       combination: 'combination',
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      query_ref: 'query_ref',
-      source: 'source',
+      query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       tenant_key: 'tenant_key',
+      source: 'source',
+      pinned_variant: 'pinned_variant',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });

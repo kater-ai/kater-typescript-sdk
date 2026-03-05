@@ -19,6 +19,7 @@ describe('resource compiler', () => {
         topic: 'ref(dim_customer.sale_price)',
         widget_category: 'axis',
       },
+      tenant_key: 'tenant_key',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -113,8 +114,8 @@ describe('resource compiler', () => {
           },
         ],
       },
-      source: 'source',
       tenant_key: 'tenant_key',
+      source: 'source',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -124,6 +125,7 @@ describe('resource compiler', () => {
     const responsePromise = client.v1.compiler.compileDashboard({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       dashboard_path: 'dashboard_path',
+      tenant_key: 'tenant_key',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -139,9 +141,9 @@ describe('resource compiler', () => {
     const response = await client.v1.compiler.compileDashboard({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       dashboard_path: 'dashboard_path',
+      tenant_key: 'tenant_key',
       source: 'source',
       filters: { foo: 'string' },
-      tenant_key: 'tenant_key',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -150,6 +152,7 @@ describe('resource compiler', () => {
   test.skip('enumerate: only required params', async () => {
     const responsePromise = client.v1.compiler.enumerate({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      tenant_key: 'tenant_key',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -164,9 +167,9 @@ describe('resource compiler', () => {
   test.skip('enumerate: required and optional params', async () => {
     const response = await client.v1.compiler.enumerate({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      source: 'source',
-      query_refs: ['string'],
       tenant_key: 'tenant_key',
+      source: 'source',
+      query_ids: ['182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e'],
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -182,6 +185,7 @@ describe('resource compiler', () => {
         topic: 'ref(dim_customer.sale_price)',
         widget_category: 'axis',
       },
+      tenant_key: 'tenant_key',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -276,8 +280,8 @@ describe('resource compiler', () => {
           },
         ],
       },
-      source: 'source',
       tenant_key: 'tenant_key',
+      source: 'source',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -286,7 +290,7 @@ describe('resource compiler', () => {
   test.skip('resolve: only required params', async () => {
     const responsePromise = client.v1.compiler.resolve({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      query_ref: 'query_ref',
+      query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -301,10 +305,11 @@ describe('resource compiler', () => {
   test.skip('resolve: required and optional params', async () => {
     const response = await client.v1.compiler.resolve({
       connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      query_ref: 'query_ref',
+      query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       source: 'source',
       auto_fix: true,
       combination: 'combination',
+      pinned_variant: 'pinned_variant',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
