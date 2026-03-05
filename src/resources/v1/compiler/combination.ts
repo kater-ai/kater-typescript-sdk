@@ -137,14 +137,15 @@ export interface CombinationPreviewParams {
   query_ref: string;
 
   /**
+   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
+   * no-tenancy clients.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Optional tenant key for multi-tenant execution
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
