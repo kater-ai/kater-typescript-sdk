@@ -1742,15 +1742,16 @@ export interface CompilerCompileParams {
   resolved_query: CompilerCompileParams.ResolvedQuery;
 
   /**
+   * Body param: Tenant key for multi-tenant compilation. Use 'kater_global_tenant'
+   * for no-tenancy clients or to bypass tenant isolation. For database tenancy, maps
+   * to the tenant's database. For row tenancy, used as the row-level filter value.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Tenant key for multi-tenant compilation. For database tenancy, maps
-   * to the tenant's database. For row tenancy, used as the row-level filter value.
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
@@ -2295,6 +2296,12 @@ export interface CompilerCompileDashboardParams {
   dashboard_path: string;
 
   /**
+   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
+   * no-tenancy clients.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
@@ -2303,11 +2310,6 @@ export interface CompilerCompileDashboardParams {
    * Body param: Optional filter overrides from UI
    */
   filters?: { [key: string]: string | Array<string> | null } | null;
-
-  /**
-   * Body param: Optional tenant key for multi-tenant execution
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
@@ -2322,6 +2324,12 @@ export interface CompilerEnumerateParams {
   connection_id: string;
 
   /**
+   * Body param: Tenant key for multi-tenant clients. Use 'kater_global_tenant' for
+   * no-tenancy clients or when no tenant isolation is needed.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
@@ -2331,12 +2339,6 @@ export interface CompilerEnumerateParams {
    * queries.
    */
   query_refs?: Array<string> | null;
-
-  /**
-   * Body param: Tenant key for multi-tenant clients. Required when the client uses
-   * row or database tenancy.
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
@@ -2356,14 +2358,15 @@ export interface CompilerExecuteParams {
   resolved_query: CompilerExecuteParams.ResolvedQuery;
 
   /**
+   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
+   * no-tenancy clients.
+   */
+  tenant_key: string;
+
+  /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Tenant key for multi-tenant execution
-   */
-  tenant_key?: string | null;
 
   /**
    * Header param
