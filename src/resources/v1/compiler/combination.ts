@@ -132,9 +132,9 @@ export interface CombinationPreviewParams {
   connection_id: string;
 
   /**
-   * Body param: Query template reference (e.g. 'q:compliance_trend.\_base')
+   * Body param: UUID of the query template
    */
-  query_ref: string;
+  query_id: string;
 
   /**
    * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
@@ -146,6 +146,11 @@ export interface CombinationPreviewParams {
    * Query param
    */
   source?: string | null;
+
+  /**
+   * Body param: Optional pinned variant name (e.g. '\_base').
+   */
+  pinned_variant?: string | null;
 
   /**
    * Header param
