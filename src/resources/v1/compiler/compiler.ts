@@ -734,6 +734,11 @@ export namespace CompilerEnumerateResponse {
     combination_id?: string | null;
 
     /**
+     * UUID of the query template
+     */
+    query_kater_id?: string | null;
+
+    /**
      * Human-readable label for the query
      */
     query_label?: string | null;
@@ -2335,10 +2340,10 @@ export interface CompilerEnumerateParams {
   source?: string | null;
 
   /**
-   * Body param: Optional query refs to limit enumeration. If omitted, enumerates all
-   * queries.
+   * Body param: Optional query UUIDs to limit enumeration. If omitted, enumerates
+   * all queries.
    */
-  query_refs?: Array<string> | null;
+  query_ids?: Array<string> | null;
 
   /**
    * Header param
@@ -2905,9 +2910,9 @@ export interface CompilerResolveParams {
   connection_id: string;
 
   /**
-   * Body param: Reference to the query template (e.g. 'ref(MY_QUERY)')
+   * Body param: UUID of the query template
    */
-  query_ref: string;
+  query_id: string;
 
   /**
    * Query param
@@ -2926,6 +2931,12 @@ export interface CompilerResolveParams {
    * Rate,dimension=Department,breakdown=region'
    */
   combination?: string;
+
+  /**
+   * Body param: Optional pinned variant name (e.g. '\_base'). Selects a specific
+   * pinned configuration.
+   */
+  pinned_variant?: string | null;
 
   /**
    * Header param
