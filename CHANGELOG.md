@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.1 (2026-03-06)
+
+Full Changelog: [v0.12.0...v0.12.1](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.12.0...v0.12.1)
+
+### Chores
+
+* **internal:** codegen related update ([ef2a4a3](https://github.com/kater-ai/kater-typescript-sdk/commit/ef2a4a35c3c400a1b7532db2ee87776bbf1dc947))
+
 ## 0.12.0 (2026-03-05)
 
 Full Changelog: [v0.11.1...v0.12.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.11.1...v0.12.0)
