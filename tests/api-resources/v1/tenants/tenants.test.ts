@@ -23,7 +23,7 @@ describe('resource tenants', () => {
   // Mock server tests are disabled
   test.skip('importFromCsv: only required params', async () => {
     const responsePromise = client.v1.tenants.importFromCsv({
-      file: await toFile(Buffer.from('# my file contents'), 'README.md'),
+      file: await toFile(Buffer.from('Example data'), 'README.md'),
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -37,7 +37,7 @@ describe('resource tenants', () => {
   // Mock server tests are disabled
   test.skip('importFromCsv: required and optional params', async () => {
     const response = await client.v1.tenants.importFromCsv({
-      file: await toFile(Buffer.from('# my file contents'), 'README.md'),
+      file: await toFile(Buffer.from('Example data'), 'README.md'),
       source: 'source',
       attribute_columns: 'attribute_columns',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
