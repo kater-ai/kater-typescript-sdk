@@ -356,7 +356,8 @@ export interface CompilerCompileResponse {
   metadata?: CompilerCompileResponse.Metadata | null;
 
   /**
-   * Write-back request ID. Non-null when files were dispatched to CLI via WebSocket.
+   * Reserved for write-back flows. Compile responses currently return null because
+   * compiled SQL and resolved-query artifacts are not written back.
    */
   request_id?: string | null;
 
@@ -1577,7 +1578,8 @@ export interface CompilerValidateResponse {
   errors?: Array<CompilerErrorItem>;
 
   /**
-   * Write-back request ID. Non-null when files were dispatched to CLI via WebSocket.
+   * Reserved for write-back flows. Compile responses currently return null because
+   * compiled SQL and resolved-query artifacts are not written back.
    */
   request_id?: string | null;
 
