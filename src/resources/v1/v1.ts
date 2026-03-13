@@ -1,13 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../core/resource';
-import * as ConnectionsAPI from './connections';
-import {
-  Connection,
-  ConnectionListConnectionsParams,
-  ConnectionListConnectionsResponse,
-  Connections,
-} from './connections';
 import * as CompilerAPI from './compiler/compiler';
 import {
   ChartConfig,
@@ -31,6 +24,13 @@ import {
   RefWithLabel,
   SubqueryCondition,
 } from './compiler/compiler';
+import * as ConnectionsAPI from './connections/connections';
+import {
+  Connection,
+  ConnectionListConnectionsParams,
+  ConnectionListConnectionsResponse,
+  Connections,
+} from './connections/connections';
 import * as TenantsAPI from './tenants/tenants';
 import {
   ImportTenantsResponse,

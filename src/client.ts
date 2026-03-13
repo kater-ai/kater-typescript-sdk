@@ -228,8 +228,14 @@ export class Kater {
     );
   }
 
-  protected async authHeaders(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
-    return buildHeaders([await this.apiKeyAuth(opts), await this.propelAuth(opts)]);
+  protected async authHeaders(
+    opts: FinalRequestOptions,
+    schemes: { apiKeyAuth?: boolean; propelAuth?: boolean },
+  ): Promise<NullableHeaders | undefined> {
+    return buildHeaders([
+      schemes.apiKeyAuth ? await this.apiKeyAuth(opts) : null,
+      schemes.propelAuth ? await this.propelAuth(opts) : null,
+    ]);
   }
 
   protected async apiKeyAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
@@ -672,7 +678,7 @@ export class Kater {
         ...(options.timeout ? { 'X-Stainless-Timeout': String(Math.trunc(options.timeout / 1000)) } : {}),
         ...getPlatformHeaders(),
       },
-      await this.authHeaders(options),
+      await this.authHeaders(options, options.__security ?? { apiKeyAuth: true, propelAuth: true }),
       this._options.defaultHeaders,
       bodyHeaders,
       options.headers,

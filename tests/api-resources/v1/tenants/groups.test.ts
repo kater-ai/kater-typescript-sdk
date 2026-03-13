@@ -4,6 +4,7 @@ import Kater from '@katerai/sdk';
 
 const client = new Kater({
   apiKey: 'My API Key',
+  authToken: 'My Auth Token',
   baseURL: process.env['TEST_API_BASE_URL'] ?? 'http://127.0.0.1:4010',
 });
 

@@ -53,12 +53,80 @@ Methods:
 
 Types:
 
-- <code><a href="./src/resources/v1/connections.ts">Connection</a></code>
-- <code><a href="./src/resources/v1/connections.ts">ConnectionListConnectionsResponse</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">Connection</a></code>
+- <code><a href="./src/resources/v1/connections/connections.ts">ConnectionListConnectionsResponse</a></code>
 
 Methods:
 
-- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
+- <code title="get /api/v1/connections">client.v1.connections.<a href="./src/resources/v1/connections/connections.ts">listConnections</a>({ ...params }) -> ConnectionListConnectionsResponse</code>
+
+### Client
+
+#### Mcp
+
+##### Servers
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerCreateResponse</a></code>
+- <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerUpdateResponse</a></code>
+- <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerListResponse</a></code>
+- <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerDiscoverResponse</a></code>
+- <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerRediscoverResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/client/mcp/servers">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">create</a>({ ...params }) -> ServerCreateResponse</code>
+- <code title="put /api/v1/client/mcp/servers/{mcp_id}">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">update</a>(mcpID, { ...params }) -> ServerUpdateResponse</code>
+- <code title="get /api/v1/client/mcp/servers">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">list</a>() -> ServerListResponse</code>
+- <code title="delete /api/v1/client/mcp/servers/{mcp_id}">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">delete</a>(mcpID) -> void</code>
+- <code title="post /api/v1/client/mcp/servers/{mcp_id}/discover">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">discover</a>(mcpID, { ...params }) -> ServerDiscoverResponse</code>
+- <code title="post /api/v1/client/mcp/servers/{mcp_id}/rediscover">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">rediscover</a>(mcpID, { ...params }) -> ServerRediscoverResponse</code>
+
+### OAuth
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/oauth.ts">OAuthHandleCallbackResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/oauth/callback">client.v1.connections.oauth.<a href="./src/resources/v1/connections/oauth.ts">handleCallback</a>({ ...params }) -> OAuthHandleCallbackResponse</code>
+
+### Tenant
+
+#### Mcp
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/tenant/mcp/mcp.ts">McpListResponse</a></code>
+- <code><a href="./src/resources/v1/connections/tenant/mcp/mcp.ts">McpGetAuditHistoryResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/tenant/mcp">client.v1.connections.tenant.mcp.<a href="./src/resources/v1/connections/tenant/mcp/mcp.ts">list</a>({ ...params }) -> McpListResponse</code>
+- <code title="get /api/v1/tenant/mcp/{mcp_id}/audit">client.v1.connections.tenant.mcp.<a href="./src/resources/v1/connections/tenant/mcp/mcp.ts">getAuditHistory</a>(mcpID, { ...params }) -> McpGetAuditHistoryResponse</code>
+
+##### Credentials
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/tenant/mcp/credentials.ts">CredentialCreateResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/tenant/mcp/{mcp_id}/credentials">client.v1.connections.tenant.mcp.credentials.<a href="./src/resources/v1/connections/tenant/mcp/credentials.ts">create</a>(mcpID, { ...params }) -> CredentialCreateResponse</code>
+- <code title="delete /api/v1/tenant/mcp/{mcp_id}/credentials">client.v1.connections.tenant.mcp.credentials.<a href="./src/resources/v1/connections/tenant/mcp/credentials.ts">revoke</a>(mcpID, { ...params }) -> void</code>
+
+##### OAuth
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/tenant/mcp/oauth.ts">OAuthInitiateResponse</a></code>
+
+Methods:
+
+- <code title="get /api/v1/tenant/mcp/{mcp_id}/oauth/authorize">client.v1.connections.tenant.mcp.oauth.<a href="./src/resources/v1/connections/tenant/mcp/oauth.ts">initiate</a>(mcpID, { ...params }) -> OAuthInitiateResponse</code>
 
 ## Tenants
 
