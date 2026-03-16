@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.1 (2026-03-07)
+
+Full Changelog: [v0.12.0...v0.12.1](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.12.0...v0.12.1)
+
+### Bug Fixes
+
+* **client:** preserve URL params already embedded in path ([9e20448](https://github.com/kater-ai/kater-typescript-sdk/commit/9e2044845f1ac6db5775b0e18eb9e5b061ac39df))
+
+
+### Chores
+
+* **ci:** skip uploading artifacts on stainless-internal branches ([2dc9d54](https://github.com/kater-ai/kater-typescript-sdk/commit/2dc9d54ccadefeb4525e120061ce68038fdce90a))
+* **internal:** codegen related update ([ef2a4a3](https://github.com/kater-ai/kater-typescript-sdk/commit/ef2a4a35c3c400a1b7532db2ee87776bbf1dc947))
+* update placeholder string ([391b848](https://github.com/kater-ai/kater-typescript-sdk/commit/391b848f551dbd8dc1b8c973005a5a08e1bf6014))
+
 ## 0.12.0 (2026-03-05)
 
 Full Changelog: [v0.11.1...v0.12.0](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.11.1...v0.12.0)
