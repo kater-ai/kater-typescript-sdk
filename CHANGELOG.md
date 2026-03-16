@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.2 (2026-03-16)
+
+Full Changelog: [v0.12.1...v0.12.2](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.12.1...v0.12.2)
+
+### Chores
+
+* **internal:** update dependencies to address dependabot vulnerabilities ([aedceed](https://github.com/kater-ai/kater-typescript-sdk/commit/aedceed5b8e7c9a5b92ace5efc6689fda00bf263))
+
 ## 0.12.1 (2026-03-07)
 
 Full Changelog: [v0.12.0...v0.12.1](https://github.com/kater-ai/kater-typescript-sdk/compare/v0.12.0...v0.12.1)
