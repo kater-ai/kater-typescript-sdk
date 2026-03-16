@@ -1,11 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-export {
-  Credentials,
-  type CredentialCreateResponse,
-  type CredentialCreateParams,
-  type CredentialRevokeParams,
-} from './credentials';
+export { Credentials, type CredentialRevokeParams } from './credentials';
 export {
   Mcp,
   type McpListResponse,

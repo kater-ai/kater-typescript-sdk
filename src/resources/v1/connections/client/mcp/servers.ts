@@ -72,9 +72,8 @@ export class Servers extends APIResource {
   /**
    * Discover capabilities from a registered MCP server.
    *
-   * Connects to the MCP server via tools/list, optionally retrying with test
-   * credentials on 401/403. Test credentials are never persisted. Discovery does NOT
-   * change server status.
+   * For api_key servers with a stored credential, uses the API key for discovery.
+   * Discovery does NOT change server status.
    */
   discover(
     mcpID: string,
@@ -101,6 +100,38 @@ export class Servers extends APIResource {
     options?: RequestOptions,
   ): APIPromise<ServerRediscoverResponse> {
     return this._client.post(path`/api/v1/client/mcp/servers/${mcpID}/rediscover`, {
+      body,
+      ...options,
+      __security: { propelAuth: true },
+    });
+  }
+
+  /**
+   * Replace the shared API key credential for an api_key MCP server.
+   *
+   * Soft-deletes the old credential and creates a new one.
+   */
+  updateAPIKey(mcpID: string, body: ServerUpdateAPIKeyParams, options?: RequestOptions): APIPromise<void> {
+    return this._client.put(path`/api/v1/client/mcp/servers/${mcpID}/api-key`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+      __security: { propelAuth: true },
+    });
+  }
+
+  /**
+   * Update the configuration of a registered MCP server.
+   *
+   * Slug is not editable (used in tool naming). Changing server_url or auth_type
+   * resets server to pending_setup and revokes all tenant credential settings.
+   */
+  updateConfig(
+    mcpID: string,
+    body: ServerUpdateConfigParams,
+    options?: RequestOptions,
+  ): APIPromise<ServerUpdateConfigResponse> {
+    return this._client.patch(path`/api/v1/client/mcp/servers/${mcpID}/config`, {
       body,
       ...options,
       __security: { propelAuth: true },
@@ -217,6 +248,22 @@ export namespace ServerListResponse {
      * Transport protocol for MCP server communication.
      */
     transport: 'auto' | 'streamable_http' | 'sse';
+
+    allowed_capabilities?: Array<unknown>;
+
+    capabilities?: Array<unknown>;
+
+    description?: string | null;
+
+    oauth_authorize_url?: string | null;
+
+    oauth_client_id?: string | null;
+
+    oauth_revoke_url?: string | null;
+
+    oauth_scopes_requested?: string | null;
+
+    oauth_token_url?: string | null;
   }
 }
 
@@ -256,6 +303,42 @@ export interface ServerRediscoverResponse {
   error?: string | null;
 }
 
+/**
+ * Response model for a registered MCP server.
+ */
+export interface ServerUpdateConfigResponse {
+  id: string;
+
+  allowed_capabilities: Array<unknown>;
+
+  /**
+   * Authentication type for MCP server connections.
+   */
+  auth_type: 'api_key' | 'oauth2' | 'none';
+
+  capabilities: Array<unknown>;
+
+  created_at: string;
+
+  enabled: boolean;
+
+  name: string;
+
+  server_url: string;
+
+  slug: string;
+
+  /**
+   * Lifecycle status of an MCP server registration.
+   */
+  status: 'pending_setup' | 'active';
+
+  /**
+   * Transport protocol for MCP server communication.
+   */
+  transport: 'auto' | 'streamable_http' | 'sse';
+}
+
 export interface ServerCreateParams {
   /**
    * Display name
@@ -271,6 +354,11 @@ export interface ServerCreateParams {
    * Unique snake_case identifier
    */
   slug: string;
+
+  /**
+   * API key (for auth_type=api_key). Stored as shared client-level credential.
+   */
+  api_key?: string | null;
 
   /**
    * Authentication type
@@ -327,7 +415,7 @@ export interface ServerUpdateParams {
   /**
    * Capabilities to expose as LLM tools
    */
-  allowed_capabilities: Array<ServerUpdateParams.AllowedCapability>;
+  allowed_capabilities?: Array<ServerUpdateParams.AllowedCapability> | null;
 
   /**
    * Enable/disable toggle
@@ -344,34 +432,49 @@ export namespace ServerUpdateParams {
 
     inputSchema: { [key: string]: unknown };
 
-    is_write: boolean;
-
     name: string;
   }
 }
 
-export interface ServerDiscoverParams {
-  /**
-   * Test API key (never persisted)
-   */
-  test_api_key?: string | null;
+export interface ServerDiscoverParams {}
 
+export interface ServerRediscoverParams {}
+
+export interface ServerUpdateAPIKeyParams {
   /**
-   * Test bearer token (never persisted)
+   * New API key value
    */
-  test_bearer_token?: string | null;
+  api_key: string;
 }
 
-export interface ServerRediscoverParams {
+export interface ServerUpdateConfigParams {
   /**
-   * Test API key (never persisted)
+   * Authentication type for MCP server connections.
    */
-  test_api_key?: string | null;
+  auth_type?: 'api_key' | 'oauth2' | 'none' | null;
+
+  description?: string | null;
+
+  name?: string | null;
+
+  oauth_authorize_url?: string | null;
+
+  oauth_client_id?: string | null;
+
+  oauth_client_secret?: string | null;
+
+  oauth_revoke_url?: string | null;
+
+  oauth_scopes_requested?: string | null;
+
+  oauth_token_url?: string | null;
+
+  server_url?: string | null;
 
   /**
-   * Test bearer token (never persisted)
+   * Transport protocol for MCP server communication.
    */
-  test_bearer_token?: string | null;
+  transport?: 'auto' | 'streamable_http' | 'sse' | null;
 }
 
 export declare namespace Servers {
@@ -381,9 +484,12 @@ export declare namespace Servers {
     type ServerListResponse as ServerListResponse,
     type ServerDiscoverResponse as ServerDiscoverResponse,
     type ServerRediscoverResponse as ServerRediscoverResponse,
+    type ServerUpdateConfigResponse as ServerUpdateConfigResponse,
     type ServerCreateParams as ServerCreateParams,
     type ServerUpdateParams as ServerUpdateParams,
     type ServerDiscoverParams as ServerDiscoverParams,
     type ServerRediscoverParams as ServerRediscoverParams,
+    type ServerUpdateAPIKeyParams as ServerUpdateAPIKeyParams,
+    type ServerUpdateConfigParams as ServerUpdateConfigParams,
   };
 }

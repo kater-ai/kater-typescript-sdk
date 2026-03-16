@@ -8,8 +8,11 @@ export {
   type ServerListResponse,
   type ServerDiscoverResponse,
   type ServerRediscoverResponse,
+  type ServerUpdateConfigResponse,
   type ServerCreateParams,
   type ServerUpdateParams,
   type ServerDiscoverParams,
   type ServerRediscoverParams,
+  type ServerUpdateAPIKeyParams,
+  type ServerUpdateConfigParams,
 } from './servers';

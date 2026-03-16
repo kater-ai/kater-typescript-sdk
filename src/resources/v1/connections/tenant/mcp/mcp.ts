@@ -2,12 +2,7 @@
 
 import { APIResource } from '../../../../../core/resource';
 import * as CredentialsAPI from './credentials';
-import {
-  CredentialCreateParams,
-  CredentialCreateResponse,
-  CredentialRevokeParams,
-  Credentials,
-} from './credentials';
+import { CredentialRevokeParams, Credentials } from './credentials';
 import * as OAuthAPI from './oauth';
 import { OAuth, OAuthInitiateParams, OAuthInitiateResponse } from './oauth';
 import { APIPromise } from '../../../../../core/api-promise';
@@ -130,12 +125,7 @@ export declare namespace Mcp {
     type McpGetAuditHistoryParams as McpGetAuditHistoryParams,
   };
 
-  export {
-    Credentials as Credentials,
-    type CredentialCreateResponse as CredentialCreateResponse,
-    type CredentialCreateParams as CredentialCreateParams,
-    type CredentialRevokeParams as CredentialRevokeParams,
-  };
+  export { Credentials as Credentials, type CredentialRevokeParams as CredentialRevokeParams };
 
   export {
     OAuth as OAuth,

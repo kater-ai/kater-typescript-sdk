@@ -10,6 +10,9 @@ import {
   ServerListResponse,
   ServerRediscoverParams,
   ServerRediscoverResponse,
+  ServerUpdateAPIKeyParams,
+  ServerUpdateConfigParams,
+  ServerUpdateConfigResponse,
   ServerUpdateParams,
   ServerUpdateResponse,
   Servers,
@@ -29,9 +32,12 @@ export declare namespace Mcp {
     type ServerListResponse as ServerListResponse,
     type ServerDiscoverResponse as ServerDiscoverResponse,
     type ServerRediscoverResponse as ServerRediscoverResponse,
+    type ServerUpdateConfigResponse as ServerUpdateConfigResponse,
     type ServerCreateParams as ServerCreateParams,
     type ServerUpdateParams as ServerUpdateParams,
     type ServerDiscoverParams as ServerDiscoverParams,
     type ServerRediscoverParams as ServerRediscoverParams,
+    type ServerUpdateAPIKeyParams as ServerUpdateAPIKeyParams,
+    type ServerUpdateConfigParams as ServerUpdateConfigParams,
   };
 }

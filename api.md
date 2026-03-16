@@ -73,6 +73,7 @@ Types:
 - <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerListResponse</a></code>
 - <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerDiscoverResponse</a></code>
 - <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerRediscoverResponse</a></code>
+- <code><a href="./src/resources/v1/connections/client/mcp/servers.ts">ServerUpdateConfigResponse</a></code>
 
 Methods:
 
@@ -80,8 +81,10 @@ Methods:
 - <code title="put /api/v1/client/mcp/servers/{mcp_id}">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">update</a>(mcpID, { ...params }) -> ServerUpdateResponse</code>
 - <code title="get /api/v1/client/mcp/servers">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">list</a>() -> ServerListResponse</code>
 - <code title="delete /api/v1/client/mcp/servers/{mcp_id}">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">delete</a>(mcpID) -> void</code>
-- <code title="post /api/v1/client/mcp/servers/{mcp_id}/discover">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">discover</a>(mcpID, { ...params }) -> ServerDiscoverResponse</code>
-- <code title="post /api/v1/client/mcp/servers/{mcp_id}/rediscover">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">rediscover</a>(mcpID, { ...params }) -> ServerRediscoverResponse</code>
+- <code title="post /api/v1/client/mcp/servers/{mcp_id}/discover">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">discover</a>(mcpID) -> ServerDiscoverResponse</code>
+- <code title="post /api/v1/client/mcp/servers/{mcp_id}/rediscover">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">rediscover</a>(mcpID) -> ServerRediscoverResponse</code>
+- <code title="put /api/v1/client/mcp/servers/{mcp_id}/api-key">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">updateAPIKey</a>(mcpID, { ...params }) -> void</code>
+- <code title="patch /api/v1/client/mcp/servers/{mcp_id}/config">client.v1.connections.client.mcp.servers.<a href="./src/resources/v1/connections/client/mcp/servers.ts">updateConfig</a>(mcpID, { ...params }) -> ServerUpdateConfigResponse</code>
 
 ### OAuth
 
@@ -109,13 +112,8 @@ Methods:
 
 ##### Credentials
 
-Types:
-
-- <code><a href="./src/resources/v1/connections/tenant/mcp/credentials.ts">CredentialCreateResponse</a></code>
-
 Methods:
 
-- <code title="post /api/v1/tenant/mcp/{mcp_id}/credentials">client.v1.connections.tenant.mcp.credentials.<a href="./src/resources/v1/connections/tenant/mcp/credentials.ts">create</a>(mcpID, { ...params }) -> CredentialCreateResponse</code>
 - <code title="delete /api/v1/tenant/mcp/{mcp_id}/credentials">client.v1.connections.tenant.mcp.credentials.<a href="./src/resources/v1/connections/tenant/mcp/credentials.ts">revoke</a>(mcpID, { ...params }) -> void</code>
 
 ##### OAuth

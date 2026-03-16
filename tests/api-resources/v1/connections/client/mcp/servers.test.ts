@@ -31,6 +31,7 @@ describe('resource servers', () => {
       name: 'x',
       server_url: 'server_url',
       slug: 'x',
+      api_key: 'api_key',
       auth_type: 'api_key',
       description: 'description',
       oauth_authorize_url: 'oauth_authorize_url',
@@ -45,19 +46,10 @@ describe('resource servers', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('update: only required params', async () => {
+  test.skip('update', async () => {
     const responsePromise = client.v1.connections.client.mcp.servers.update(
       '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      {
-        allowed_capabilities: [
-          {
-            description: 'description',
-            inputSchema: { foo: 'bar' },
-            is_write: true,
-            name: 'name',
-          },
-        ],
-      },
+      {},
     );
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -66,24 +58,6 @@ describe('resource servers', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('update: required and optional params', async () => {
-    const response = await client.v1.connections.client.mcp.servers.update(
-      '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      {
-        allowed_capabilities: [
-          {
-            description: 'description',
-            inputSchema: { foo: 'bar' },
-            is_write: true,
-            name: 'name',
-          },
-        ],
-        enabled: true,
-      },
-    );
   });
 
   // Mock server tests are disabled
@@ -130,6 +104,44 @@ describe('resource servers', () => {
   // Mock server tests are disabled
   test.skip('rediscover', async () => {
     const responsePromise = client.v1.connections.client.mcp.servers.rediscover(
+      '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      {},
+    );
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('updateAPIKey: only required params', async () => {
+    const responsePromise = client.v1.connections.client.mcp.servers.updateAPIKey(
+      '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      { api_key: 'x' },
+    );
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('updateAPIKey: required and optional params', async () => {
+    const response = await client.v1.connections.client.mcp.servers.updateAPIKey(
+      '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      { api_key: 'x' },
+    );
+  });
+
+  // Mock server tests are disabled
+  test.skip('updateConfig', async () => {
+    const responsePromise = client.v1.connections.client.mcp.servers.updateConfig(
       '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       {},
     );
