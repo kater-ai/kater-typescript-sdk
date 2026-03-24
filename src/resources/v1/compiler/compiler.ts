@@ -548,7 +548,7 @@ export namespace CompilerCompileDashboardResponse {
     /**
      * Default value specification
      */
-    default?: { [key: string]: string } | null;
+    default?: string | { [key: string]: string } | null;
 
     /**
      * Field reference for data-driven filters
