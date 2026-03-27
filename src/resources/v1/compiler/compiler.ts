@@ -1052,8 +1052,16 @@ export namespace CompilerResolveResponse {
     measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order specification for query results.
+     *
+     * Fields are emitted in YAML declaration order. If `asc` appears before `desc` in
+     * the YAML, ASC items sort first; if `desc` appears first, DESC items sort first::
+     *
+     *     order_by:
+     *       asc:
+     *         - 'ref(metro_market_monthly.month.year)'
+     *       desc:
+     *         - 'ref(home_value_yoy_pct)'
      */
     order_by?: ResolvedQuery.OrderBy | null;
 
@@ -1212,8 +1220,16 @@ export namespace CompilerResolveResponse {
     }
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order specification for query results.
+     *
+     * Fields are emitted in YAML declaration order. If `asc` appears before `desc` in
+     * the YAML, ASC items sort first; if `desc` appears first, DESC items sort first::
+     *
+     *     order_by:
+     *       asc:
+     *         - 'ref(metro_market_monthly.month.year)'
+     *       desc:
+     *         - 'ref(home_value_yoy_pct)'
      */
     export interface OrderBy {
       /**
@@ -1883,8 +1899,16 @@ export namespace CompilerCompileParams {
     measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order specification for query results.
+     *
+     * Fields are emitted in YAML declaration order. If `asc` appears before `desc` in
+     * the YAML, ASC items sort first; if `desc` appears first, DESC items sort first::
+     *
+     *     order_by:
+     *       asc:
+     *         - 'ref(metro_market_monthly.month.year)'
+     *       desc:
+     *         - 'ref(home_value_yoy_pct)'
      */
     order_by?: ResolvedQuery.OrderBy | null;
 
@@ -2043,8 +2067,16 @@ export namespace CompilerCompileParams {
     }
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order specification for query results.
+     *
+     * Fields are emitted in YAML declaration order. If `asc` appears before `desc` in
+     * the YAML, ASC items sort first; if `desc` appears first, DESC items sort first::
+     *
+     *     order_by:
+     *       asc:
+     *         - 'ref(metro_market_monthly.month.year)'
+     *       desc:
+     *         - 'ref(home_value_yoy_pct)'
      */
     export interface OrderBy {
       /**
@@ -2498,8 +2530,16 @@ export namespace CompilerExecuteParams {
     measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order specification for query results.
+     *
+     * Fields are emitted in YAML declaration order. If `asc` appears before `desc` in
+     * the YAML, ASC items sort first; if `desc` appears first, DESC items sort first::
+     *
+     *     order_by:
+     *       asc:
+     *         - 'ref(metro_market_monthly.month.year)'
+     *       desc:
+     *         - 'ref(home_value_yoy_pct)'
      */
     order_by?: ResolvedQuery.OrderBy | null;
 
@@ -2658,8 +2698,16 @@ export namespace CompilerExecuteParams {
     }
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order specification for query results.
+     *
+     * Fields are emitted in YAML declaration order. If `asc` appears before `desc` in
+     * the YAML, ASC items sort first; if `desc` appears first, DESC items sort first::
+     *
+     *     order_by:
+     *       asc:
+     *         - 'ref(metro_market_monthly.month.year)'
+     *       desc:
+     *         - 'ref(home_value_yoy_pct)'
      */
     export interface OrderBy {
       /**
