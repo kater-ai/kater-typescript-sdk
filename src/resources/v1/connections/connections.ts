@@ -103,6 +103,11 @@ export interface Connection {
   description?: string | null;
 
   /**
+   * Latest runtime health snapshot for this warehouse connection
+   */
+  health?: Connection.Health;
+
+  /**
    * True if this connection is awaiting PR approval
    */
   is_pending_approval?: boolean;
@@ -274,6 +279,53 @@ export namespace Connection {
     port: number;
 
     warehouse_type: 'mssql';
+  }
+
+  /**
+   * Latest runtime health snapshot for this warehouse connection
+   */
+  export interface Health {
+    /**
+     * Stable issue code for UI and telemetry
+     */
+    issue_code:
+      | 'none'
+      | 'not_checked'
+      | 'configuration_invalid'
+      | 'credentials_missing'
+      | 'credentials_decryption_failed'
+      | 'authentication_failed'
+      | 'connectivity_failed'
+      | 'timed_out'
+      | 'database_not_found'
+      | 'schema_not_found'
+      | 'verification_query_failed'
+      | 'unknown_error';
+
+    /**
+     * Concise description of what happened
+     */
+    message: string;
+
+    /**
+     * High-level health state
+     */
+    status: 'healthy' | 'warning' | 'error' | 'unknown';
+
+    /**
+     * Short status label for compact UI
+     */
+    title: string;
+
+    /**
+     * Concise next step for the user
+     */
+    action?: string | null;
+
+    /**
+     * When this health snapshot was last evaluated
+     */
+    checked_at?: string | null;
   }
 }
 
