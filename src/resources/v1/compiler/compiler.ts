@@ -712,6 +712,21 @@ export interface CompilerEnumerateResponse {
    * Total number of combinations
    */
   total_count: number;
+
+  /**
+   * Display labels for slot fields, keyed by query_kater_id then field name
+   */
+  field_labels?: { [key: string]: { [key: string]: string } };
+
+  /**
+   * Required slot fields keyed by query_kater_id
+   */
+  required_fields?: { [key: string]: CompilerEnumerateResponse.RequiredFields };
+
+  /**
+   * Variable definitions keyed by query_kater_id
+   */
+  variable_definitions?: { [key: string]: Array<CompilerEnumerateResponse.VariableDefinition> };
 }
 
 export namespace CompilerEnumerateResponse {
@@ -778,6 +793,97 @@ export namespace CompilerEnumerateResponse {
      * Resolved widget type (e.g. 'axis_metric_by_dimensiondate')
      */
     widget_type?: string | null;
+  }
+
+  /**
+   * Required slot fields for a query (always included in every combination).
+   */
+  export interface RequiredFields {
+    calculations?: Array<string>;
+
+    dimensions?: Array<string>;
+
+    filters?: Array<string>;
+
+    measures?: Array<string>;
+  }
+
+  /**
+   * A variable's schema exposed to the query-builder UI.
+   */
+  export interface VariableDefinition {
+    /**
+     * True = dynamic (entered at run time); False = static (values baked into
+     * combinations)
+     */
+    is_runtime: boolean;
+
+    name: string;
+
+    /**
+     * Variable data type, e.g. STRING, INT, DATE, BOOL, STRING[]
+     */
+    type: string;
+
+    /**
+     * kater_id of the dimension column for from_column variables
+     */
+    allowed_values_column_kater_id?: string | null;
+
+    /**
+     * Non-null when is_runtime=False or type has a static list
+     */
+    allowed_values_static?: Array<VariableDefinition.AllowedValuesStatic> | null;
+
+    /**
+     * Serialisable constraints for a variable.
+     */
+    constraints?: VariableDefinition.Constraints | null;
+
+    default?: string | number | boolean | Array<string | number | boolean> | null;
+
+    /**
+     * Names of the optional filters that use this variable (non-empty when filter_only
+     * is true)
+     */
+    filter_names?: Array<string>;
+
+    /**
+     * True if the variable is used only in optional filter SQL
+     */
+    filter_only?: boolean;
+
+    label?: string | null;
+  }
+
+  export namespace VariableDefinition {
+    /**
+     * A value with optional display label
+     */
+    export interface AllowedValuesStatic {
+      /**
+       * The actual value
+       */
+      value: string | number | boolean;
+
+      /**
+       * Human-readable label for the value
+       */
+      label?: string | null;
+    }
+
+    /**
+     * Serialisable constraints for a variable.
+     */
+    export interface Constraints {
+      max?: number | null;
+
+      max_length?: number | null;
+
+      min?: number | null;
+
+      step?: number | null;
+    }
   }
 }
 
