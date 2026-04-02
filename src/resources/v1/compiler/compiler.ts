@@ -1158,10 +1158,9 @@ export namespace CompilerResolveResponse {
     measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order for query results
      */
-    order_by?: ResolvedQuery.OrderBy | null;
+    order_by?: Array<ResolvedQuery.OrderByItem | string> | null;
 
     /**
      * The matched chart recommendation after evaluating chart hints
@@ -1318,19 +1317,19 @@ export namespace CompilerResolveResponse {
     }
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Explicit sort direction for a field.
      */
-    export interface OrderBy {
+    export interface OrderByItem {
       /**
-       * Fields to sort in ascending order (lowest/oldest first)
+       * Sort direction: asc (ascending, A-Z / oldest first) or desc (descending, Z-A /
+       * newest first).
        */
-      asc?: Array<string> | null;
+      direction: 'asc' | 'desc';
 
       /**
-       * Fields to sort in descending order (highest/newest first)
+       * A string that may be a ref(), var(), or expr() reference
        */
-      desc?: Array<string> | null;
+      field: string;
     }
 
     /**
@@ -1989,10 +1988,9 @@ export namespace CompilerCompileParams {
     measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order for query results
      */
-    order_by?: ResolvedQuery.OrderBy | null;
+    order_by?: Array<ResolvedQuery.OrderByItem | string> | null;
 
     /**
      * The matched chart recommendation after evaluating chart hints
@@ -2149,19 +2147,19 @@ export namespace CompilerCompileParams {
     }
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Explicit sort direction for a field.
      */
-    export interface OrderBy {
+    export interface OrderByItem {
       /**
-       * Fields to sort in ascending order (lowest/oldest first)
+       * Sort direction: asc (ascending, A-Z / oldest first) or desc (descending, Z-A /
+       * newest first).
        */
-      asc?: Array<string> | null;
+      direction: 'asc' | 'desc';
 
       /**
-       * Fields to sort in descending order (highest/newest first)
+       * A string that may be a ref(), var(), or expr() reference
        */
-      desc?: Array<string> | null;
+      field: string;
     }
 
     /**
@@ -2604,10 +2602,9 @@ export namespace CompilerExecuteParams {
     measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Sort order for query results
      */
-    order_by?: ResolvedQuery.OrderBy | null;
+    order_by?: Array<ResolvedQuery.OrderByItem | string> | null;
 
     /**
      * The matched chart recommendation after evaluating chart hints
@@ -2764,19 +2761,19 @@ export namespace CompilerExecuteParams {
     }
 
     /**
-     * Sort order specification for query results. Use desc for descending
-     * (highest/newest first) and asc for ascending (lowest/oldest first).
+     * Explicit sort direction for a field.
      */
-    export interface OrderBy {
+    export interface OrderByItem {
       /**
-       * Fields to sort in ascending order (lowest/oldest first)
+       * Sort direction: asc (ascending, A-Z / oldest first) or desc (descending, Z-A /
+       * newest first).
        */
-      asc?: Array<string> | null;
+      direction: 'asc' | 'desc';
 
       /**
-       * Fields to sort in descending order (highest/newest first)
+       * A string that may be a ref(), var(), or expr() reference
        */
-      desc?: Array<string> | null;
+      field: string;
     }
 
     /**
