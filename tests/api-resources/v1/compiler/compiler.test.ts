@@ -114,9 +114,17 @@ describe('resource compiler', () => {
             variables: { foo: 'string' },
           },
         ],
+        totals: true,
       },
       tenant_key: 'tenant_key',
       source: 'source',
+      filter_state: [
+        {
+          effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+          enabled: true,
+          value: { value: 'string', mode: 'scalar' },
+        },
+      ],
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -144,7 +152,13 @@ describe('resource compiler', () => {
       dashboard_path: 'dashboard_path',
       tenant_key: 'tenant_key',
       source: 'source',
-      filters: { foo: 'string' },
+      filter_state: [
+        {
+          effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+          enabled: true,
+          value: { value: 'string', mode: 'scalar' },
+        },
+      ],
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -280,9 +294,17 @@ describe('resource compiler', () => {
             variables: { foo: 'string' },
           },
         ],
+        totals: true,
       },
       tenant_key: 'tenant_key',
       source: 'source',
+      filter_state: [
+        {
+          effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+          enabled: true,
+          value: { value: 'string', mode: 'scalar' },
+        },
+      ],
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -310,6 +332,13 @@ describe('resource compiler', () => {
       source: 'source',
       auto_fix: true,
       combination: 'combination',
+      filter_state: [
+        {
+          effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+          enabled: true,
+          value: { value: 'string', mode: 'scalar' },
+        },
+      ],
       pinned_variant: 'pinned_variant',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });

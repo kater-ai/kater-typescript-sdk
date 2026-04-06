@@ -336,6 +336,11 @@ export interface CompilerCompileResponse {
   success: boolean;
 
   /**
+   * Applied runtime filter state used for compilation
+   */
+  applied_filter_state?: Array<CompilerCompileResponse.AppliedFilterState>;
+
+  /**
    * Maps UUID column aliases to human-readable names and types
    */
   column_map?: Array<CompilerCompileResponse.ColumnMap>;
@@ -368,6 +373,155 @@ export interface CompilerCompileResponse {
 }
 
 export namespace CompilerCompileResponse {
+  /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface AppliedFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | AppliedFilterState.ScalarFilterValue
+      | AppliedFilterState.MultiFilterValue
+      | AppliedFilterState.NumberRangeFilterValue
+      | AppliedFilterState.AbsoluteDateFilterValue
+      | AppliedFilterState.AbsoluteRangeFilterValue
+      | AppliedFilterState.RelativeRangeFilterValue
+      | AppliedFilterState.PresetReferenceFilterValue
+      | AppliedFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace AppliedFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
   /**
    * Maps a UUID column alias to its human-readable name and type.
    */
@@ -455,9 +609,19 @@ export interface CompilerCompileDashboardResponse {
   errors?: Array<CompilerErrorItem>;
 
   /**
-   * Resolved filter definitions with current values
+   * Slot applicability metadata for each shared dashboard filter
    */
-  filters?: Array<CompilerCompileDashboardResponse.Filter>;
+  filter_applicability?: Array<CompilerCompileDashboardResponse.FilterApplicability>;
+
+  /**
+   * Shared dashboard filter definitions
+   */
+  filter_definitions?: Array<CompilerCompileDashboardResponse.FilterDefinition>;
+
+  /**
+   * Applied dashboard filter state after defaults and runtime overrides
+   */
+  filter_state?: Array<CompilerCompileDashboardResponse.FilterState>;
 
   /**
    * Fully resolved widgets with data + config
@@ -517,53 +681,671 @@ export namespace CompilerCompileDashboardResponse {
   }
 
   /**
-   * A resolved dashboard filter with current value and presets.
+   * Per-filter mapping from dashboard-shared state to slot query contexts.
    */
-  export interface Filter {
+  export interface FilterApplicability {
     /**
-     * Filter type: date_range, multi_select, select
+     * Dashboard-level effective runtime filter ID
      */
-    filter_type: string;
+    effective_kater_id: string;
 
     /**
-     * Filter name
+     * Logical shared filter name
      */
     name: string;
 
     /**
-     * Whether null (All) is allowed
+     * Slots and slot-scoped effective IDs that this shared filter applies to
      */
-    allow_null?: boolean;
+    slots?: Array<FilterApplicability.Slot>;
+  }
+
+  export namespace FilterApplicability {
+    /**
+     * One dashboard slot that a shared filter applies to.
+     */
+    export interface Slot {
+      /**
+       * Slot-scoped effective runtime filter ID for this query context
+       */
+      effective_kater_id: string;
+
+      /**
+       * UUID of the slot query
+       */
+      query_kater_id: string;
+
+      /**
+       * Logical slot query name
+       */
+      query_name: string;
+
+      /**
+       * Dashboard data-slot name
+       */
+      slot_name: string;
+    }
+  }
+
+  /**
+   * Resolved effective filter definition exposed by the V2 API contract.
+   */
+  export interface FilterDefinition {
+    /**
+     * Canonical data type
+     */
+    data_type: string;
 
     /**
-     * Whether filter auto-applies to queries
+     * Stable effective runtime filter ID
      */
-    auto_apply?: boolean;
+    effective_kater_id: string;
 
     /**
-     * Current filter value
+     * Structured filter expression
      */
-    current_value?: string | Array<string> | null;
+    expression: string;
 
     /**
-     * Default value specification
+     * Target field ref
      */
-    default?: string | { [key: string]: string } | null;
+    field: string;
 
     /**
-     * Field reference for data-driven filters
+     * Concrete declaration ID from the merged definition
      */
-    field?: string | null;
+    kater_id: string;
 
     /**
-     * Label for null/All option
+     * Filter mode: static or parameterized
+     */
+    mode: string;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is always active
+     */
+    required: boolean;
+
+    /**
+     * AI-facing filter context
+     */
+    ai_context?: string | null;
+
+    /**
+     * Whether null is allowed
+     */
+    allow_null_value?: boolean | null;
+
+    /**
+     * Concrete declaration IDs that contributed to this effective filter
+     */
+    declaration_kater_ids?: Array<string>;
+
+    /**
+     * Default enabled state
+     */
+    default_enabled?: boolean | null;
+
+    /**
+     * Default runtime value payload
+     */
+    default_value?:
+      | FilterDefinition.ScalarFilterValue
+      | FilterDefinition.MultiFilterValue
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | FilterDefinition.PresetReferenceFilterValue
+      | FilterDefinition.NullFilterValue
+      | null;
+
+    /**
+     * Filter description
+     */
+    description?: string | null;
+
+    /**
+     * Optional UI help text
+     */
+    help_text?: string | null;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Null option label
      */
     null_label?: string | null;
 
     /**
-     * Available presets
+     * Owner IDs from model/topic/dashboard/query precedence order
      */
-    presets?: Array<{ [key: string]: string }> | null;
+    owner_chain?: Array<string>;
+
+    /**
+     * Optional input placeholder
+     */
+    placeholder?: string | null;
+
+    /**
+     * Filter preset definitions
+     */
+    presets?: Array<FilterDefinition.Preset> | null;
+
+    /**
+     * Static filter value payload
+     */
+    static_value?:
+      | string
+      | number
+      | boolean
+      | Array<string | number | boolean>
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | null;
+
+    /**
+     * Selectable values metadata
+     */
+    values?:
+      | FilterDefinition.StaticFilterValuesSource
+      | FilterDefinition.DynamicDistinctFilterValuesSource
+      | null;
+  }
+
+  export namespace FilterDefinition {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+
+    export interface Preset {
+      /**
+       * Human-readable preset label
+       */
+      label: string;
+
+      /**
+       * Stable preset key
+       */
+      name: string;
+
+      /**
+       * Typed preset value payload
+       */
+      value:
+        | Preset.ScalarFilterValue
+        | Preset.MultiFilterValue
+        | Preset.NumberRangeFilterValue
+        | Preset.AbsoluteDateFilterValue
+        | Preset.AbsoluteRangeFilterValue
+        | Preset.RelativeRangeFilterValue
+        | Preset.PresetReferenceFilterValue
+        | Preset.NullFilterValue;
+    }
+
+    export namespace Preset {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface StaticFilterValuesSource {
+      /**
+       * Inline selectable items
+       */
+      items: Array<StaticFilterValuesSource.Item>;
+
+      source?: 'static';
+    }
+
+    export namespace StaticFilterValuesSource {
+      export interface Item {
+        /**
+         * Selectable scalar value
+         */
+        value: string | number | boolean;
+
+        /**
+         * Optional selectable value label
+         */
+        label?: string | null;
+      }
+    }
+
+    export interface DynamicDistinctFilterValuesSource {
+      /**
+       * Maximum number of values to request
+       */
+      limit?: number | null;
+
+      /**
+       * Supported sort order for dynamic distinct value loading
+       */
+      sort?: 'asc' | 'desc' | null;
+
+      source?: 'dynamic_distinct';
+    }
+  }
+
+  /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface FilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | FilterState.ScalarFilterValue
+      | FilterState.MultiFilterValue
+      | FilterState.NumberRangeFilterValue
+      | FilterState.AbsoluteDateFilterValue
+      | FilterState.AbsoluteRangeFilterValue
+      | FilterState.RelativeRangeFilterValue
+      | FilterState.PresetReferenceFilterValue
+      | FilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace FilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
   }
 
   /**
@@ -611,9 +1393,19 @@ export namespace CompilerCompileDashboardResponse {
     errors?: Array<CompilerAPI.CompilerErrorItem>;
 
     /**
+     * Total rows represented by the widget result (single or multi-query)
+     */
+    row_count?: number | Array<number> | null;
+
+    /**
      * Per-slot configs for multi-query containers
      */
     slot_configs?: Array<{ [key: string]: unknown }> | null;
+
+    /**
+     * Totals row (single-query: dict | None; multi-query: list aligned with data)
+     */
+    totals_row?: { [key: string]: unknown } | Array<{ [key: string]: unknown } | null> | null;
 
     /**
      * Resolved widget type
@@ -714,9 +1506,29 @@ export interface CompilerEnumerateResponse {
   total_count: number;
 
   /**
+   * Default filter state keyed by query_kater_id
+   */
+  default_filter_state?: { [key: string]: Array<CompilerEnumerateResponse.DefaultFilterState> };
+
+  /**
    * Display labels for slot fields, keyed by query_kater_id then field name
    */
   field_labels?: { [key: string]: { [key: string]: string } };
+
+  /**
+   * Effective filter definitions keyed by query_kater_id
+   */
+  filter_definitions?: { [key: string]: Array<CompilerEnumerateResponse.FilterDefinition> };
+
+  /**
+   * Optional effective filter IDs keyed by query_kater_id
+   */
+  optional_effective_filter_ids?: { [key: string]: Array<string> };
+
+  /**
+   * Required effective filter IDs keyed by query_kater_id
+   */
+  required_effective_filter_ids?: { [key: string]: Array<string> };
 
   /**
    * Required slot fields keyed by query_kater_id
@@ -775,11 +1587,6 @@ export namespace CompilerEnumerateResponse {
     selected_dimensions?: Array<string>;
 
     /**
-     * Selected optional filter names
-     */
-    selected_filters?: Array<string>;
-
-    /**
      * Selected optional measure names
      */
     selected_measures?: Array<string>;
@@ -796,14 +1603,633 @@ export namespace CompilerEnumerateResponse {
   }
 
   /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface DefaultFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | DefaultFilterState.ScalarFilterValue
+      | DefaultFilterState.MultiFilterValue
+      | DefaultFilterState.NumberRangeFilterValue
+      | DefaultFilterState.AbsoluteDateFilterValue
+      | DefaultFilterState.AbsoluteRangeFilterValue
+      | DefaultFilterState.RelativeRangeFilterValue
+      | DefaultFilterState.PresetReferenceFilterValue
+      | DefaultFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace DefaultFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
+  /**
+   * Resolved effective filter definition exposed by the V2 API contract.
+   */
+  export interface FilterDefinition {
+    /**
+     * Canonical data type
+     */
+    data_type: string;
+
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Structured filter expression
+     */
+    expression: string;
+
+    /**
+     * Target field ref
+     */
+    field: string;
+
+    /**
+     * Concrete declaration ID from the merged definition
+     */
+    kater_id: string;
+
+    /**
+     * Filter mode: static or parameterized
+     */
+    mode: string;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is always active
+     */
+    required: boolean;
+
+    /**
+     * AI-facing filter context
+     */
+    ai_context?: string | null;
+
+    /**
+     * Whether null is allowed
+     */
+    allow_null_value?: boolean | null;
+
+    /**
+     * Concrete declaration IDs that contributed to this effective filter
+     */
+    declaration_kater_ids?: Array<string>;
+
+    /**
+     * Default enabled state
+     */
+    default_enabled?: boolean | null;
+
+    /**
+     * Default runtime value payload
+     */
+    default_value?:
+      | FilterDefinition.ScalarFilterValue
+      | FilterDefinition.MultiFilterValue
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | FilterDefinition.PresetReferenceFilterValue
+      | FilterDefinition.NullFilterValue
+      | null;
+
+    /**
+     * Filter description
+     */
+    description?: string | null;
+
+    /**
+     * Optional UI help text
+     */
+    help_text?: string | null;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Null option label
+     */
+    null_label?: string | null;
+
+    /**
+     * Owner IDs from model/topic/dashboard/query precedence order
+     */
+    owner_chain?: Array<string>;
+
+    /**
+     * Optional input placeholder
+     */
+    placeholder?: string | null;
+
+    /**
+     * Filter preset definitions
+     */
+    presets?: Array<FilterDefinition.Preset> | null;
+
+    /**
+     * Static filter value payload
+     */
+    static_value?:
+      | string
+      | number
+      | boolean
+      | Array<string | number | boolean>
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | null;
+
+    /**
+     * Selectable values metadata
+     */
+    values?:
+      | FilterDefinition.StaticFilterValuesSource
+      | FilterDefinition.DynamicDistinctFilterValuesSource
+      | null;
+  }
+
+  export namespace FilterDefinition {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+
+    export interface Preset {
+      /**
+       * Human-readable preset label
+       */
+      label: string;
+
+      /**
+       * Stable preset key
+       */
+      name: string;
+
+      /**
+       * Typed preset value payload
+       */
+      value:
+        | Preset.ScalarFilterValue
+        | Preset.MultiFilterValue
+        | Preset.NumberRangeFilterValue
+        | Preset.AbsoluteDateFilterValue
+        | Preset.AbsoluteRangeFilterValue
+        | Preset.RelativeRangeFilterValue
+        | Preset.PresetReferenceFilterValue
+        | Preset.NullFilterValue;
+    }
+
+    export namespace Preset {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface StaticFilterValuesSource {
+      /**
+       * Inline selectable items
+       */
+      items: Array<StaticFilterValuesSource.Item>;
+
+      source?: 'static';
+    }
+
+    export namespace StaticFilterValuesSource {
+      export interface Item {
+        /**
+         * Selectable scalar value
+         */
+        value: string | number | boolean;
+
+        /**
+         * Optional selectable value label
+         */
+        label?: string | null;
+      }
+    }
+
+    export interface DynamicDistinctFilterValuesSource {
+      /**
+       * Maximum number of values to request
+       */
+      limit?: number | null;
+
+      /**
+       * Supported sort order for dynamic distinct value loading
+       */
+      sort?: 'asc' | 'desc' | null;
+
+      source?: 'dynamic_distinct';
+    }
+  }
+
+  /**
    * Required slot fields for a query (always included in every combination).
    */
   export interface RequiredFields {
     calculations?: Array<string>;
 
     dimensions?: Array<string>;
-
-    filters?: Array<string>;
 
     measures?: Array<string>;
   }
@@ -841,17 +2267,6 @@ export namespace CompilerEnumerateResponse {
     constraints?: VariableDefinition.Constraints | null;
 
     default?: string | number | boolean | Array<string | number | boolean> | null;
-
-    /**
-     * Names of the optional filters that use this variable (non-empty when filter_only
-     * is true)
-     */
-    filter_names?: Array<string>;
-
-    /**
-     * True if the variable is used only in optional filter SQL
-     */
-    filter_only?: boolean;
 
     label?: string | null;
   }
@@ -902,6 +2317,11 @@ export interface CompilerExecuteResponse {
   success: boolean;
 
   /**
+   * Applied runtime filter state used for execution
+   */
+  applied_filter_state?: Array<CompilerExecuteResponse.AppliedFilterState>;
+
+  /**
    * Whether the result was served from cache
    */
   cache_hit?: boolean;
@@ -943,6 +2363,155 @@ export interface CompilerExecuteResponse {
 }
 
 export namespace CompilerExecuteResponse {
+  /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface AppliedFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | AppliedFilterState.ScalarFilterValue
+      | AppliedFilterState.MultiFilterValue
+      | AppliedFilterState.NumberRangeFilterValue
+      | AppliedFilterState.AbsoluteDateFilterValue
+      | AppliedFilterState.AbsoluteRangeFilterValue
+      | AppliedFilterState.RelativeRangeFilterValue
+      | AppliedFilterState.PresetReferenceFilterValue
+      | AppliedFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace AppliedFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
   /**
    * Maps a UUID column alias to its human-readable name and type.
    */
@@ -1020,9 +2589,24 @@ export interface CompilerResolveResponse {
   resolved_query: CompilerResolveResponse.ResolvedQuery;
 
   /**
+   * Applied runtime filter state after request overrides
+   */
+  applied_filter_state?: Array<CompilerResolveResponse.AppliedFilterState>;
+
+  /**
+   * Default runtime filter state derived from filter definitions
+   */
+  default_filter_state?: Array<CompilerResolveResponse.DefaultFilterState>;
+
+  /**
    * Dependency graph between schema objects.
    */
   dependency_graph?: CompilerResolveResponse.DependencyGraph | null;
+
+  /**
+   * Resolved effective filter definitions for this query context
+   */
+  filter_definitions?: Array<CompilerResolveResponse.FilterDefinition>;
 
   /**
    * Compilation manifest with all named objects.
@@ -1070,7 +2654,16 @@ export namespace CompilerResolveResponse {
     /**
      * Widget category that determines data shape constraints
      */
-    widget_category: 'axis' | 'funnel' | 'heatmap' | 'image' | 'kpi_card' | 'pie' | 'table' | 'text';
+    widget_category:
+      | 'axis'
+      | 'funnel'
+      | 'heatmap'
+      | 'image'
+      | 'kpi_card'
+      | 'pie'
+      | 'radial'
+      | 'table'
+      | 'text';
 
     /**
      * Usage guidance for AI processing
@@ -1116,9 +2709,15 @@ export namespace CompilerResolveResponse {
       | 'image_single_image'
       | 'kpi_measure_with_dimension_expression'
       | 'kpi_measure_with_secondary_metric'
+      | 'kpi_measure_with_target_progress'
       | 'kpi_single_measure_compared_to_prev_period_sparkline'
       | 'kpi_single_value'
+      | 'pie_donut_chart'
+      | 'pie_donut_with_measure'
       | 'pie_pie_chart'
+      | 'radial_chart'
+      | 'radial_with_single_value'
+      | 'radial_with_single_value_stacked'
       | 'table_data_table'
       | 'table_fancy_subtotal_table'
       | 'table_key_value_list'
@@ -1176,6 +2775,12 @@ export namespace CompilerResolveResponse {
      * Resolved select_from entries with CTE metadata
      */
     select_from?: Array<ResolvedQuery.SelectFrom> | null;
+
+    /**
+     * When true, compute a totals_row over returned measure columns and expose it
+     * alongside data.
+     */
+    totals?: boolean | null;
   }
 
   export namespace ResolvedQuery {
@@ -1564,6 +3169,304 @@ export namespace CompilerResolveResponse {
   }
 
   /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface AppliedFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | AppliedFilterState.ScalarFilterValue
+      | AppliedFilterState.MultiFilterValue
+      | AppliedFilterState.NumberRangeFilterValue
+      | AppliedFilterState.AbsoluteDateFilterValue
+      | AppliedFilterState.AbsoluteRangeFilterValue
+      | AppliedFilterState.RelativeRangeFilterValue
+      | AppliedFilterState.PresetReferenceFilterValue
+      | AppliedFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace AppliedFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
+  /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface DefaultFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | DefaultFilterState.ScalarFilterValue
+      | DefaultFilterState.MultiFilterValue
+      | DefaultFilterState.NumberRangeFilterValue
+      | DefaultFilterState.AbsoluteDateFilterValue
+      | DefaultFilterState.AbsoluteRangeFilterValue
+      | DefaultFilterState.RelativeRangeFilterValue
+      | DefaultFilterState.PresetReferenceFilterValue
+      | DefaultFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace DefaultFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
+  /**
    * Dependency graph between schema objects.
    */
   export interface DependencyGraph {
@@ -1612,6 +3515,478 @@ export namespace CompilerResolveResponse {
        * Column number in source file
        */
       column?: number;
+    }
+  }
+
+  /**
+   * Resolved effective filter definition exposed by the V2 API contract.
+   */
+  export interface FilterDefinition {
+    /**
+     * Canonical data type
+     */
+    data_type: string;
+
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Structured filter expression
+     */
+    expression: string;
+
+    /**
+     * Target field ref
+     */
+    field: string;
+
+    /**
+     * Concrete declaration ID from the merged definition
+     */
+    kater_id: string;
+
+    /**
+     * Filter mode: static or parameterized
+     */
+    mode: string;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is always active
+     */
+    required: boolean;
+
+    /**
+     * AI-facing filter context
+     */
+    ai_context?: string | null;
+
+    /**
+     * Whether null is allowed
+     */
+    allow_null_value?: boolean | null;
+
+    /**
+     * Concrete declaration IDs that contributed to this effective filter
+     */
+    declaration_kater_ids?: Array<string>;
+
+    /**
+     * Default enabled state
+     */
+    default_enabled?: boolean | null;
+
+    /**
+     * Default runtime value payload
+     */
+    default_value?:
+      | FilterDefinition.ScalarFilterValue
+      | FilterDefinition.MultiFilterValue
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | FilterDefinition.PresetReferenceFilterValue
+      | FilterDefinition.NullFilterValue
+      | null;
+
+    /**
+     * Filter description
+     */
+    description?: string | null;
+
+    /**
+     * Optional UI help text
+     */
+    help_text?: string | null;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Null option label
+     */
+    null_label?: string | null;
+
+    /**
+     * Owner IDs from model/topic/dashboard/query precedence order
+     */
+    owner_chain?: Array<string>;
+
+    /**
+     * Optional input placeholder
+     */
+    placeholder?: string | null;
+
+    /**
+     * Filter preset definitions
+     */
+    presets?: Array<FilterDefinition.Preset> | null;
+
+    /**
+     * Static filter value payload
+     */
+    static_value?:
+      | string
+      | number
+      | boolean
+      | Array<string | number | boolean>
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | null;
+
+    /**
+     * Selectable values metadata
+     */
+    values?:
+      | FilterDefinition.StaticFilterValuesSource
+      | FilterDefinition.DynamicDistinctFilterValuesSource
+      | null;
+  }
+
+  export namespace FilterDefinition {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+
+    export interface Preset {
+      /**
+       * Human-readable preset label
+       */
+      label: string;
+
+      /**
+       * Stable preset key
+       */
+      name: string;
+
+      /**
+       * Typed preset value payload
+       */
+      value:
+        | Preset.ScalarFilterValue
+        | Preset.MultiFilterValue
+        | Preset.NumberRangeFilterValue
+        | Preset.AbsoluteDateFilterValue
+        | Preset.AbsoluteRangeFilterValue
+        | Preset.RelativeRangeFilterValue
+        | Preset.PresetReferenceFilterValue
+        | Preset.NullFilterValue;
+    }
+
+    export namespace Preset {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface StaticFilterValuesSource {
+      /**
+       * Inline selectable items
+       */
+      items: Array<StaticFilterValuesSource.Item>;
+
+      source?: 'static';
+    }
+
+    export namespace StaticFilterValuesSource {
+      export interface Item {
+        /**
+         * Selectable scalar value
+         */
+        value: string | number | boolean;
+
+        /**
+         * Optional selectable value label
+         */
+        label?: string | null;
+      }
+    }
+
+    export interface DynamicDistinctFilterValuesSource {
+      /**
+       * Maximum number of values to request
+       */
+      limit?: number | null;
+
+      /**
+       * Supported sort order for dynamic distinct value loading
+       */
+      sort?: 'asc' | 'desc' | null;
+
+      source?: 'dynamic_distinct';
     }
   }
 
@@ -1866,6 +4241,12 @@ export interface CompilerCompileParams {
   source?: string | null;
 
   /**
+   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
+   * ID.
+   */
+  filter_state?: Array<CompilerCompileParams.FilterState> | null;
+
+  /**
    * Header param
    */
   'X-Kater-CLI-ID'?: string;
@@ -1900,7 +4281,16 @@ export namespace CompilerCompileParams {
     /**
      * Widget category that determines data shape constraints
      */
-    widget_category: 'axis' | 'funnel' | 'heatmap' | 'image' | 'kpi_card' | 'pie' | 'table' | 'text';
+    widget_category:
+      | 'axis'
+      | 'funnel'
+      | 'heatmap'
+      | 'image'
+      | 'kpi_card'
+      | 'pie'
+      | 'radial'
+      | 'table'
+      | 'text';
 
     /**
      * Usage guidance for AI processing
@@ -1946,9 +4336,15 @@ export namespace CompilerCompileParams {
       | 'image_single_image'
       | 'kpi_measure_with_dimension_expression'
       | 'kpi_measure_with_secondary_metric'
+      | 'kpi_measure_with_target_progress'
       | 'kpi_single_measure_compared_to_prev_period_sparkline'
       | 'kpi_single_value'
+      | 'pie_donut_chart'
+      | 'pie_donut_with_measure'
       | 'pie_pie_chart'
+      | 'radial_chart'
+      | 'radial_with_single_value'
+      | 'radial_with_single_value_stacked'
       | 'table_data_table'
       | 'table_fancy_subtotal_table'
       | 'table_key_value_list'
@@ -2006,6 +4402,12 @@ export namespace CompilerCompileParams {
      * Resolved select_from entries with CTE metadata
      */
     select_from?: Array<ResolvedQuery.SelectFrom> | null;
+
+    /**
+     * When true, compute a totals_row over returned measure columns and expose it
+     * alongside data.
+     */
+    totals?: boolean | null;
   }
 
   export namespace ResolvedQuery {
@@ -2392,6 +4794,132 @@ export namespace CompilerCompileParams {
       }
     }
   }
+
+  export interface FilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Requested enabled state override for this effective filter
+     */
+    enabled?: boolean | null;
+
+    /**
+     * Requested runtime value override for this effective filter
+     */
+    value?:
+      | FilterState.ScalarFilterValue
+      | FilterState.MultiFilterValue
+      | FilterState.NumberRangeFilterValue
+      | FilterState.AbsoluteDateFilterValue
+      | FilterState.AbsoluteRangeFilterValue
+      | FilterState.RelativeRangeFilterValue
+      | FilterState.PresetReferenceFilterValue
+      | FilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace FilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
 }
 
 export interface CompilerCompileDashboardParams {
@@ -2418,14 +4946,143 @@ export interface CompilerCompileDashboardParams {
   source?: string | null;
 
   /**
-   * Body param: Optional filter overrides from UI
+   * Body param: Optional V2 runtime filter-state payload keyed by dashboard filter
+   * IDs.
    */
-  filters?: { [key: string]: string | Array<string> | null } | null;
+  filter_state?: Array<CompilerCompileDashboardParams.FilterState> | null;
 
   /**
    * Header param
    */
   'X-Kater-CLI-ID'?: string;
+}
+
+export namespace CompilerCompileDashboardParams {
+  export interface FilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Requested enabled state override for this effective filter
+     */
+    enabled?: boolean | null;
+
+    /**
+     * Requested runtime value override for this effective filter
+     */
+    value?:
+      | FilterState.ScalarFilterValue
+      | FilterState.MultiFilterValue
+      | FilterState.NumberRangeFilterValue
+      | FilterState.AbsoluteDateFilterValue
+      | FilterState.AbsoluteRangeFilterValue
+      | FilterState.RelativeRangeFilterValue
+      | FilterState.PresetReferenceFilterValue
+      | FilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace FilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
 }
 
 export interface CompilerEnumerateParams {
@@ -2480,6 +5137,12 @@ export interface CompilerExecuteParams {
   source?: string | null;
 
   /**
+   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
+   * ID.
+   */
+  filter_state?: Array<CompilerExecuteParams.FilterState> | null;
+
+  /**
    * Header param
    */
   'X-Kater-CLI-ID'?: string;
@@ -2514,7 +5177,16 @@ export namespace CompilerExecuteParams {
     /**
      * Widget category that determines data shape constraints
      */
-    widget_category: 'axis' | 'funnel' | 'heatmap' | 'image' | 'kpi_card' | 'pie' | 'table' | 'text';
+    widget_category:
+      | 'axis'
+      | 'funnel'
+      | 'heatmap'
+      | 'image'
+      | 'kpi_card'
+      | 'pie'
+      | 'radial'
+      | 'table'
+      | 'text';
 
     /**
      * Usage guidance for AI processing
@@ -2560,9 +5232,15 @@ export namespace CompilerExecuteParams {
       | 'image_single_image'
       | 'kpi_measure_with_dimension_expression'
       | 'kpi_measure_with_secondary_metric'
+      | 'kpi_measure_with_target_progress'
       | 'kpi_single_measure_compared_to_prev_period_sparkline'
       | 'kpi_single_value'
+      | 'pie_donut_chart'
+      | 'pie_donut_with_measure'
       | 'pie_pie_chart'
+      | 'radial_chart'
+      | 'radial_with_single_value'
+      | 'radial_with_single_value_stacked'
       | 'table_data_table'
       | 'table_fancy_subtotal_table'
       | 'table_key_value_list'
@@ -2620,6 +5298,12 @@ export namespace CompilerExecuteParams {
      * Resolved select_from entries with CTE metadata
      */
     select_from?: Array<ResolvedQuery.SelectFrom> | null;
+
+    /**
+     * When true, compute a totals_row over returned measure columns and expose it
+     * alongside data.
+     */
+    totals?: boolean | null;
   }
 
   export namespace ResolvedQuery {
@@ -3006,6 +5690,132 @@ export namespace CompilerExecuteParams {
       }
     }
   }
+
+  export interface FilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Requested enabled state override for this effective filter
+     */
+    enabled?: boolean | null;
+
+    /**
+     * Requested runtime value override for this effective filter
+     */
+    value?:
+      | FilterState.ScalarFilterValue
+      | FilterState.MultiFilterValue
+      | FilterState.NumberRangeFilterValue
+      | FilterState.AbsoluteDateFilterValue
+      | FilterState.AbsoluteRangeFilterValue
+      | FilterState.RelativeRangeFilterValue
+      | FilterState.PresetReferenceFilterValue
+      | FilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace FilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
 }
 
 export interface CompilerResolveParams {
@@ -3031,11 +5841,16 @@ export interface CompilerResolveParams {
 
   /**
    * Body param: Comma-separated slot selections and variable assignments. Reserved
-   * keys: measure, dimension, filter, calculation. All other keys are variable
-   * assignments. Example: 'measure=Compliance
-   * Rate,dimension=Department,breakdown=region'
+   * keys: measure, dimension, calculation. All other keys are variable assignments.
+   * Example: 'measure=Compliance Rate,dimension=Department,breakdown=region'
    */
   combination?: string;
+
+  /**
+   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
+   * ID.
+   */
+  filter_state?: Array<CompilerResolveParams.FilterState> | null;
 
   /**
    * Body param: Optional pinned variant name (e.g. '\_base'). Selects a specific
@@ -3047,6 +5862,134 @@ export interface CompilerResolveParams {
    * Header param
    */
   'X-Kater-CLI-ID'?: string;
+}
+
+export namespace CompilerResolveParams {
+  export interface FilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Requested enabled state override for this effective filter
+     */
+    enabled?: boolean | null;
+
+    /**
+     * Requested runtime value override for this effective filter
+     */
+    value?:
+      | FilterState.ScalarFilterValue
+      | FilterState.MultiFilterValue
+      | FilterState.NumberRangeFilterValue
+      | FilterState.AbsoluteDateFilterValue
+      | FilterState.AbsoluteRangeFilterValue
+      | FilterState.RelativeRangeFilterValue
+      | FilterState.PresetReferenceFilterValue
+      | FilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace FilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
 }
 
 export interface CompilerValidateParams {

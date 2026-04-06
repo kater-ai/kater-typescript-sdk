@@ -34,6 +34,13 @@ describe('resource combination', () => {
       query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
       tenant_key: 'tenant_key',
       source: 'source',
+      filter_state: [
+        {
+          effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+          enabled: true,
+          value: { value: 'string', mode: 'scalar' },
+        },
+      ],
       pinned_variant: 'pinned_variant',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
