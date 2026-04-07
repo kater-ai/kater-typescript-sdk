@@ -2347,6 +2347,11 @@ export interface CompilerExecuteResponse {
   execution_time_ms?: number;
 
   /**
+   * True when the app-wide row limit was applied and results were truncated
+   */
+  is_row_limited?: boolean;
+
+  /**
    * Compilation metadata from the compiler.
    */
   metadata?: CompilerExecuteResponse.Metadata | null;
