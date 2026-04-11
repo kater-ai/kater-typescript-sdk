@@ -65,6 +65,11 @@ export interface CombinationPreviewResponse {
   column_map?: Array<CombinationPreviewResponse.ColumnMap>;
 
   /**
+   * Per-column statistical profiles keyed by kater_id (UUID column alias).
+   */
+  column_profiles?: { [key: string]: CombinationPreviewResponse.ColumnProfiles };
+
+  /**
    * Resolved WidgetConfig (from config builder)
    */
   config?: { [key: string]: unknown };
@@ -292,6 +297,72 @@ export namespace CombinationPreviewResponse {
   }
 
   /**
+   * Statistical profile for a single result column.
+   */
+  export interface ColumnProfiles {
+    /**
+     * Distinct non-null values for dimension columns. Null for measures and
+     * calculations.
+     */
+    cardinality?: number | null;
+
+    /**
+     * Coefficient of variation (|stdev / mean|).
+     */
+    cv?: number | null;
+
+    /**
+     * True if any value lies outside [q1 - 1.5*IQR, q3 + 1.5*IQR].
+     */
+    has_outliers?: boolean;
+
+    /**
+     * Interquartile range (q3 - q1).
+     */
+    iqr?: number | null;
+
+    /**
+     * Maximum numeric value.
+     */
+    max?: number | null;
+
+    /**
+     * Arithmetic mean.
+     */
+    mean?: number | null;
+
+    /**
+     * Minimum numeric value. Null when the column has no numeric data.
+     */
+    min?: number | null;
+
+    /**
+     * Number of null values in the column.
+     */
+    null_count?: number;
+
+    /**
+     * Fraction of null values (0.0-1.0).
+     */
+    null_pct?: number;
+
+    /**
+     * First quartile (25th percentile).
+     */
+    q1?: number | null;
+
+    /**
+     * Third quartile (75th percentile).
+     */
+    q3?: number | null;
+
+    /**
+     * Population standard deviation.
+     */
+    stdev?: number | null;
+  }
+
+  /**
    * Resolved runtime filter state exposed by the V2 API contract.
    */
   export interface DefaultFilterState {
@@ -483,6 +554,11 @@ export namespace CombinationPreviewResponse {
      * Whether the filter is always active
      */
     required: boolean;
+
+    /**
+     * Filter scope: model, topic, dashboard, or query
+     */
+    scope: string;
 
     /**
      * AI-facing filter context

@@ -772,6 +772,11 @@ export namespace CompilerCompileDashboardResponse {
     required: boolean;
 
     /**
+     * Filter scope: model, topic, dashboard, or query
+     */
+    scope: string;
+
+    /**
      * AI-facing filter context
      */
     ai_context?: string | null;
@@ -1383,6 +1388,16 @@ export namespace CompilerCompileDashboardResponse {
     name: string;
 
     /**
+     * Per-column profiles keyed by kater_id. dict for single-query widgets, list of
+     * dicts for multi-query widgets (aligned with column_map). Null when no slot was
+     * resolved.
+     */
+    column_profiles?:
+      | { [key: string]: Widget.ColumnProfileResponse }
+      | Array<{ [key: string]: Widget.ColumnProfileResponse }>
+      | null;
+
+    /**
      * Display mode for multi-query: 'tabs' or 'grid'
      */
     display_mode?: string | null;
@@ -1487,6 +1502,138 @@ export namespace CompilerCompileDashboardResponse {
       x?: number;
 
       y?: number;
+    }
+
+    /**
+     * Statistical profile for a single result column.
+     */
+    export interface ColumnProfileResponse {
+      /**
+       * Distinct non-null values for dimension columns. Null for measures and
+       * calculations.
+       */
+      cardinality?: number | null;
+
+      /**
+       * Coefficient of variation (|stdev / mean|).
+       */
+      cv?: number | null;
+
+      /**
+       * True if any value lies outside [q1 - 1.5*IQR, q3 + 1.5*IQR].
+       */
+      has_outliers?: boolean;
+
+      /**
+       * Interquartile range (q3 - q1).
+       */
+      iqr?: number | null;
+
+      /**
+       * Maximum numeric value.
+       */
+      max?: number | null;
+
+      /**
+       * Arithmetic mean.
+       */
+      mean?: number | null;
+
+      /**
+       * Minimum numeric value. Null when the column has no numeric data.
+       */
+      min?: number | null;
+
+      /**
+       * Number of null values in the column.
+       */
+      null_count?: number;
+
+      /**
+       * Fraction of null values (0.0-1.0).
+       */
+      null_pct?: number;
+
+      /**
+       * First quartile (25th percentile).
+       */
+      q1?: number | null;
+
+      /**
+       * Third quartile (75th percentile).
+       */
+      q3?: number | null;
+
+      /**
+       * Population standard deviation.
+       */
+      stdev?: number | null;
+    }
+
+    /**
+     * Statistical profile for a single result column.
+     */
+    export interface ColumnProfileResponse {
+      /**
+       * Distinct non-null values for dimension columns. Null for measures and
+       * calculations.
+       */
+      cardinality?: number | null;
+
+      /**
+       * Coefficient of variation (|stdev / mean|).
+       */
+      cv?: number | null;
+
+      /**
+       * True if any value lies outside [q1 - 1.5*IQR, q3 + 1.5*IQR].
+       */
+      has_outliers?: boolean;
+
+      /**
+       * Interquartile range (q3 - q1).
+       */
+      iqr?: number | null;
+
+      /**
+       * Maximum numeric value.
+       */
+      max?: number | null;
+
+      /**
+       * Arithmetic mean.
+       */
+      mean?: number | null;
+
+      /**
+       * Minimum numeric value. Null when the column has no numeric data.
+       */
+      min?: number | null;
+
+      /**
+       * Number of null values in the column.
+       */
+      null_count?: number;
+
+      /**
+       * Fraction of null values (0.0-1.0).
+       */
+      null_pct?: number;
+
+      /**
+       * First quartile (25th percentile).
+       */
+      q1?: number | null;
+
+      /**
+       * Third quartile (75th percentile).
+       */
+      q3?: number | null;
+
+      /**
+       * Population standard deviation.
+       */
+      stdev?: number | null;
     }
   }
 }
@@ -1794,6 +1941,11 @@ export namespace CompilerEnumerateResponse {
      * Whether the filter is always active
      */
     required: boolean;
+
+    /**
+     * Filter scope: model, topic, dashboard, or query
+     */
+    scope: string;
 
     /**
      * AI-facing filter context
@@ -3566,6 +3718,11 @@ export namespace CompilerResolveResponse {
      * Whether the filter is always active
      */
     required: boolean;
+
+    /**
+     * Filter scope: model, topic, dashboard, or query
+     */
+    scope: string;
 
     /**
      * AI-facing filter context
