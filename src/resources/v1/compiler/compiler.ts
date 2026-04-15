@@ -1398,6 +1398,11 @@ export namespace CompilerCompileDashboardResponse {
       | null;
 
     /**
+     * Dependency metadata describing which dashboard slots feed this widget
+     */
+    dependencies?: Widget.Dependencies;
+
+    /**
      * Display mode for multi-query: 'tabs' or 'grid'
      */
     display_mode?: string | null;
@@ -1634,6 +1639,48 @@ export namespace CompilerCompileDashboardResponse {
        * Population standard deviation.
        */
       stdev?: number | null;
+    }
+
+    /**
+     * Dependency metadata describing which dashboard slots feed this widget
+     */
+    export interface Dependencies {
+      /**
+       * Dashboard data slots that feed this widget
+       */
+      slots?: Array<Dependencies.Slot>;
+    }
+
+    export namespace Dependencies {
+      /**
+       * A dashboard data slot that a widget depends on.
+       */
+      export interface Slot {
+        /**
+         * Query kater_id backing the slot
+         */
+        query_kater_id: string;
+
+        /**
+         * Query name backing the slot
+         */
+        query_name: string;
+
+        /**
+         * Dashboard slot name
+         */
+        slot_name: string;
+
+        /**
+         * Combination string used for the slot, if any
+         */
+        combination?: string | null;
+
+        /**
+         * Pinned query variant used for the slot, if any
+         */
+        pinned_variant?: string | null;
+      }
     }
   }
 }
