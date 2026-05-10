@@ -361,6 +361,17 @@ export interface CompilerCompileResponse {
   metadata?: CompilerCompileResponse.Metadata | null;
 
   /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  rendered_query_key?: CompilerCompileResponse.RenderedQueryKey | null;
+
+  /**
    * Reserved for write-back flows. Compile responses currently return null because
    * compiled SQL and resolved-query artifacts are not written back.
    */
@@ -532,7 +543,7 @@ export namespace CompilerCompileResponse {
     field_type: string;
 
     /**
-     * UUID string used as SQL column alias
+     * Authored source field UUID
      */
     kater_id: string;
 
@@ -542,15 +553,30 @@ export namespace CompilerCompileResponse {
     name: string;
 
     /**
+     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
+     */
+    active_timeframe?: string | null;
+
+    /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
      * non-measures.
      */
     aggregation?: string | null;
 
     /**
+     * SQL result alias for this concrete output column.
+     */
+    column_key?: string | null;
+
+    /**
      * Display label
      */
     label?: string | null;
+
+    /**
+     * Authored source field UUID for derived timeframe columns.
+     */
+    source_kater_id?: string | null;
   }
 
   /**
@@ -587,6 +613,682 @@ export namespace CompilerCompileResponse {
      */
     views_used?: Array<string>;
   }
+
+  /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  export interface RenderedQueryKey {
+    /**
+     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     */
+    aggregate_cache_key_id: string | null;
+
+    /**
+     * The canonical sub-document. Hashing this produces `key_id`.
+     */
+    canonical: RenderedQueryKey.Canonical;
+
+    /**
+     * rqk_cache_exact_v1:<sha256-hex>
+     */
+    exact_cache_key_id: string;
+
+    /**
+     * rqk_v1:<sha256-hex>
+     */
+    key_id: string;
+
+    version: 1;
+  }
+
+  export namespace RenderedQueryKey {
+    /**
+     * The canonical sub-document. Hashing this produces `key_id`.
+     */
+    export interface Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      cache_projection: Canonical.CacheProjection;
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      contract: Canonical.Contract;
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      dashboard: Canonical.Dashboard;
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      fields: Canonical.Fields;
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      filters: Canonical.Filters;
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      presentation: Canonical.Presentation;
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      query: Canonical.Query;
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      result_window: Canonical.ResultWindow;
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      source: Canonical.Source;
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      temporal: Canonical.Temporal;
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      tenant: Canonical.Tenant;
+
+      variables: Array<Canonical.Variable>;
+    }
+
+    export namespace Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      export interface CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        aggregate: CacheProjection.Aggregate | null;
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        exact: CacheProjection.Exact;
+
+        version: 1;
+      }
+
+      export namespace CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        export interface Aggregate {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          dimensions: Array<Aggregate.Dimension>;
+
+          filters: Array<Aggregate.Filter>;
+
+          measures: Array<Aggregate.Measure>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Aggregate.Variable>;
+        }
+
+        export namespace Aggregate {
+          /**
+           * Dimension entry inside the aggregate cache projection.
+           *
+           * `source_kater_id` is required (not nullable) here so two timeframe variants of
+           * the same temporal source dimension produce different cache projections.
+           */
+          export interface Dimension {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            source_kater_id: string;
+          }
+
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Measure entry inside the aggregate cache projection.
+           *
+           * `aggregation` is required (no None): an eligible aggregate cache always has a
+           * concrete aggregation function.
+           */
+          export interface Measure {
+            aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown';
+
+            column_key: string;
+
+            kater_id: string;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        export interface Exact {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          filters: Array<Exact.Filter>;
+
+          output_columns: Array<Exact.OutputColumn>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          result_window: Exact.ResultWindow;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Exact.Variable>;
+        }
+
+        export namespace Exact {
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Column entry inside the exact cache projection.
+           */
+          export interface OutputColumn {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            kater_id: string;
+
+            source_kater_id: string | null;
+          }
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          export interface ResultWindow {
+            cursor: string | null;
+
+            effective_limit: number | null;
+
+            max_row_limit: number | null;
+
+            page_size: number | null;
+
+            query_limit: number | null;
+
+            sort_by: string | null;
+
+            sort_order: 'asc' | 'desc' | null;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+      }
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      export interface Contract {
+        compiler_version: string;
+
+        filter_state_version: 2;
+
+        key_schema: 'RenderedQueryKeyV1';
+
+        key_version: 1;
+
+        widget_config_version: string;
+      }
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      export interface Dashboard {
+        dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+        dashboard_kater_id: string | null;
+
+        dashboard_name: string | null;
+
+        slot_name: string | null;
+
+        widget_kater_id: string | null;
+
+        widget_name: string | null;
+      }
+
+      export namespace Dashboard {
+        /**
+         * Shared dashboard filter state mapped to slot-specific effective filters.
+         */
+        export interface DashboardFilterState {
+          applied_slot_effective_kater_ids: Array<string>;
+
+          dashboard_effective_kater_id: string;
+
+          enabled: boolean;
+
+          normalized_value: string | null;
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      export interface Fields {
+        active_fields: Array<Fields.ActiveField>;
+
+        output_columns: Array<Fields.OutputColumn>;
+
+        selected_fields: Array<Fields.SelectedField>;
+      }
+
+      export namespace Fields {
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface ActiveField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+
+        /**
+         * An output column entry in `canonical.fields.output_columns`.
+         */
+        export interface OutputColumn {
+          /**
+           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
+           */
+          active_timeframe: string | null;
+
+          aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
+
+          /**
+           * SQL result alias / row payload key
+           */
+          column_key: string;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          /**
+           * Authored source field UUID
+           */
+          kater_id: string;
+
+          label: string | null;
+
+          name: string;
+
+          /**
+           * Zero-based output column position
+           */
+          output_index: number;
+
+          role: string | null;
+
+          slot: 'required' | 'optional';
+
+          /**
+           * Source field UUID when derived from an authored field
+           */
+          source_kater_id: string | null;
+        }
+
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface SelectedField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+      }
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      export interface Filters {
+        effective_filters: Array<Filters.EffectiveFilter>;
+      }
+
+      export namespace Filters {
+        /**
+         * An effective filter entry in `canonical.filters.effective_filters`.
+         */
+        export interface EffectiveFilter {
+          data_type: string;
+
+          declaration_kater_ids: Array<string>;
+
+          effective_kater_id: string;
+
+          enabled: boolean;
+
+          expression: string;
+
+          field_active_timeframe: string | null;
+
+          field_column_key: string | null;
+
+          field_kater_id: string | null;
+
+          field_source_kater_id: string | null;
+
+          label: string | null;
+
+          mode: 'static' | 'parameterized';
+
+          name: string;
+
+          normalized_value: string | null;
+
+          owner_chain: Array<string>;
+
+          required: boolean;
+
+          scope: 'model' | 'topic' | 'dashboard' | 'query';
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      export interface Presentation {
+        chart: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        config_fingerprint: string;
+
+        display: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        /**
+         * Widget role -> column_key (not human-readable field name)
+         */
+        roles: { [key: string]: string };
+
+        style: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        widget_category: string;
+
+        widget_type: string | null;
+      }
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      export interface Query {
+        pinned_variant: string | null;
+
+        query_kater_id: string;
+
+        resolved_query_fingerprint: string;
+
+        /**
+         * Provenance only — consumers must not treat as identity
+         */
+        source_query_ref: string;
+      }
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      export interface ResultWindow {
+        cursor: string | null;
+
+        effective_limit: number | null;
+
+        max_row_limit: number | null;
+
+        page_size: number | null;
+
+        query_limit: number | null;
+
+        sort_by: string | null;
+
+        sort_order: 'asc' | 'desc' | null;
+      }
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      export interface Source {
+        connection_config_fingerprint: string;
+
+        connection_kater_id: string;
+
+        dependency_graph_fingerprint: string | null;
+
+        manifest_fingerprint: string | null;
+
+        source_fingerprint: string;
+
+        source_kind: 'saved_repo' | 'branch' | 'dev_session';
+
+        source_ref: string | null;
+
+        theme_fingerprint: string | null;
+
+        widget_registry_fingerprint: string;
+      }
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      export interface Temporal {
+        /**
+         * ISO timestamp resolved once at the start of canonicalization
+         */
+        as_of: string;
+
+        timezone: string;
+      }
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      export interface Tenant {
+        client_id: string;
+
+        tenancy_mode: 'none' | 'row' | 'database';
+
+        tenant_attribute_fingerprint: string | null;
+
+        tenant_database: string | null;
+
+        tenant_key: string;
+      }
+
+      /**
+       * A variable applied to compile or post-assembly runtime substitution.
+       */
+      export interface Variable {
+        is_runtime: boolean;
+
+        name: string;
+
+        /**
+         * Deterministic string used for hashing and cache projection
+         */
+        normalized_value: string;
+
+        query_kater_id: string;
+
+        scope: 'query' | 'global';
+
+        source: 'default' | 'request' | 'pinned_variant' | 'dashboard';
+
+        /**
+         * Display/debug value (free-form JSON)
+         */
+        value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+        variable_kater_id: string | null;
+      }
+    }
+  }
 }
 
 /**
@@ -622,6 +1324,11 @@ export interface CompilerCompileDashboardResponse {
    * Applied dashboard filter state after defaults and runtime overrides
    */
   filter_state?: Array<CompilerCompileDashboardResponse.FilterState>;
+
+  /**
+   * Structured dashboard-root insight execution results
+   */
+  insight_runs?: Array<CompilerCompileDashboardResponse.InsightRun>;
 
   /**
    * Fully resolved widgets with data + config
@@ -1354,6 +2061,80 @@ export namespace CompilerCompileDashboardResponse {
   }
 
   /**
+   * Validated structured output for a completed insight run.
+   */
+  export interface InsightRun {
+    findings?: Array<InsightRun.Finding>;
+
+    metadata?: { [key: string]: unknown } | null;
+
+    /**
+     * Top-level summary for an insight run.
+     */
+    summary?: InsightRun.Summary | null;
+  }
+
+  export namespace InsightRun {
+    /**
+     * Single analytical finding emitted by an insight run.
+     */
+    export interface Finding {
+      kind: string;
+
+      summary: string;
+
+      confidence?: number | null;
+
+      details?: Array<string>;
+
+      evidence?: Array<Finding.Evidence>;
+
+      follow_ups?: Array<Finding.FollowUp>;
+
+      metadata?: { [key: string]: unknown } | null;
+
+      severity?: 'info' | 'positive' | 'warning' | 'critical' | null;
+    }
+
+    export namespace Finding {
+      /**
+       * Structured evidence attached to a finding.
+       */
+      export interface Evidence {
+        label: string;
+
+        value: string | number | boolean;
+
+        description?: string | null;
+      }
+
+      /**
+       * Structured action hint emitted by an insight finding.
+       */
+      export interface FollowUp {
+        id: string;
+
+        instructions: string;
+
+        label: string;
+
+        payload?: { [key: string]: unknown } | null;
+      }
+    }
+
+    /**
+     * Top-level summary for an insight run.
+     */
+    export interface Summary {
+      text: string;
+
+      confidence?: number | null;
+
+      severity?: 'info' | 'positive' | 'warning' | 'critical' | null;
+    }
+  }
+
+  /**
    * A fully resolved widget ready for rendering.
    */
   export interface Widget {
@@ -1413,6 +2194,17 @@ export namespace CompilerCompileDashboardResponse {
     errors?: Array<CompilerAPI.CompilerErrorItem>;
 
     /**
+     * Top-level natural key returned by every runtime data and widget path.
+     *
+     * Format invariants (validation enforced by Story 1.2's hashing helpers):
+     *
+     * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+     * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+     * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+     */
+    rendered_query_key?: Widget.RenderedQueryKey | null;
+
+    /**
      * Total rows represented by the widget result (single or multi-query)
      */
     row_count?: number | Array<number> | null;
@@ -1444,7 +2236,7 @@ export namespace CompilerCompileDashboardResponse {
       field_type: string;
 
       /**
-       * UUID string used as SQL column alias
+       * Authored source field UUID
        */
       kater_id: string;
 
@@ -1454,15 +2246,30 @@ export namespace CompilerCompileDashboardResponse {
       name: string;
 
       /**
+       * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
+       */
+      active_timeframe?: string | null;
+
+      /**
        * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
        * non-measures.
        */
       aggregation?: string | null;
 
       /**
+       * SQL result alias for this concrete output column.
+       */
+      column_key?: string | null;
+
+      /**
        * Display label
        */
       label?: string | null;
+
+      /**
+       * Authored source field UUID for derived timeframe columns.
+       */
+      source_kater_id?: string | null;
     }
 
     /**
@@ -1475,7 +2282,7 @@ export namespace CompilerCompileDashboardResponse {
       field_type: string;
 
       /**
-       * UUID string used as SQL column alias
+       * Authored source field UUID
        */
       kater_id: string;
 
@@ -1485,15 +2292,30 @@ export namespace CompilerCompileDashboardResponse {
       name: string;
 
       /**
+       * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
+       */
+      active_timeframe?: string | null;
+
+      /**
        * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
        * non-measures.
        */
       aggregation?: string | null;
 
       /**
+       * SQL result alias for this concrete output column.
+       */
+      column_key?: string | null;
+
+      /**
        * Display label
        */
       label?: string | null;
+
+      /**
+       * Authored source field UUID for derived timeframe columns.
+       */
+      source_kater_id?: string | null;
     }
 
     /**
@@ -1682,6 +2504,682 @@ export namespace CompilerCompileDashboardResponse {
         pinned_variant?: string | null;
       }
     }
+
+    /**
+     * Top-level natural key returned by every runtime data and widget path.
+     *
+     * Format invariants (validation enforced by Story 1.2's hashing helpers):
+     *
+     * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+     * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+     * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+     */
+    export interface RenderedQueryKey {
+      /**
+       * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+       */
+      aggregate_cache_key_id: string | null;
+
+      /**
+       * The canonical sub-document. Hashing this produces `key_id`.
+       */
+      canonical: RenderedQueryKey.Canonical;
+
+      /**
+       * rqk_cache_exact_v1:<sha256-hex>
+       */
+      exact_cache_key_id: string;
+
+      /**
+       * rqk_v1:<sha256-hex>
+       */
+      key_id: string;
+
+      version: 1;
+    }
+
+    export namespace RenderedQueryKey {
+      /**
+       * The canonical sub-document. Hashing this produces `key_id`.
+       */
+      export interface Canonical {
+        /**
+         * Cache projection sub-document of `canonical`. The projection itself contains no
+         * derived cache key IDs — those IDs are derived from it and live at the top level.
+         */
+        cache_projection: Canonical.CacheProjection;
+
+        /**
+         * Identifies the canonicalization contract that produced this key.
+         *
+         * Changes to any of these values mean the meaning of the key has changed and
+         * consumers must treat it as a new key.
+         */
+        contract: Canonical.Contract;
+
+        /**
+         * Null-filled for standalone query execution; populated for dashboard widgets.
+         */
+        dashboard: Canonical.Dashboard;
+
+        /**
+         * Selected, active, and output field lists that participate in compile and widget
+         * roles. Ordering rules: selected/active are sorted by stable identity;
+         * output_columns preserves output order.
+         */
+        fields: Canonical.Fields;
+
+        /**
+         * Effective filter state (model + topic + dashboard + query, after resolution).
+         */
+        filters: Canonical.Filters;
+
+        /**
+         * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+         * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+         * sections in the canonical key.
+         */
+        presentation: Canonical.Presentation;
+
+        /**
+         * Anchors the rendered result to the query template and its selected field shape.
+         */
+        query: Canonical.Query;
+
+        /**
+         * Identifies the returned window of rows. `sort_by`, when present, is a
+         * column_key.
+         */
+        result_window: Canonical.ResultWindow;
+
+        /**
+         * Identifies the exact Kater source bundle used to resolve and compile.
+         */
+        source: Canonical.Source;
+
+        /**
+         * Request clock context — makes date-relative filters deterministic.
+         *
+         * Selected date-grain identity lives in `fields.*.active_timeframe` and
+         * `fields.output_columns[].column_key`, not here.
+         */
+        temporal: Canonical.Temporal;
+
+        /**
+         * Hard tenant identity boundary.
+         */
+        tenant: Canonical.Tenant;
+
+        variables: Array<Canonical.Variable>;
+      }
+
+      export namespace Canonical {
+        /**
+         * Cache projection sub-document of `canonical`. The projection itself contains no
+         * derived cache key IDs — those IDs are derived from it and live at the top level.
+         */
+        export interface CacheProjection {
+          /**
+           * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+           */
+          aggregate: CacheProjection.Aggregate | null;
+
+          /**
+           * Projection used to derive `exact_cache_key_id`.
+           */
+          exact: CacheProjection.Exact;
+
+          version: 1;
+        }
+
+        export namespace CacheProjection {
+          /**
+           * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+           */
+          export interface Aggregate {
+            client_id: string;
+
+            connection_kater_id: string;
+
+            dimensions: Array<Aggregate.Dimension>;
+
+            filters: Array<Aggregate.Filter>;
+
+            measures: Array<Aggregate.Measure>;
+
+            query_kater_id: string;
+
+            resolved_query_fingerprint: string;
+
+            source_fingerprint: string;
+
+            tenant_database: string | null;
+
+            tenant_key: string;
+
+            variables: Array<Aggregate.Variable>;
+          }
+
+          export namespace Aggregate {
+            /**
+             * Dimension entry inside the aggregate cache projection.
+             *
+             * `source_kater_id` is required (not nullable) here so two timeframe variants of
+             * the same temporal source dimension produce different cache projections.
+             */
+            export interface Dimension {
+              active_timeframe: string | null;
+
+              column_key: string;
+
+              source_kater_id: string;
+            }
+
+            /**
+             * Filter entry inside an exact or aggregate cache projection.
+             */
+            export interface Filter {
+              effective_kater_id: string;
+
+              enabled: boolean;
+
+              expression: string;
+
+              field_active_timeframe: string | null;
+
+              field_column_key: string | null;
+
+              field_kater_id: string | null;
+
+              field_source_kater_id: string | null;
+
+              normalized_value: string | null;
+            }
+
+            /**
+             * Measure entry inside the aggregate cache projection.
+             *
+             * `aggregation` is required (no None): an eligible aggregate cache always has a
+             * concrete aggregation function.
+             */
+            export interface Measure {
+              aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown';
+
+              column_key: string;
+
+              kater_id: string;
+            }
+
+            /**
+             * Variable entry inside an exact or aggregate cache projection.
+             */
+            export interface Variable {
+              name: string;
+
+              normalized_value: string;
+
+              query_kater_id: string;
+
+              variable_kater_id: string | null;
+            }
+          }
+
+          /**
+           * Projection used to derive `exact_cache_key_id`.
+           */
+          export interface Exact {
+            client_id: string;
+
+            connection_kater_id: string;
+
+            filters: Array<Exact.Filter>;
+
+            output_columns: Array<Exact.OutputColumn>;
+
+            query_kater_id: string;
+
+            resolved_query_fingerprint: string;
+
+            /**
+             * Result window subset inside the exact cache projection.
+             *
+             * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+             * cache-only changes do not perturb the canonical block hash, and so codegen emits
+             * a TypeScript type local to the cache projection per the PRD shape.
+             */
+            result_window: Exact.ResultWindow;
+
+            source_fingerprint: string;
+
+            tenant_database: string | null;
+
+            tenant_key: string;
+
+            variables: Array<Exact.Variable>;
+          }
+
+          export namespace Exact {
+            /**
+             * Filter entry inside an exact or aggregate cache projection.
+             */
+            export interface Filter {
+              effective_kater_id: string;
+
+              enabled: boolean;
+
+              expression: string;
+
+              field_active_timeframe: string | null;
+
+              field_column_key: string | null;
+
+              field_kater_id: string | null;
+
+              field_source_kater_id: string | null;
+
+              normalized_value: string | null;
+            }
+
+            /**
+             * Column entry inside the exact cache projection.
+             */
+            export interface OutputColumn {
+              active_timeframe: string | null;
+
+              column_key: string;
+
+              field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+              kater_id: string;
+
+              source_kater_id: string | null;
+            }
+
+            /**
+             * Result window subset inside the exact cache projection.
+             *
+             * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+             * cache-only changes do not perturb the canonical block hash, and so codegen emits
+             * a TypeScript type local to the cache projection per the PRD shape.
+             */
+            export interface ResultWindow {
+              cursor: string | null;
+
+              effective_limit: number | null;
+
+              max_row_limit: number | null;
+
+              page_size: number | null;
+
+              query_limit: number | null;
+
+              sort_by: string | null;
+
+              sort_order: 'asc' | 'desc' | null;
+            }
+
+            /**
+             * Variable entry inside an exact or aggregate cache projection.
+             */
+            export interface Variable {
+              name: string;
+
+              normalized_value: string;
+
+              query_kater_id: string;
+
+              variable_kater_id: string | null;
+            }
+          }
+        }
+
+        /**
+         * Identifies the canonicalization contract that produced this key.
+         *
+         * Changes to any of these values mean the meaning of the key has changed and
+         * consumers must treat it as a new key.
+         */
+        export interface Contract {
+          compiler_version: string;
+
+          filter_state_version: 2;
+
+          key_schema: 'RenderedQueryKeyV1';
+
+          key_version: 1;
+
+          widget_config_version: string;
+        }
+
+        /**
+         * Null-filled for standalone query execution; populated for dashboard widgets.
+         */
+        export interface Dashboard {
+          dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+          dashboard_kater_id: string | null;
+
+          dashboard_name: string | null;
+
+          slot_name: string | null;
+
+          widget_kater_id: string | null;
+
+          widget_name: string | null;
+        }
+
+        export namespace Dashboard {
+          /**
+           * Shared dashboard filter state mapped to slot-specific effective filters.
+           */
+          export interface DashboardFilterState {
+            applied_slot_effective_kater_ids: Array<string>;
+
+            dashboard_effective_kater_id: string;
+
+            enabled: boolean;
+
+            normalized_value: string | null;
+
+            value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+          }
+        }
+
+        /**
+         * Selected, active, and output field lists that participate in compile and widget
+         * roles. Ordering rules: selected/active are sorted by stable identity;
+         * output_columns preserves output order.
+         */
+        export interface Fields {
+          active_fields: Array<Fields.ActiveField>;
+
+          output_columns: Array<Fields.OutputColumn>;
+
+          selected_fields: Array<Fields.SelectedField>;
+        }
+
+        export namespace Fields {
+          /**
+           * A selected/active source field entry — strict subset of the field item.
+           */
+          export interface ActiveField {
+            active_timeframe: string | null;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            kater_id: string;
+          }
+
+          /**
+           * An output column entry in `canonical.fields.output_columns`.
+           */
+          export interface OutputColumn {
+            /**
+             * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
+             */
+            active_timeframe: string | null;
+
+            aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
+
+            /**
+             * SQL result alias / row payload key
+             */
+            column_key: string;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            /**
+             * Authored source field UUID
+             */
+            kater_id: string;
+
+            label: string | null;
+
+            name: string;
+
+            /**
+             * Zero-based output column position
+             */
+            output_index: number;
+
+            role: string | null;
+
+            slot: 'required' | 'optional';
+
+            /**
+             * Source field UUID when derived from an authored field
+             */
+            source_kater_id: string | null;
+          }
+
+          /**
+           * A selected/active source field entry — strict subset of the field item.
+           */
+          export interface SelectedField {
+            active_timeframe: string | null;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            kater_id: string;
+          }
+        }
+
+        /**
+         * Effective filter state (model + topic + dashboard + query, after resolution).
+         */
+        export interface Filters {
+          effective_filters: Array<Filters.EffectiveFilter>;
+        }
+
+        export namespace Filters {
+          /**
+           * An effective filter entry in `canonical.filters.effective_filters`.
+           */
+          export interface EffectiveFilter {
+            data_type: string;
+
+            declaration_kater_ids: Array<string>;
+
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            label: string | null;
+
+            mode: 'static' | 'parameterized';
+
+            name: string;
+
+            normalized_value: string | null;
+
+            owner_chain: Array<string>;
+
+            required: boolean;
+
+            scope: 'model' | 'topic' | 'dashboard' | 'query';
+
+            value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+          }
+        }
+
+        /**
+         * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+         * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+         * sections in the canonical key.
+         */
+        export interface Presentation {
+          chart: {
+            [key: string]:
+              | string
+              | number
+              | number
+              | boolean
+              | null
+              | Array<unknown>
+              | { [key: string]: unknown };
+          };
+
+          config_fingerprint: string;
+
+          display: {
+            [key: string]:
+              | string
+              | number
+              | number
+              | boolean
+              | null
+              | Array<unknown>
+              | { [key: string]: unknown };
+          };
+
+          /**
+           * Widget role -> column_key (not human-readable field name)
+           */
+          roles: { [key: string]: string };
+
+          style: {
+            [key: string]:
+              | string
+              | number
+              | number
+              | boolean
+              | null
+              | Array<unknown>
+              | { [key: string]: unknown };
+          };
+
+          widget_category: string;
+
+          widget_type: string | null;
+        }
+
+        /**
+         * Anchors the rendered result to the query template and its selected field shape.
+         */
+        export interface Query {
+          pinned_variant: string | null;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          /**
+           * Provenance only — consumers must not treat as identity
+           */
+          source_query_ref: string;
+        }
+
+        /**
+         * Identifies the returned window of rows. `sort_by`, when present, is a
+         * column_key.
+         */
+        export interface ResultWindow {
+          cursor: string | null;
+
+          effective_limit: number | null;
+
+          max_row_limit: number | null;
+
+          page_size: number | null;
+
+          query_limit: number | null;
+
+          sort_by: string | null;
+
+          sort_order: 'asc' | 'desc' | null;
+        }
+
+        /**
+         * Identifies the exact Kater source bundle used to resolve and compile.
+         */
+        export interface Source {
+          connection_config_fingerprint: string;
+
+          connection_kater_id: string;
+
+          dependency_graph_fingerprint: string | null;
+
+          manifest_fingerprint: string | null;
+
+          source_fingerprint: string;
+
+          source_kind: 'saved_repo' | 'branch' | 'dev_session';
+
+          source_ref: string | null;
+
+          theme_fingerprint: string | null;
+
+          widget_registry_fingerprint: string;
+        }
+
+        /**
+         * Request clock context — makes date-relative filters deterministic.
+         *
+         * Selected date-grain identity lives in `fields.*.active_timeframe` and
+         * `fields.output_columns[].column_key`, not here.
+         */
+        export interface Temporal {
+          /**
+           * ISO timestamp resolved once at the start of canonicalization
+           */
+          as_of: string;
+
+          timezone: string;
+        }
+
+        /**
+         * Hard tenant identity boundary.
+         */
+        export interface Tenant {
+          client_id: string;
+
+          tenancy_mode: 'none' | 'row' | 'database';
+
+          tenant_attribute_fingerprint: string | null;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+        }
+
+        /**
+         * A variable applied to compile or post-assembly runtime substitution.
+         */
+        export interface Variable {
+          is_runtime: boolean;
+
+          name: string;
+
+          /**
+           * Deterministic string used for hashing and cache projection
+           */
+          normalized_value: string;
+
+          query_kater_id: string;
+
+          scope: 'query' | 'global';
+
+          source: 'default' | 'request' | 'pinned_variant' | 'dashboard';
+
+          /**
+           * Display/debug value (free-form JSON)
+           */
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+          variable_kater_id: string | null;
+        }
+      }
+    }
   }
 }
 
@@ -1708,6 +3206,11 @@ export interface CompilerEnumerateResponse {
    * Display labels for slot fields, keyed by query_kater_id then field name
    */
   field_labels?: { [key: string]: { [key: string]: string } };
+
+  /**
+   * Rich metadata for slot fields, keyed by query_kater_id then field name
+   */
+  field_metadata?: { [key: string]: { [key: string]: CompilerEnumerateResponse.FieldMetadataItemResponse } };
 
   /**
    * Effective filter definitions keyed by query_kater_id
@@ -1943,6 +3446,42 @@ export namespace CompilerEnumerateResponse {
     export interface NullFilterValue {
       mode?: 'null';
     }
+  }
+
+  /**
+   * Metadata for a single field in a query's enumerate result.
+   */
+  export interface FieldMetadataItemResponse {
+    /**
+     * Field type: measure, dimension, dimension_date, or calculation
+     */
+    field_type: string;
+
+    description?: string | null;
+
+    /**
+     * SQL expression (measure sql, calculation formula, derived dimension sql)
+     */
+    formula?: string | null;
+
+    kater_id?: string | null;
+
+    label?: string | null;
+
+    /**
+     * Return data type for calculations, e.g. 'number'
+     */
+    output_type?: string | null;
+
+    /**
+     * Formatted parameter strings for calculations, e.g. ['metric: measure']
+     */
+    params?: Array<string> | null;
+
+    /**
+     * Source file path and line number, e.g. measures/compliance_rate.yaml#L12
+     */
+    source_path?: string | null;
   }
 
   /**
@@ -2467,6 +4006,8 @@ export namespace CompilerEnumerateResponse {
 
     default?: string | number | boolean | Array<string | number | boolean> | null;
 
+    description?: string | null;
+
     label?: string | null;
   }
 
@@ -2554,6 +4095,17 @@ export interface CompilerExecuteResponse {
    * Compilation metadata from the compiler.
    */
   metadata?: CompilerExecuteResponse.Metadata | null;
+
+  /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  rendered_query_key?: CompilerExecuteResponse.RenderedQueryKey | null;
 
   /**
    * Number of rows returned
@@ -2726,7 +4278,7 @@ export namespace CompilerExecuteResponse {
     field_type: string;
 
     /**
-     * UUID string used as SQL column alias
+     * Authored source field UUID
      */
     kater_id: string;
 
@@ -2736,15 +4288,30 @@ export namespace CompilerExecuteResponse {
     name: string;
 
     /**
+     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
+     */
+    active_timeframe?: string | null;
+
+    /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
      * non-measures.
      */
     aggregation?: string | null;
 
     /**
+     * SQL result alias for this concrete output column.
+     */
+    column_key?: string | null;
+
+    /**
      * Display label
      */
     label?: string | null;
+
+    /**
+     * Authored source field UUID for derived timeframe columns.
+     */
+    source_kater_id?: string | null;
   }
 
   /**
@@ -2780,6 +4347,682 @@ export namespace CompilerExecuteResponse {
      * View names used in compilation
      */
     views_used?: Array<string>;
+  }
+
+  /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  export interface RenderedQueryKey {
+    /**
+     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     */
+    aggregate_cache_key_id: string | null;
+
+    /**
+     * The canonical sub-document. Hashing this produces `key_id`.
+     */
+    canonical: RenderedQueryKey.Canonical;
+
+    /**
+     * rqk_cache_exact_v1:<sha256-hex>
+     */
+    exact_cache_key_id: string;
+
+    /**
+     * rqk_v1:<sha256-hex>
+     */
+    key_id: string;
+
+    version: 1;
+  }
+
+  export namespace RenderedQueryKey {
+    /**
+     * The canonical sub-document. Hashing this produces `key_id`.
+     */
+    export interface Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      cache_projection: Canonical.CacheProjection;
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      contract: Canonical.Contract;
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      dashboard: Canonical.Dashboard;
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      fields: Canonical.Fields;
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      filters: Canonical.Filters;
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      presentation: Canonical.Presentation;
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      query: Canonical.Query;
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      result_window: Canonical.ResultWindow;
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      source: Canonical.Source;
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      temporal: Canonical.Temporal;
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      tenant: Canonical.Tenant;
+
+      variables: Array<Canonical.Variable>;
+    }
+
+    export namespace Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      export interface CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        aggregate: CacheProjection.Aggregate | null;
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        exact: CacheProjection.Exact;
+
+        version: 1;
+      }
+
+      export namespace CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        export interface Aggregate {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          dimensions: Array<Aggregate.Dimension>;
+
+          filters: Array<Aggregate.Filter>;
+
+          measures: Array<Aggregate.Measure>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Aggregate.Variable>;
+        }
+
+        export namespace Aggregate {
+          /**
+           * Dimension entry inside the aggregate cache projection.
+           *
+           * `source_kater_id` is required (not nullable) here so two timeframe variants of
+           * the same temporal source dimension produce different cache projections.
+           */
+          export interface Dimension {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            source_kater_id: string;
+          }
+
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Measure entry inside the aggregate cache projection.
+           *
+           * `aggregation` is required (no None): an eligible aggregate cache always has a
+           * concrete aggregation function.
+           */
+          export interface Measure {
+            aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown';
+
+            column_key: string;
+
+            kater_id: string;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        export interface Exact {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          filters: Array<Exact.Filter>;
+
+          output_columns: Array<Exact.OutputColumn>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          result_window: Exact.ResultWindow;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Exact.Variable>;
+        }
+
+        export namespace Exact {
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Column entry inside the exact cache projection.
+           */
+          export interface OutputColumn {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            kater_id: string;
+
+            source_kater_id: string | null;
+          }
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          export interface ResultWindow {
+            cursor: string | null;
+
+            effective_limit: number | null;
+
+            max_row_limit: number | null;
+
+            page_size: number | null;
+
+            query_limit: number | null;
+
+            sort_by: string | null;
+
+            sort_order: 'asc' | 'desc' | null;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+      }
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      export interface Contract {
+        compiler_version: string;
+
+        filter_state_version: 2;
+
+        key_schema: 'RenderedQueryKeyV1';
+
+        key_version: 1;
+
+        widget_config_version: string;
+      }
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      export interface Dashboard {
+        dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+        dashboard_kater_id: string | null;
+
+        dashboard_name: string | null;
+
+        slot_name: string | null;
+
+        widget_kater_id: string | null;
+
+        widget_name: string | null;
+      }
+
+      export namespace Dashboard {
+        /**
+         * Shared dashboard filter state mapped to slot-specific effective filters.
+         */
+        export interface DashboardFilterState {
+          applied_slot_effective_kater_ids: Array<string>;
+
+          dashboard_effective_kater_id: string;
+
+          enabled: boolean;
+
+          normalized_value: string | null;
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      export interface Fields {
+        active_fields: Array<Fields.ActiveField>;
+
+        output_columns: Array<Fields.OutputColumn>;
+
+        selected_fields: Array<Fields.SelectedField>;
+      }
+
+      export namespace Fields {
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface ActiveField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+
+        /**
+         * An output column entry in `canonical.fields.output_columns`.
+         */
+        export interface OutputColumn {
+          /**
+           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
+           */
+          active_timeframe: string | null;
+
+          aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
+
+          /**
+           * SQL result alias / row payload key
+           */
+          column_key: string;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          /**
+           * Authored source field UUID
+           */
+          kater_id: string;
+
+          label: string | null;
+
+          name: string;
+
+          /**
+           * Zero-based output column position
+           */
+          output_index: number;
+
+          role: string | null;
+
+          slot: 'required' | 'optional';
+
+          /**
+           * Source field UUID when derived from an authored field
+           */
+          source_kater_id: string | null;
+        }
+
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface SelectedField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+      }
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      export interface Filters {
+        effective_filters: Array<Filters.EffectiveFilter>;
+      }
+
+      export namespace Filters {
+        /**
+         * An effective filter entry in `canonical.filters.effective_filters`.
+         */
+        export interface EffectiveFilter {
+          data_type: string;
+
+          declaration_kater_ids: Array<string>;
+
+          effective_kater_id: string;
+
+          enabled: boolean;
+
+          expression: string;
+
+          field_active_timeframe: string | null;
+
+          field_column_key: string | null;
+
+          field_kater_id: string | null;
+
+          field_source_kater_id: string | null;
+
+          label: string | null;
+
+          mode: 'static' | 'parameterized';
+
+          name: string;
+
+          normalized_value: string | null;
+
+          owner_chain: Array<string>;
+
+          required: boolean;
+
+          scope: 'model' | 'topic' | 'dashboard' | 'query';
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      export interface Presentation {
+        chart: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        config_fingerprint: string;
+
+        display: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        /**
+         * Widget role -> column_key (not human-readable field name)
+         */
+        roles: { [key: string]: string };
+
+        style: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        widget_category: string;
+
+        widget_type: string | null;
+      }
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      export interface Query {
+        pinned_variant: string | null;
+
+        query_kater_id: string;
+
+        resolved_query_fingerprint: string;
+
+        /**
+         * Provenance only — consumers must not treat as identity
+         */
+        source_query_ref: string;
+      }
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      export interface ResultWindow {
+        cursor: string | null;
+
+        effective_limit: number | null;
+
+        max_row_limit: number | null;
+
+        page_size: number | null;
+
+        query_limit: number | null;
+
+        sort_by: string | null;
+
+        sort_order: 'asc' | 'desc' | null;
+      }
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      export interface Source {
+        connection_config_fingerprint: string;
+
+        connection_kater_id: string;
+
+        dependency_graph_fingerprint: string | null;
+
+        manifest_fingerprint: string | null;
+
+        source_fingerprint: string;
+
+        source_kind: 'saved_repo' | 'branch' | 'dev_session';
+
+        source_ref: string | null;
+
+        theme_fingerprint: string | null;
+
+        widget_registry_fingerprint: string;
+      }
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      export interface Temporal {
+        /**
+         * ISO timestamp resolved once at the start of canonicalization
+         */
+        as_of: string;
+
+        timezone: string;
+      }
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      export interface Tenant {
+        client_id: string;
+
+        tenancy_mode: 'none' | 'row' | 'database';
+
+        tenant_attribute_fingerprint: string | null;
+
+        tenant_database: string | null;
+
+        tenant_key: string;
+      }
+
+      /**
+       * A variable applied to compile or post-assembly runtime substitution.
+       */
+      export interface Variable {
+        is_runtime: boolean;
+
+        name: string;
+
+        /**
+         * Deterministic string used for hashing and cache projection
+         */
+        normalized_value: string;
+
+        query_kater_id: string;
+
+        scope: 'query' | 'global';
+
+        source: 'default' | 'request' | 'pinned_variant' | 'dashboard';
+
+        /**
+         * Display/debug value (free-form JSON)
+         */
+        value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+        variable_kater_id: string | null;
+      }
+    }
   }
 }
 
@@ -2821,6 +5064,17 @@ export interface CompilerResolveResponse {
    * Files auto-fixed due to renamed refs. None when no renames detected.
    */
   ref_fixes?: Array<CompilerResolveResponse.RefFix> | null;
+
+  /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  rendered_query_key?: CompilerResolveResponse.RenderedQueryKey | null;
 
   /**
    * Write-back request ID. Non-null when ref-fix files were dispatched to CLI via
@@ -3207,7 +5461,8 @@ export namespace CompilerResolveResponse {
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
-        | 'FILTER';
+        | 'FILTER'
+        | 'TIMEFRAME';
 
       /**
        * Allowed values configuration
@@ -4245,6 +6500,682 @@ export namespace CompilerResolveResponse {
       old_ref: string;
     }
   }
+
+  /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  export interface RenderedQueryKey {
+    /**
+     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     */
+    aggregate_cache_key_id: string | null;
+
+    /**
+     * The canonical sub-document. Hashing this produces `key_id`.
+     */
+    canonical: RenderedQueryKey.Canonical;
+
+    /**
+     * rqk_cache_exact_v1:<sha256-hex>
+     */
+    exact_cache_key_id: string;
+
+    /**
+     * rqk_v1:<sha256-hex>
+     */
+    key_id: string;
+
+    version: 1;
+  }
+
+  export namespace RenderedQueryKey {
+    /**
+     * The canonical sub-document. Hashing this produces `key_id`.
+     */
+    export interface Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      cache_projection: Canonical.CacheProjection;
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      contract: Canonical.Contract;
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      dashboard: Canonical.Dashboard;
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      fields: Canonical.Fields;
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      filters: Canonical.Filters;
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      presentation: Canonical.Presentation;
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      query: Canonical.Query;
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      result_window: Canonical.ResultWindow;
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      source: Canonical.Source;
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      temporal: Canonical.Temporal;
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      tenant: Canonical.Tenant;
+
+      variables: Array<Canonical.Variable>;
+    }
+
+    export namespace Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      export interface CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        aggregate: CacheProjection.Aggregate | null;
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        exact: CacheProjection.Exact;
+
+        version: 1;
+      }
+
+      export namespace CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        export interface Aggregate {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          dimensions: Array<Aggregate.Dimension>;
+
+          filters: Array<Aggregate.Filter>;
+
+          measures: Array<Aggregate.Measure>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Aggregate.Variable>;
+        }
+
+        export namespace Aggregate {
+          /**
+           * Dimension entry inside the aggregate cache projection.
+           *
+           * `source_kater_id` is required (not nullable) here so two timeframe variants of
+           * the same temporal source dimension produce different cache projections.
+           */
+          export interface Dimension {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            source_kater_id: string;
+          }
+
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Measure entry inside the aggregate cache projection.
+           *
+           * `aggregation` is required (no None): an eligible aggregate cache always has a
+           * concrete aggregation function.
+           */
+          export interface Measure {
+            aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown';
+
+            column_key: string;
+
+            kater_id: string;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        export interface Exact {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          filters: Array<Exact.Filter>;
+
+          output_columns: Array<Exact.OutputColumn>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          result_window: Exact.ResultWindow;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Exact.Variable>;
+        }
+
+        export namespace Exact {
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Column entry inside the exact cache projection.
+           */
+          export interface OutputColumn {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            kater_id: string;
+
+            source_kater_id: string | null;
+          }
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          export interface ResultWindow {
+            cursor: string | null;
+
+            effective_limit: number | null;
+
+            max_row_limit: number | null;
+
+            page_size: number | null;
+
+            query_limit: number | null;
+
+            sort_by: string | null;
+
+            sort_order: 'asc' | 'desc' | null;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+      }
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      export interface Contract {
+        compiler_version: string;
+
+        filter_state_version: 2;
+
+        key_schema: 'RenderedQueryKeyV1';
+
+        key_version: 1;
+
+        widget_config_version: string;
+      }
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      export interface Dashboard {
+        dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+        dashboard_kater_id: string | null;
+
+        dashboard_name: string | null;
+
+        slot_name: string | null;
+
+        widget_kater_id: string | null;
+
+        widget_name: string | null;
+      }
+
+      export namespace Dashboard {
+        /**
+         * Shared dashboard filter state mapped to slot-specific effective filters.
+         */
+        export interface DashboardFilterState {
+          applied_slot_effective_kater_ids: Array<string>;
+
+          dashboard_effective_kater_id: string;
+
+          enabled: boolean;
+
+          normalized_value: string | null;
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      export interface Fields {
+        active_fields: Array<Fields.ActiveField>;
+
+        output_columns: Array<Fields.OutputColumn>;
+
+        selected_fields: Array<Fields.SelectedField>;
+      }
+
+      export namespace Fields {
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface ActiveField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+
+        /**
+         * An output column entry in `canonical.fields.output_columns`.
+         */
+        export interface OutputColumn {
+          /**
+           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
+           */
+          active_timeframe: string | null;
+
+          aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
+
+          /**
+           * SQL result alias / row payload key
+           */
+          column_key: string;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          /**
+           * Authored source field UUID
+           */
+          kater_id: string;
+
+          label: string | null;
+
+          name: string;
+
+          /**
+           * Zero-based output column position
+           */
+          output_index: number;
+
+          role: string | null;
+
+          slot: 'required' | 'optional';
+
+          /**
+           * Source field UUID when derived from an authored field
+           */
+          source_kater_id: string | null;
+        }
+
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface SelectedField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+      }
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      export interface Filters {
+        effective_filters: Array<Filters.EffectiveFilter>;
+      }
+
+      export namespace Filters {
+        /**
+         * An effective filter entry in `canonical.filters.effective_filters`.
+         */
+        export interface EffectiveFilter {
+          data_type: string;
+
+          declaration_kater_ids: Array<string>;
+
+          effective_kater_id: string;
+
+          enabled: boolean;
+
+          expression: string;
+
+          field_active_timeframe: string | null;
+
+          field_column_key: string | null;
+
+          field_kater_id: string | null;
+
+          field_source_kater_id: string | null;
+
+          label: string | null;
+
+          mode: 'static' | 'parameterized';
+
+          name: string;
+
+          normalized_value: string | null;
+
+          owner_chain: Array<string>;
+
+          required: boolean;
+
+          scope: 'model' | 'topic' | 'dashboard' | 'query';
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      export interface Presentation {
+        chart: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        config_fingerprint: string;
+
+        display: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        /**
+         * Widget role -> column_key (not human-readable field name)
+         */
+        roles: { [key: string]: string };
+
+        style: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        widget_category: string;
+
+        widget_type: string | null;
+      }
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      export interface Query {
+        pinned_variant: string | null;
+
+        query_kater_id: string;
+
+        resolved_query_fingerprint: string;
+
+        /**
+         * Provenance only — consumers must not treat as identity
+         */
+        source_query_ref: string;
+      }
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      export interface ResultWindow {
+        cursor: string | null;
+
+        effective_limit: number | null;
+
+        max_row_limit: number | null;
+
+        page_size: number | null;
+
+        query_limit: number | null;
+
+        sort_by: string | null;
+
+        sort_order: 'asc' | 'desc' | null;
+      }
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      export interface Source {
+        connection_config_fingerprint: string;
+
+        connection_kater_id: string;
+
+        dependency_graph_fingerprint: string | null;
+
+        manifest_fingerprint: string | null;
+
+        source_fingerprint: string;
+
+        source_kind: 'saved_repo' | 'branch' | 'dev_session';
+
+        source_ref: string | null;
+
+        theme_fingerprint: string | null;
+
+        widget_registry_fingerprint: string;
+      }
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      export interface Temporal {
+        /**
+         * ISO timestamp resolved once at the start of canonicalization
+         */
+        as_of: string;
+
+        timezone: string;
+      }
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      export interface Tenant {
+        client_id: string;
+
+        tenancy_mode: 'none' | 'row' | 'database';
+
+        tenant_attribute_fingerprint: string | null;
+
+        tenant_database: string | null;
+
+        tenant_key: string;
+      }
+
+      /**
+       * A variable applied to compile or post-assembly runtime substitution.
+       */
+      export interface Variable {
+        is_runtime: boolean;
+
+        name: string;
+
+        /**
+         * Deterministic string used for hashing and cache projection
+         */
+        normalized_value: string;
+
+        query_kater_id: string;
+
+        scope: 'query' | 'global';
+
+        source: 'default' | 'request' | 'pinned_variant' | 'dashboard';
+
+        /**
+         * Display/debug value (free-form JSON)
+         */
+        value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+        variable_kater_id: string | null;
+      }
+    }
+  }
 }
 
 /**
@@ -4839,7 +7770,8 @@ export namespace CompilerCompileParams {
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
-        | 'FILTER';
+        | 'FILTER'
+        | 'TIMEFRAME';
 
       /**
        * Allowed values configuration
@@ -5735,7 +8667,8 @@ export namespace CompilerExecuteParams {
         | 'DIMENSION'
         | 'MEASURE'
         | 'CALCULATION'
-        | 'FILTER';
+        | 'FILTER'
+        | 'TIMEFRAME';
 
       /**
        * Allowed values configuration
