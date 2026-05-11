@@ -15,16 +15,18 @@ Types:
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileDashboardResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerEnumerateResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerExecuteResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerRenderResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerResolveResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerValidateResponse</a></code>
 
 Methods:
 
-- <code title="post /api/v1/compiler/compile">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
+- <code title="post /api/v1/compiler/compile/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
 - <code title="post /api/v1/compiler/dashboard">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compileDashboard</a>({ ...params }) -> CompilerCompileDashboardResponse</code>
 - <code title="post /api/v1/compiler/enumerate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">enumerate</a>({ ...params }) -> CompilerEnumerateResponse</code>
-- <code title="post /api/v1/compiler/execute">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">execute</a>({ ...params }) -> CompilerExecuteResponse</code>
-- <code title="post /api/v1/compiler/resolve">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
+- <code title="post /api/v1/compiler/execute/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">execute</a>({ ...params }) -> CompilerExecuteResponse</code>
+- <code title="post /api/v1/compiler/render">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">render</a>({ ...params }) -> CompilerRenderResponse</code>
+- <code title="post /api/v1/compiler/resolve/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
 - <code title="post /api/v1/compiler/validate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">validate</a>({ ...params }) -> CompilerValidateResponse</code>
 
 ### Cache
@@ -48,6 +50,18 @@ Types:
 Methods:
 
 - <code title="post /api/v1/compiler/manifest/recovery-pr">client.v1.compiler.manifest.<a href="./src/resources/v1/compiler/manifest.ts">regenerateAndCreatePr</a>({ ...params }) -> ManifestRegenerateAndCreatePrResponse</code>
+
+### Capabilities
+
+Types:
+
+- <code><a href="./src/resources/v1/compiler/capabilities.ts">CapabilityCreateResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/capabilities.ts">CapabilitySampleResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/compiler/capabilities">client.v1.compiler.capabilities.<a href="./src/resources/v1/compiler/capabilities.ts">create</a>({ ...params }) -> CapabilityCreateResponse</code>
+- <code title="post /api/v1/compiler/capabilities/sample">client.v1.compiler.capabilities.<a href="./src/resources/v1/compiler/capabilities.ts">sample</a>({ ...params }) -> CapabilitySampleResponse</code>
 
 ## Connections
 
@@ -125,6 +139,18 @@ Types:
 Methods:
 
 - <code title="get /api/v1/tenant/mcp/{mcp_id}/oauth/authorize">client.v1.connections.tenant.mcp.oauth.<a href="./src/resources/v1/connections/tenant/mcp/oauth.ts">initiate</a>(mcpID, { ...params }) -> OAuthInitiateResponse</code>
+
+### SDK
+
+#### Widget
+
+Types:
+
+- <code><a href="./src/resources/v1/connections/sdk/widget.ts">WidgetRenderResponse</a></code>
+
+Methods:
+
+- <code title="post /api/v1/sdk/widget/render">client.v1.connections.sdk.widget.<a href="./src/resources/v1/connections/sdk/widget.ts">render</a>({ ...params }) -> WidgetRenderResponse</code>
 
 ## Tenants
 

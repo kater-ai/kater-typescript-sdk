@@ -3,6 +3,8 @@
 import { APIResource } from '../../../core/resource';
 import * as OAuthAPI from './oauth';
 import { OAuth, OAuthHandleCallbackParams, OAuthHandleCallbackResponse } from './oauth';
+import * as SDKAPI from './sdk/sdk';
+import { SDK } from './sdk/sdk';
 import * as TenantAPI from './tenant/tenant';
 import { Tenant } from './tenant/tenant';
 import * as ClientAPI from './client/client';
@@ -17,6 +19,7 @@ export class Connections extends APIResource {
   client: ClientAPI.Client = new ClientAPI.Client(this._client);
   oauth: OAuthAPI.OAuth = new OAuthAPI.OAuth(this._client);
   tenant: TenantAPI.Tenant = new TenantAPI.Tenant(this._client);
+  sdk: SDKAPI.SDK = new SDKAPI.SDK(this._client);
 
   /**
    * List warehouse connections for the client.
@@ -338,6 +341,7 @@ export interface ConnectionListConnectionsParams {
 Connections.Client = Client;
 Connections.OAuth = OAuth;
 Connections.Tenant = Tenant;
+Connections.SDK = SDK;
 
 export declare namespace Connections {
   export {
@@ -355,4 +359,6 @@ export declare namespace Connections {
   };
 
   export { Tenant as Tenant };
+
+  export { SDK as SDK };
 }

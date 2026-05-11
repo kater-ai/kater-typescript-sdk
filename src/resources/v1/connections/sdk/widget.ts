@@ -1,35 +1,37 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../../../core/resource';
-import * as CompilerAPI from './compiler';
-import { APIPromise } from '../../../core/api-promise';
-import { buildHeaders } from '../../../internal/headers';
-import { RequestOptions } from '../../../internal/request-options';
+import { APIResource } from '../../../../core/resource';
+import * as CompilerAPI from '../../compiler/compiler';
+import { APIPromise } from '../../../../core/api-promise';
+import { buildHeaders } from '../../../../internal/headers';
+import { RequestOptions } from '../../../../internal/request-options';
 
 /**
- * Validate, resolve, and compile query templates to SQL
+ * SDK token management for embedded analytics
  */
-export class Combination extends APIResource {
+export class Widget extends APIResource {
   /**
-   * Preview a single combination: resolve, compile, execute, and build config.
+   * Render a single SDK widget from a `RenderedQueryRequestV1` body.
    *
-   * Chains existing services to provide a single-call preview for the query gallery.
-   * Returns data + WidgetConfig for immediate rendering.
+   * The structured replacement for `GET /api/v1/sdk/widget?combination_id=...`. The
+   * handler:
    *
-   * RLS: Filtered to current client (ClientRLSDB).
+   * 1. Resolves the SDK filesystem (reusing the legacy `_resolve_sdk_filesystem`
+   *    helper).
+   * 2. Calls `share_render_request_resolution(...)` with the SDK auth context.
+   *    Tenant key comes from the SDK token's `tenant_key` claim.
+   * 3. Awaits `RenderService.render(...)` for the full pipeline.
+   * 4. Calls `share_response_metadata_builder(...)` with
+   *    `route_label="sdk.widget_render"` and `validate_sort_by=True`.
+   * 5. Projects the `RenderResponse` onto `SdkWidgetResponse` (the existing model
+   *    from `routes/client/sdk/models.py:156`).
    *
-   * Migration: this is the legacy combination-string path. The target consumer
-   * surface is `POST /api/v1/compiler/render` (delivered by the remove-combos
-   * prerequisite PRD at `_bmad-output/epics/demo/patch/remove-combos/prd.md`). The
-   * new `rendered_query_key` field on the response is shared between both paths to
-   * enable cross-consumer state during the migration window.
+   * Pydantic `extra="forbid"` (inherited from `RenderedQueryRequestV1`) rejects
+   * `combination` / `combination_id` fields with HTTP 422.
    */
-  preview(
-    params: CombinationPreviewParams,
-    options?: RequestOptions,
-  ): APIPromise<CombinationPreviewResponse> {
+  render(params: WidgetRenderParams, options?: RequestOptions): APIPromise<WidgetRenderResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
-    return this._client.post('/api/v1/compiler/combination/preview', {
+    return this._client.post('/api/v1/sdk/widget/render', {
       query: { source },
       body,
       ...options,
@@ -37,32 +39,28 @@ export class Combination extends APIResource {
         { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
         options?.headers,
       ]),
+      __security: {},
     });
   }
 }
 
 /**
- * Response from combination preview with data + resolved config.
+ * Response from GET /api/v1/sdk/widget.
  *
- * Legacy migration surface: this response is produced by the legacy
- * combination-string path (`POST /api/v1/compiler/combination/preview`). The
- * target consumer surface is the structured render endpoint
- * (`POST /api/v1/compiler/render`, delivered by the remove-combos prerequisite at
- * `_bmad-output/epics/demo/patch/remove-combos/prd.md`), which accepts a
- * `RenderedQueryRequestV1` instead of a `combination` string. Both paths return
- * the same `rendered_query_key` for equivalent logical inputs (verified by the
- * deferred parity test once the structured render endpoint lands).
+ * Returns a single widget's data + config for SDK consumers, plus a canonical
+ * `rendered_query_key` for stable cross-consumer identity. Shape matches
+ * CombinationPreviewResponse (minus internal metrics).
  */
-export interface CombinationPreviewResponse {
+export interface WidgetRenderResponse {
   /**
-   * Whether preview succeeded
+   * Whether the preview succeeded
    */
   success: boolean;
 
   /**
-   * Applied runtime filter state used for the preview
+   * Applied runtime filter state for this widget preview
    */
-  applied_filter_state?: Array<CombinationPreviewResponse.AppliedFilterState>;
+  applied_filter_state?: Array<WidgetRenderResponse.AppliedFilterState>;
 
   /**
    * Auto-generated title
@@ -70,24 +68,24 @@ export interface CombinationPreviewResponse {
   auto_title?: string | null;
 
   /**
-   * Whether the result was served from cache
+   * Column metadata
    */
-  cache_hit?: boolean;
-
-  /**
-   * Enriched column metadata
-   */
-  column_map?: Array<CombinationPreviewResponse.ColumnMap>;
+  column_map?: Array<WidgetRenderResponse.ColumnMap>;
 
   /**
    * Per-column statistical profiles keyed by kater_id (UUID column alias).
    */
-  column_profiles?: { [key: string]: CombinationPreviewResponse.ColumnProfiles };
+  column_profiles?: { [key: string]: WidgetRenderResponse.ColumnProfiles };
 
   /**
-   * Resolved WidgetConfig (from config builder)
+   * Resolved WidgetConfig
    */
   config?: { [key: string]: unknown };
+
+  /**
+   * Backend-owned widget config controls for the query builder panel.
+   */
+  config_controls?: WidgetRenderResponse.ConfigControls;
 
   /**
    * Query result rows
@@ -95,29 +93,54 @@ export interface CombinationPreviewResponse {
   data?: Array<{ [key: string]: unknown }>;
 
   /**
-   * Default runtime filter state derived from filter definitions
+   * Default runtime filter state for this widget preview
    */
-  default_filter_state?: Array<CombinationPreviewResponse.DefaultFilterState>;
+  default_filter_state?: Array<WidgetRenderResponse.DefaultFilterState>;
 
   /**
    * Two-field deprecation block embedded in response payloads.
    */
-  deprecation?: CombinationPreviewResponse.Deprecation | null;
+  deprecation?: WidgetRenderResponse.Deprecation | null;
 
   /**
-   * Compilation errors (if any)
+   * Warehouse dialect (e.g. snowflake, postgresql, databricks)
+   */
+  dialect?: string | null;
+
+  /**
+   * Compilation errors
    */
   errors?: Array<CompilerAPI.CompilerErrorItem>;
 
   /**
-   * Total execution time in milliseconds
+   * Resolved effective filter definitions for this widget preview
    */
-  execution_time_ms?: number;
+  filter_definitions?: Array<WidgetRenderResponse.FilterDefinition>;
 
   /**
-   * Resolved effective filter definitions for this preview
+   * Whether additional table rows can be fetched with next_cursor
    */
-  filter_definitions?: Array<CombinationPreviewResponse.FilterDefinition>;
+  has_more?: boolean;
+
+  /**
+   * Structured runtime insight results for this widget preview.
+   */
+  insight_runs?: Array<WidgetRenderResponse.InsightRun>;
+
+  /**
+   * True when the app-wide row limit was applied and results were truncated
+   */
+  is_row_limited?: boolean;
+
+  /**
+   * Opaque cursor for fetching the next table page
+   */
+  next_cursor?: string | null;
+
+  /**
+   * Number of rows requested per table page
+   */
+  page_size?: number | null;
 
   /**
    * Top-level natural key returned by every runtime data and widget path.
@@ -128,12 +151,17 @@ export interface CombinationPreviewResponse {
    * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
    * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
    */
-  rendered_query_key?: CombinationPreviewResponse.RenderedQueryKey | null;
+  rendered_query_key?: WidgetRenderResponse.RenderedQueryKey | null;
 
   /**
-   * Total rows represented by this preview
+   * Total rows represented by this widget result
    */
   row_count?: number;
+
+  /**
+   * Compiled SQL query
+   */
+  sql?: string | null;
 
   /**
    * Totals row over returned measure columns (UUID alias keys)
@@ -141,12 +169,12 @@ export interface CombinationPreviewResponse {
   totals_row?: { [key: string]: unknown } | null;
 
   /**
-   * Resolved widget type (e.g. 'axis_metric_by_dimensiondate')
+   * Resolved widget type
    */
   widget_type?: string | null;
 }
 
-export namespace CombinationPreviewResponse {
+export namespace WidgetRenderResponse {
   /**
    * Resolved runtime filter state exposed by the V2 API contract.
    */
@@ -406,6 +434,45 @@ export namespace CombinationPreviewResponse {
      * Population standard deviation.
      */
     stdev?: number | null;
+  }
+
+  /**
+   * Backend-owned widget config controls for the query builder panel.
+   */
+  export interface ConfigControls {
+    /**
+     * Chart config controls keyed by field name
+     */
+    chart?: { [key: string]: ConfigControls.Chart };
+  }
+
+  export namespace ConfigControls {
+    /**
+     * Backend-owned metadata for a widget config control.
+     */
+    export interface Chart {
+      /**
+       * Selectable options for the control when applicable
+       */
+      options?: Array<Chart.Option>;
+    }
+
+    export namespace Chart {
+      /**
+       * Single select option for a backend-owned widget config control.
+       */
+      export interface Option {
+        /**
+         * Human-readable display label
+         */
+        label: string;
+
+        /**
+         * Underlying config value
+         */
+        value: string;
+      }
+    }
   }
 
   /**
@@ -1040,6 +1107,80 @@ export namespace CombinationPreviewResponse {
       sort?: 'asc' | 'desc' | null;
 
       source?: 'dynamic_distinct';
+    }
+  }
+
+  /**
+   * Validated structured output for a completed insight run.
+   */
+  export interface InsightRun {
+    findings?: Array<InsightRun.Finding>;
+
+    metadata?: { [key: string]: unknown } | null;
+
+    /**
+     * Top-level summary for an insight run.
+     */
+    summary?: InsightRun.Summary | null;
+  }
+
+  export namespace InsightRun {
+    /**
+     * Single analytical finding emitted by an insight run.
+     */
+    export interface Finding {
+      kind: string;
+
+      summary: string;
+
+      confidence?: number | null;
+
+      details?: Array<string>;
+
+      evidence?: Array<Finding.Evidence>;
+
+      follow_ups?: Array<Finding.FollowUp>;
+
+      metadata?: { [key: string]: unknown } | null;
+
+      severity?: 'info' | 'positive' | 'warning' | 'critical' | null;
+    }
+
+    export namespace Finding {
+      /**
+       * Structured evidence attached to a finding.
+       */
+      export interface Evidence {
+        label: string;
+
+        value: string | number | boolean;
+
+        description?: string | null;
+      }
+
+      /**
+       * Structured action hint emitted by an insight finding.
+       */
+      export interface FollowUp {
+        id: string;
+
+        instructions: string;
+
+        label: string;
+
+        payload?: { [key: string]: unknown } | null;
+      }
+    }
+
+    /**
+     * Top-level summary for an insight run.
+     */
+    export interface Summary {
+      text: string;
+
+      confidence?: number | null;
+
+      severity?: 'info' | 'positive' | 'warning' | 'critical' | null;
     }
   }
 
@@ -1720,29 +1861,60 @@ export namespace CombinationPreviewResponse {
   }
 }
 
-export interface CombinationPreviewParams {
+export interface WidgetRenderParams {
   /**
-   * Body param: Comma-separated slot selections, same format as
-   * ResolveRequest.combination. Example:
-   * 'dimension=due_month,measure=compliance_rate'
-   */
-  combination: string;
-
-  /**
-   * Body param: Connection to preview against
+   * Body param
    */
   connection_id: string;
 
   /**
-   * Body param: UUID of the query template
+   * Body param: Dashboard context block in `RenderedQueryRequestV1`.
    */
-  query_id: string;
+  dashboard: WidgetRenderParams.Dashboard | null;
 
   /**
-   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
-   * no-tenancy clients.
+   * Body param: Structured field selection: source field IDs plus optional grain
+   * overrides.
    */
-  tenant_key: string;
+  field_selection: WidgetRenderParams.FieldSelection;
+
+  /**
+   * Body param
+   */
+  filter_state: Array<WidgetRenderParams.FilterState>;
+
+  /**
+   * Body param
+   */
+  pinned_variant: string | null;
+
+  /**
+   * Body param: Presentation config block in `RenderedQueryRequestV1`.
+   */
+  presentation: WidgetRenderParams.Presentation;
+
+  /**
+   * Body param
+   */
+  query_kater_id: string;
+
+  /**
+   * Body param: Result window block in `RenderedQueryRequestV1` (consumers do not
+   * supply backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  result_window: WidgetRenderParams.ResultWindow;
+
+  /**
+   * Body param: Request clock block in `RenderedQueryRequestV1`. Either field may be
+   * `null` on the request; the backend resolves both before canonicalization (the
+   * canonical `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  temporal: WidgetRenderParams.Temporal;
+
+  /**
+   * Body param
+   */
+  variables: Array<WidgetRenderParams.Variable>;
 
   /**
    * Query param
@@ -1750,23 +1922,175 @@ export interface CombinationPreviewParams {
   source?: string | null;
 
   /**
-   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
-   * ID.
-   */
-  filter_state?: Array<CombinationPreviewParams.FilterState> | null;
-
-  /**
-   * Body param: Optional pinned variant name (e.g. '\_base').
-   */
-  pinned_variant?: string | null;
-
-  /**
    * Header param
    */
   'X-Kater-CLI-ID'?: string;
 }
 
-export namespace CombinationPreviewParams {
+export namespace WidgetRenderParams {
+  /**
+   * Dashboard context block in `RenderedQueryRequestV1`.
+   */
+  export interface Dashboard {
+    dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+    dashboard_kater_id: string | null;
+
+    slot_name: string | null;
+
+    widget_kater_id: string | null;
+  }
+
+  export namespace Dashboard {
+    export interface DashboardFilterState {
+      /**
+       * Stable effective runtime filter ID
+       */
+      effective_kater_id: string;
+
+      /**
+       * Requested enabled state override for this effective filter
+       */
+      enabled?: boolean | null;
+
+      /**
+       * Requested runtime value override for this effective filter
+       */
+      value?:
+        | DashboardFilterState.ScalarFilterValue
+        | DashboardFilterState.MultiFilterValue
+        | DashboardFilterState.NumberRangeFilterValue
+        | DashboardFilterState.AbsoluteDateFilterValue
+        | DashboardFilterState.AbsoluteRangeFilterValue
+        | DashboardFilterState.RelativeRangeFilterValue
+        | DashboardFilterState.PresetReferenceFilterValue
+        | DashboardFilterState.NullFilterValue
+        | null;
+    }
+
+    export namespace DashboardFilterState {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+  }
+
+  /**
+   * Structured field selection: source field IDs plus optional grain overrides.
+   */
+  export interface FieldSelection {
+    selected_field_ids: Array<string>;
+
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+  }
+
+  export namespace FieldSelection {
+    /**
+     * Runtime grain choice for a temporal source dimension.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
+    }
+  }
+
   export interface FilterState {
     /**
      * Stable effective runtime filter ID
@@ -1892,11 +2216,80 @@ export namespace CombinationPreviewParams {
       mode?: 'null';
     }
   }
+
+  /**
+   * Presentation config block in `RenderedQueryRequestV1`.
+   */
+  export interface Presentation {
+    chart?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    display?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    style?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+  }
+
+  /**
+   * Result window block in `RenderedQueryRequestV1` (consumers do not supply
+   * backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  export interface ResultWindow {
+    cursor: string | null;
+
+    page_size: number | null;
+
+    sort_by: string | null;
+
+    sort_order: 'asc' | 'desc' | null;
+  }
+
+  /**
+   * Request clock block in `RenderedQueryRequestV1`. Either field may be `null` on
+   * the request; the backend resolves both before canonicalization (the canonical
+   * `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  export interface Temporal {
+    as_of: string | null;
+
+    timezone: string | null;
+  }
+
+  /**
+   * Runtime variable value as supplied in a `RenderedQueryRequestV1`.
+   *
+   * `variable_kater_id` is preferred. Until every surface exposes it,
+   * `(query_kater_id, scope, name)` is the migration fallback identity.
+   */
+  export interface Variable {
+    /**
+     * Variable name within scope
+     */
+    name: string;
+
+    /**
+     * Owning query UUID
+     */
+    query_kater_id: string;
+
+    scope: 'query' | 'global';
+
+    /**
+     * Free-form JSON variable value
+     */
+    value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+    /**
+     * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
+     */
+    variable_kater_id: string | null;
+  }
 }
 
-export declare namespace Combination {
-  export {
-    type CombinationPreviewResponse as CombinationPreviewResponse,
-    type CombinationPreviewParams as CombinationPreviewParams,
-  };
+export declare namespace Widget {
+  export { type WidgetRenderResponse as WidgetRenderResponse, type WidgetRenderParams as WidgetRenderParams };
 }

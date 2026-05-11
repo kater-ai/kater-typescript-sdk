@@ -1,6 +1,13 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 export { Cache } from './cache';
+export {
+  Capabilities,
+  type CapabilityCreateResponse,
+  type CapabilitySampleResponse,
+  type CapabilityCreateParams,
+  type CapabilitySampleParams,
+} from './capabilities';
 export { Combination, type CombinationPreviewResponse, type CombinationPreviewParams } from './combination';
 export {
   Compiler,
@@ -15,12 +22,14 @@ export {
   type CompilerCompileDashboardResponse,
   type CompilerEnumerateResponse,
   type CompilerExecuteResponse,
+  type CompilerRenderResponse,
   type CompilerResolveResponse,
   type CompilerValidateResponse,
   type CompilerCompileParams,
   type CompilerCompileDashboardParams,
   type CompilerEnumerateParams,
   type CompilerExecuteParams,
+  type CompilerRenderParams,
   type CompilerResolveParams,
   type CompilerValidateParams,
 } from './compiler';

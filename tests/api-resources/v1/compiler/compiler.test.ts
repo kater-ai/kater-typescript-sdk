@@ -12,15 +12,34 @@ describe('resource compiler', () => {
   // Mock server tests are disabled
   test.skip('compile: only required params', async () => {
     const responsePromise = client.v1.compiler.compile({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      resolved_query: {
-        kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        name: 'x',
-        source_query: 'ref(dim_customer.sale_price)',
-        topic: 'ref(dim_customer.sale_price)',
-        widget_category: 'axis',
+      connection_id: 'connection_id',
+      dashboard: {
+        dashboard_filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
       },
-      tenant_key: 'tenant_key',
+      field_selection: { selected_field_ids: ['string'] },
+      filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
+      pinned_variant: 'pinned_variant',
+      presentation: {},
+      query_kater_id: 'query_kater_id',
+      result_window: {
+        cursor: 'cursor',
+        page_size: 0,
+        sort_by: 'sort_by',
+        sort_order: 'asc',
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -34,90 +53,23 @@ describe('resource compiler', () => {
   // Mock server tests are disabled
   test.skip('compile: required and optional params', async () => {
     const response = await client.v1.compiler.compile({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      resolved_query: {
-        kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        name: 'x',
-        source_query: 'ref(dim_customer.sale_price)',
-        topic: 'ref(dim_customer.sale_price)',
-        widget_category: 'axis',
-        ai_context: 'ai_context',
-        calculations: [{ ref: 'ref', label: 'label' }],
-        chart_hints: [
+      connection_id: 'connection_id',
+      dashboard: {
+        dashboard_filter_state: [
           {
-            config: {
-              color_by: 'ref(created_date)',
-              comparison: 'previous_period',
-              size: 'ref(created_date)',
-              stack_by: 'ref(created_date)',
-              target_value: 'target_value',
-              x_axis: 'ref(created_date)',
-              y_axis: 'ref(created_date)',
-            },
-            recommend: 'line',
-            when: { foo: 'string' },
+            effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+            enabled: true,
+            value: { value: 'string', mode: 'scalar' },
           },
         ],
-        custom_properties: { foo: 'bar' },
-        description: 'description',
-        dimensions: [{ ref: 'ref', label: 'label' }],
-        disallowed_widget_types: ['axis_metric_by_dimension'],
-        filters: [{ name: 'x', sql: 'sql' }],
-        inheritance_chain: ['string'],
-        label: 'label',
-        limit: 1,
-        measures: [{ ref: 'ref', label: 'label' }],
-        order_by: [{ direction: 'asc', field: 'ref(created_date)' }],
-        resolved_chart: {
-          config: {
-            color_by: 'ref(created_date)',
-            comparison: 'previous_period',
-            size: 'ref(created_date)',
-            stack_by: 'ref(created_date)',
-            target_value: 'target_value',
-            x_axis: 'ref(created_date)',
-            y_axis: 'ref(created_date)',
-          },
-          recommend: 'line',
-        },
-        resolved_variables: [
-          {
-            bound_value: 'string',
-            default: 'string',
-            kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-            name: 'x',
-            type: 'STRING',
-            allowed_values: { static: [{ value: 'string', label: 'label' }] },
-            constraints: {
-              max: 0,
-              max_length: 1,
-              min: 0,
-              step: 0,
-            },
-            description: 'description',
-            is_default: true,
-            is_runtime: true,
-            label: 'label',
-          },
-        ],
-        select_from: [
-          {
-            cte_alias: 'cte_alias',
-            output_columns: [
-              {
-                column_alias: 'column_alias',
-                field_name: 'field_name',
-                source_type: 'dimension',
-              },
-            ],
-            ref: 'ref(dim_customer.sale_price)',
-            variables: { foo: 'string' },
-          },
-        ],
-        totals: true,
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
       },
-      tenant_key: 'tenant_key',
-      source: 'source',
+      field_selection: {
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
+      },
       filter_state: [
         {
           effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -125,6 +77,30 @@ describe('resource compiler', () => {
           value: { value: 'string', mode: 'scalar' },
         },
       ],
+      pinned_variant: 'pinned_variant',
+      presentation: {
+        chart: { foo: 'string' },
+        display: { foo: 'string' },
+        style: { foo: 'string' },
+      },
+      query_kater_id: 'query_kater_id',
+      result_window: {
+        cursor: 'cursor',
+        page_size: 0,
+        sort_by: 'sort_by',
+        sort_order: 'asc',
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
+      source: 'source',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -192,15 +168,34 @@ describe('resource compiler', () => {
   // Mock server tests are disabled
   test.skip('execute: only required params', async () => {
     const responsePromise = client.v1.compiler.execute({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      resolved_query: {
-        kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        name: 'x',
-        source_query: 'ref(dim_customer.sale_price)',
-        topic: 'ref(dim_customer.sale_price)',
-        widget_category: 'axis',
+      connection_id: 'connection_id',
+      dashboard: {
+        dashboard_filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
       },
-      tenant_key: 'tenant_key',
+      field_selection: { selected_field_ids: ['string'] },
+      filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
+      pinned_variant: 'pinned_variant',
+      presentation: {},
+      query_kater_id: 'query_kater_id',
+      result_window: {
+        cursor: 'cursor',
+        page_size: 0,
+        sort_by: 'sort_by',
+        sort_order: 'asc',
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -214,90 +209,23 @@ describe('resource compiler', () => {
   // Mock server tests are disabled
   test.skip('execute: required and optional params', async () => {
     const response = await client.v1.compiler.execute({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      resolved_query: {
-        kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-        name: 'x',
-        source_query: 'ref(dim_customer.sale_price)',
-        topic: 'ref(dim_customer.sale_price)',
-        widget_category: 'axis',
-        ai_context: 'ai_context',
-        calculations: [{ ref: 'ref', label: 'label' }],
-        chart_hints: [
+      connection_id: 'connection_id',
+      dashboard: {
+        dashboard_filter_state: [
           {
-            config: {
-              color_by: 'ref(created_date)',
-              comparison: 'previous_period',
-              size: 'ref(created_date)',
-              stack_by: 'ref(created_date)',
-              target_value: 'target_value',
-              x_axis: 'ref(created_date)',
-              y_axis: 'ref(created_date)',
-            },
-            recommend: 'line',
-            when: { foo: 'string' },
+            effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+            enabled: true,
+            value: { value: 'string', mode: 'scalar' },
           },
         ],
-        custom_properties: { foo: 'bar' },
-        description: 'description',
-        dimensions: [{ ref: 'ref', label: 'label' }],
-        disallowed_widget_types: ['axis_metric_by_dimension'],
-        filters: [{ name: 'x', sql: 'sql' }],
-        inheritance_chain: ['string'],
-        label: 'label',
-        limit: 1,
-        measures: [{ ref: 'ref', label: 'label' }],
-        order_by: [{ direction: 'asc', field: 'ref(created_date)' }],
-        resolved_chart: {
-          config: {
-            color_by: 'ref(created_date)',
-            comparison: 'previous_period',
-            size: 'ref(created_date)',
-            stack_by: 'ref(created_date)',
-            target_value: 'target_value',
-            x_axis: 'ref(created_date)',
-            y_axis: 'ref(created_date)',
-          },
-          recommend: 'line',
-        },
-        resolved_variables: [
-          {
-            bound_value: 'string',
-            default: 'string',
-            kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-            name: 'x',
-            type: 'STRING',
-            allowed_values: { static: [{ value: 'string', label: 'label' }] },
-            constraints: {
-              max: 0,
-              max_length: 1,
-              min: 0,
-              step: 0,
-            },
-            description: 'description',
-            is_default: true,
-            is_runtime: true,
-            label: 'label',
-          },
-        ],
-        select_from: [
-          {
-            cte_alias: 'cte_alias',
-            output_columns: [
-              {
-                column_alias: 'column_alias',
-                field_name: 'field_name',
-                source_type: 'dimension',
-              },
-            ],
-            ref: 'ref(dim_customer.sale_price)',
-            variables: { foo: 'string' },
-          },
-        ],
-        totals: true,
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
       },
-      tenant_key: 'tenant_key',
-      source: 'source',
+      field_selection: {
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
+      },
       filter_state: [
         {
           effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -305,6 +233,126 @@ describe('resource compiler', () => {
           value: { value: 'string', mode: 'scalar' },
         },
       ],
+      pinned_variant: 'pinned_variant',
+      presentation: {
+        chart: { foo: 'string' },
+        display: { foo: 'string' },
+        style: { foo: 'string' },
+      },
+      query_kater_id: 'query_kater_id',
+      result_window: {
+        cursor: 'cursor',
+        page_size: 0,
+        sort_by: 'sort_by',
+        sort_order: 'asc',
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
+      source: 'source',
+      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
+    });
+  });
+
+  // Mock server tests are disabled
+  test.skip('render: only required params', async () => {
+    const responsePromise = client.v1.compiler.render({
+      connection_id: 'connection_id',
+      dashboard: {
+        dashboard_filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
+      },
+      field_selection: { selected_field_ids: ['string'] },
+      filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
+      pinned_variant: 'pinned_variant',
+      presentation: {},
+      query_kater_id: 'query_kater_id',
+      result_window: {
+        cursor: 'cursor',
+        page_size: 0,
+        sort_by: 'sort_by',
+        sort_order: 'asc',
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
+    });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('render: required and optional params', async () => {
+    const response = await client.v1.compiler.render({
+      connection_id: 'connection_id',
+      dashboard: {
+        dashboard_filter_state: [
+          {
+            effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+            enabled: true,
+            value: { value: 'string', mode: 'scalar' },
+          },
+        ],
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
+      },
+      field_selection: {
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
+      },
+      filter_state: [
+        {
+          effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+          enabled: true,
+          value: { value: 'string', mode: 'scalar' },
+        },
+      ],
+      pinned_variant: 'pinned_variant',
+      presentation: {
+        chart: { foo: 'string' },
+        display: { foo: 'string' },
+        style: { foo: 'string' },
+      },
+      query_kater_id: 'query_kater_id',
+      result_window: {
+        cursor: 'cursor',
+        page_size: 0,
+        sort_by: 'sort_by',
+        sort_order: 'asc',
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
+      source: 'source',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
@@ -312,8 +360,9 @@ describe('resource compiler', () => {
   // Mock server tests are disabled
   test.skip('resolve: only required params', async () => {
     const responsePromise = client.v1.compiler.resolve({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      connection_id: 'connection_id',
+      field_selection: { selected_field_ids: ['string'] },
+      query_kater_id: 'query_kater_id',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -327,11 +376,26 @@ describe('resource compiler', () => {
   // Mock server tests are disabled
   test.skip('resolve: required and optional params', async () => {
     const response = await client.v1.compiler.resolve({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      query_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      connection_id: 'connection_id',
+      field_selection: {
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
+      },
+      query_kater_id: 'query_kater_id',
       source: 'source',
       auto_fix: true,
-      combination: 'combination',
+      dashboard: {
+        dashboard_filter_state: [
+          {
+            effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+            enabled: true,
+            value: { value: 'string', mode: 'scalar' },
+          },
+        ],
+        dashboard_kater_id: 'dashboard_kater_id',
+        slot_name: 'slot_name',
+        widget_kater_id: 'widget_kater_id',
+      },
       filter_state: [
         {
           effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
@@ -340,6 +404,21 @@ describe('resource compiler', () => {
         },
       ],
       pinned_variant: 'pinned_variant',
+      presentation: {
+        chart: { foo: 'string' },
+        display: { foo: 'string' },
+        style: { foo: 'string' },
+      },
+      temporal: { as_of: 'as_of', timezone: 'timezone' },
+      variables: [
+        {
+          name: 'name',
+          query_kater_id: 'query_kater_id',
+          scope: 'query',
+          value: 'string',
+          variable_kater_id: 'variable_kater_id',
+        },
+      ],
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });

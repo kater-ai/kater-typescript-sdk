@@ -8,4 +8,5 @@ export {
   type ConnectionListConnectionsParams,
 } from './connections';
 export { OAuth, type OAuthHandleCallbackResponse, type OAuthHandleCallbackParams } from './oauth';
+export { SDK } from './sdk/index';
 export { Tenant } from './tenant/index';

@@ -4,6 +4,14 @@ import { APIResource } from '../../../core/resource';
 import * as CompilerAPI from './compiler';
 import * as CacheAPI from './cache';
 import { Cache } from './cache';
+import * as CapabilitiesAPI from './capabilities';
+import {
+  Capabilities,
+  CapabilityCreateParams,
+  CapabilityCreateResponse,
+  CapabilitySampleParams,
+  CapabilitySampleResponse,
+} from './capabilities';
 import * as CombinationAPI from './combination';
 import {
   Combination as CombinationAPICombination,
@@ -23,18 +31,29 @@ export class Compiler extends APIResource {
   cache: CacheAPI.Cache = new CacheAPI.Cache(this._client);
   combination: CombinationAPI.Combination = new CombinationAPI.Combination(this._client);
   manifest: ManifestAPI.Manifest = new ManifestAPI.Manifest(this._client);
+  capabilities: CapabilitiesAPI.Capabilities = new CapabilitiesAPI.Capabilities(this._client);
 
   /**
-   * Compile a resolved query to SQL.
+   * Compile a structured query request to SQL.
    *
-   * Takes a previously resolved query and generates the final SQL statement for the
-   * target dialect.
+   * The structured replacement for `POST /api/v1/compiler/compile`. The handler:
    *
-   * RLS: Filtered to current client (ClientRLSDB).
+   * 1. Calls `share_render_request_resolution(...)` to construct per-request
+   *    services.
+   * 2. Calls `RenderService.render(...)` for the full pipeline, then projects the
+   *    response into the compile-stage shape (zeroing execute-only fields). This
+   *    keeps the compile route's canonical-key path identical to the render route's.
+   * 3. Calls `share_response_metadata_builder(...)` with `validate_sort_by=True`.
+   * 4. Projects the `RenderResponse` onto `StructuredCompileResponse` (with
+   *    execute-only fields zeroed).
+   *
+   * Failure mode: resolver/compile failures return HTTP 200 with `success=False`,
+   * `rendered_query_key=None`, `errors=[...]`. `InvalidSortByError` from the shared
+   * metadata builder maps to HTTP 400.
    */
   compile(params: CompilerCompileParams, options?: RequestOptions): APIPromise<CompilerCompileResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
-    return this._client.post('/api/v1/compiler/compile', {
+    return this._client.post('/api/v1/compiler/compile/structured', {
       query: { source },
       body,
       ...options,
@@ -94,17 +113,24 @@ export class Compiler extends APIResource {
   }
 
   /**
-   * Execute a query with transparent caching.
+   * Execute a structured query request.
    *
-   * Compiles the resolved query to SQL, checks the cache for existing results,
-   * executes against the warehouse on cache miss, and stores the result for future
-   * requests. Cache failures are invisible to the caller.
+   * The structured replacement for `POST /api/v1/compiler/execute`. The handler:
    *
-   * RLS: Filtered to current client (ClientRLSDB).
+   * 1. Calls `share_render_request_resolution(...)` to construct per-request
+   *    services.
+   * 2. Awaits `RenderService.render(...)` for the full pipeline (resolve
+   *    - compile + execute + widget metadata + canonical key).
+   * 3. Calls `share_response_metadata_builder(...)` with `validate_sort_by=True`.
+   * 4. Projects the `RenderResponse` onto `StructuredExecuteResponse`.
+   *
+   * Failure mode: resolver/compile/execute failures return HTTP 200 with
+   * `success=False`, `rendered_query_key=None`, `errors=[...]`. `InvalidSortByError`
+   * from the shared metadata builder maps to HTTP 400.
    */
   execute(params: CompilerExecuteParams, options?: RequestOptions): APIPromise<CompilerExecuteResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
-    return this._client.post('/api/v1/compiler/execute', {
+    return this._client.post('/api/v1/compiler/execute/structured', {
       query: { source },
       body,
       ...options,
@@ -116,16 +142,79 @@ export class Compiler extends APIResource {
   }
 
   /**
-   * Resolve a query template with user-selected parameters.
+   * Render a query result from a `RenderedQueryRequestV1`.
    *
-   * Takes a query reference and variable selections, returns the fully resolved
-   * query object ready for compilation.
+   * This is the structured replacement for
+   * `POST /api/v1/compiler/combination/preview`. The handler:
    *
-   * RLS: Filtered to current client (ClientRLSDB).
+   * 1. Builds per-request `CredentialService`, `ConnectionService`, and
+   *    `CompilerApiService` instances (matching the legacy preview pattern so
+   *    consumer migrations need only swap URL paths).
+   * 2. Resolves tenant parameters via `resolve_tenant_params(...)`. The request body
+   *    itself does not carry a `tenant_key` field today; `NO_TENANT_KEY` is the safe
+   *    migration default.
+   * 3. Wraps the render call in `stage_span("compiler.render", ...)` and records
+   *    pipeline duration in a `finally` block for parity with the legacy preview
+   *    observability.
+   * 4. Awaits `RenderService.render(...)` exactly once.
+   * 5. On success, validates `request.result_window.sort_by` against the compiled
+   *    `column_map` (route-boundary enforcement of the PRD's column_key invariant).
+   *    Invalid `sort_by` raises `ApiError(400, code="invalid_sort_by")` so the
+   *    client receives a clean 400 instead of a successful response with bad
+   *    ordering.
+   * 6. Projects the `RenderResponse` onto `RenderResponseModel` via
+   *    `from_render_response(...)` and returns it.
+   *
+   * Failure-mode contract: resolver/compile/execute failures produce HTTP 200
+   * responses with `success=False` and `rendered_query_key=None`, matching the
+   * legacy preview-route behavior so consumers can migrate without changing
+   * failure-handling logic. `InvalidSortByError` is the sole HTTP 400 path because
+   * it represents a client request validation error rather than a render-pipeline
+   * failure.
+   *
+   * Consumer surfaces this route serves (post Stories 4.4, 5.2, 6.1, 6.4, 6.5):
+   * Query Builder preview/save, SDK widget fetch, dashboard slot render, CLI
+   * `kater run`, VSCode `runQuery`, chat tool execute.
+   */
+  render(params: CompilerRenderParams, options?: RequestOptions): APIPromise<CompilerRenderResponse> {
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
+    return this._client.post('/api/v1/compiler/render', {
+      query: { source },
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+        options?.headers,
+      ]),
+    });
+  }
+
+  /**
+   * Resolve a query template from a structured field selection.
+   *
+   * The structured replacement for `POST /api/v1/compiler/resolve`. The handler:
+   *
+   * 1. Calls `share_render_request_resolution(...)` to construct per-request
+   *    services + resolve tenant parameters.
+   * 2. Synthesizes a transient `RenderedQueryRequestV1` so the existing
+   *    `RenderService` stage hooks are usable.
+   * 3. Calls `render_service._load_sources(...)`.
+   * 4. Calls `render_service._resolve_selection(...)`. On
+   *    `FieldSelectionValidationError` returns a failure response.
+   * 5. Calls `share_response_metadata_builder(...)` with `validate_sort_by=False`
+   *    (the resolve stage does not produce a `column_map`).
+   * 6. Projects the resolver output onto `StructuredResolveResponse`.
+   *
+   * The route does NOT run compile or execute (Stories 4.4/5.2 issue follow-up
+   * structured compile/execute calls when the user advances through their workflow).
+   *
+   * Consumer surfaces this route serves (post Stories 4.4, 5.2, 6.1, 6.4, 6.5):
+   * Query Builder save, SDK pre-fetch, dashboard slot resolve, CLI `kater run`,
+   * VSCode `runQuery`, chat tool resolve.
    */
   resolve(params: CompilerResolveParams, options?: RequestOptions): APIPromise<CompilerResolveResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
-    return this._client.post('/api/v1/compiler/resolve', {
+    return this._client.post('/api/v1/compiler/resolve/structured', {
       query: { source },
       body,
       ...options,
@@ -322,43 +411,58 @@ export interface SubqueryCondition {
 }
 
 /**
- * Response model for SQL compilation.
+ * Compile-stage projection from `RenderResponse` (Story 2.1 frozen dataclass).
+ *
+ * Has NO `combination` / `combination_id` field by contract. The combination-free
+ * invariant is asserted by AST-scan tests in `test_compile_route.py`. Execute-only
+ * fields (`data`, `cache_hit`, `row_count`) are zeroed because compile does not
+ * run execute.
  */
 export interface CompilerCompileResponse {
   /**
-   * SQL dialect used (e.g. 'snowflake')
-   */
-  dialect: string;
-
-  /**
-   * Whether compilation succeeded
+   * Whether the compile succeeded
    */
   success: boolean;
 
   /**
-   * Applied runtime filter state used for compilation
+   * Applied runtime filter state used for compilation.
    */
   applied_filter_state?: Array<CompilerCompileResponse.AppliedFilterState>;
 
   /**
-   * Maps UUID column aliases to human-readable names and types
+   * Auto-generated description text.
+   */
+  auto_description?: string | null;
+
+  /**
+   * Auto-generated title.
+   */
+  auto_title?: string | null;
+
+  /**
+   * Compile-stage no-op: always False.
+   */
+  cache_hit?: boolean;
+
+  /**
+   * Column metadata for the compiled output columns.
    */
   column_map?: Array<CompilerCompileResponse.ColumnMap>;
 
   /**
-   * Compilation errors
+   * Compile-stage no-op: always empty. `execute` did not run.
+   */
+  data?: Array<{ [key: string]: unknown }>;
+
+  /**
+   * SQL dialect used.
+   */
+  dialect?: string | null;
+
+  /**
+   * Compilation errors (if any).
    */
   errors?: Array<CompilerErrorItem>;
-
-  /**
-   * Compilation manifest with all named objects.
-   */
-  manifest?: Manifest | null;
-
-  /**
-   * Compilation metadata from the compiler.
-   */
-  metadata?: CompilerCompileResponse.Metadata | null;
 
   /**
    * Top-level natural key returned by every runtime data and widget path.
@@ -372,15 +476,29 @@ export interface CompilerCompileResponse {
   rendered_query_key?: CompilerCompileResponse.RenderedQueryKey | null;
 
   /**
-   * Reserved for write-back flows. Compile responses currently return null because
-   * compiled SQL and resolved-query artifacts are not written back.
+   * Compile-stage no-op: always 0.
    */
-  request_id?: string | null;
+  row_count?: number;
 
   /**
-   * Generated SQL statement
+   * Generated SQL statement.
    */
   sql?: string | null;
+
+  /**
+   * Resolved style config.
+   */
+  style_config?: { [key: string]: unknown };
+
+  /**
+   * Resolved widget config.
+   */
+  widget_config?: { [key: string]: unknown };
+
+  /**
+   * Resolved widget type.
+   */
+  widget_type?: string | null;
 }
 
 export namespace CompilerCompileResponse {
@@ -577,41 +695,6 @@ export namespace CompilerCompileResponse {
      * Authored source field UUID for derived timeframe columns.
      */
     source_kater_id?: string | null;
-  }
-
-  /**
-   * Compilation metadata from the compiler.
-   */
-  export interface Metadata {
-    /**
-     * SQL dialect used (e.g. 'snowflake')
-     */
-    dialect: string;
-
-    /**
-     * Reference to the compiled query
-     */
-    query_ref: string;
-
-    /**
-     * Dimension names used in compilation
-     */
-    dimensions_used?: Array<string>;
-
-    /**
-     * Filter names used in compilation
-     */
-    filters_used?: Array<string>;
-
-    /**
-     * Measure names used in compilation
-     */
-    measures_used?: Array<string>;
-
-    /**
-     * View names used in compilation
-     */
-    views_used?: Array<string>;
   }
 
   /**
@@ -2489,12 +2572,27 @@ export namespace CompilerCompileDashboardResponse {
         query_name: string;
 
         /**
+         * UUIDs of selected fields for this dependency slot
+         */
+        selected_field_ids: Array<string>;
+
+        /**
          * Dashboard slot name
          */
         slot_name: string;
 
         /**
-         * Combination string used for the slot, if any
+         * Temporal grain overrides for selected fields
+         */
+        timeframe_overrides: Array<Slot.TimeframeOverride>;
+
+        /**
+         * Runtime variable values applied to the slot
+         */
+        variable_values: Array<Slot.VariableValue>;
+
+        /**
+         * @deprecated Legacy combination string (derived, deprecated)
          */
         combination?: string | null;
 
@@ -2502,6 +2600,47 @@ export namespace CompilerCompileDashboardResponse {
          * Pinned query variant used for the slot, if any
          */
         pinned_variant?: string | null;
+      }
+
+      export namespace Slot {
+        /**
+         * Runtime grain choice for a temporal source dimension.
+         */
+        export interface TimeframeOverride {
+          active_timeframe: string;
+
+          source_kater_id: string;
+        }
+
+        /**
+         * Runtime variable value as supplied in a `RenderedQueryRequestV1`.
+         *
+         * `variable_kater_id` is preferred. Until every surface exposes it,
+         * `(query_kater_id, scope, name)` is the migration fallback identity.
+         */
+        export interface VariableValue {
+          /**
+           * Variable name within scope
+           */
+          name: string;
+
+          /**
+           * Owning query UUID
+           */
+          query_kater_id: string;
+
+          scope: 'query' | 'global';
+
+          /**
+           * Free-form JSON variable value
+           */
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+          /**
+           * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
+           */
+          variable_kater_id: string | null;
+        }
       }
     }
 
@@ -3203,6 +3342,11 @@ export interface CompilerEnumerateResponse {
   default_filter_state?: { [key: string]: Array<CompilerEnumerateResponse.DefaultFilterState> };
 
   /**
+   * Two-field deprecation block embedded in response payloads.
+   */
+  deprecation?: CompilerEnumerateResponse.Deprecation | null;
+
+  /**
    * Display labels for slot fields, keyed by query_kater_id then field name
    */
   field_labels?: { [key: string]: { [key: string]: string } };
@@ -3446,6 +3590,15 @@ export namespace CompilerEnumerateResponse {
     export interface NullFilterValue {
       mode?: 'null';
     }
+  }
+
+  /**
+   * Two-field deprecation block embedded in response payloads.
+   */
+  export interface Deprecation {
+    message: string;
+
+    replacement: string;
   }
 
   /**
@@ -4043,58 +4196,67 @@ export namespace CompilerEnumerateResponse {
 }
 
 /**
- * Response model for query execution.
+ * Execute-stage projection from `RenderResponse` (Story 2.1 frozen dataclass).
+ *
+ * Has NO `combination` / `combination_id` field by contract. Carries every field
+ * the legacy `ExecuteResponse` exposes so consumer migrations swap legacy →
+ * structured with no response-handling changes.
  */
 export interface CompilerExecuteResponse {
-  /**
-   * SQL dialect used
-   */
-  dialect: string;
-
   /**
    * Whether execution succeeded
    */
   success: boolean;
 
   /**
-   * Applied runtime filter state used for execution
+   * Applied runtime filter state used for execution.
    */
   applied_filter_state?: Array<CompilerExecuteResponse.AppliedFilterState>;
 
   /**
-   * Whether the result was served from cache
+   * Auto-generated description text.
+   */
+  auto_description?: string | null;
+
+  /**
+   * Auto-generated title.
+   */
+  auto_title?: string | null;
+
+  /**
+   * Whether the result was served from cache.
    */
   cache_hit?: boolean;
 
   /**
-   * Maps UUID column aliases to human-readable names
+   * Column metadata for the executed query's output.
    */
   column_map?: Array<CompilerExecuteResponse.ColumnMap>;
 
   /**
-   * Query result rows as list of column-value dicts
+   * Query result rows.
    */
   data?: Array<{ [key: string]: unknown }>;
 
   /**
-   * Compilation errors (if any)
+   * SQL dialect used.
+   */
+  dialect?: string | null;
+
+  /**
+   * Compilation/execution errors (if any).
    */
   errors?: Array<CompilerErrorItem>;
 
   /**
-   * Total execution time in milliseconds
+   * Total execution duration in milliseconds.
    */
   execution_time_ms?: number;
 
   /**
-   * True when the app-wide row limit was applied and results were truncated
+   * True when the app-wide row limit was applied.
    */
   is_row_limited?: boolean;
-
-  /**
-   * Compilation metadata from the compiler.
-   */
-  metadata?: CompilerExecuteResponse.Metadata | null;
 
   /**
    * Top-level natural key returned by every runtime data and widget path.
@@ -4108,14 +4270,29 @@ export interface CompilerExecuteResponse {
   rendered_query_key?: CompilerExecuteResponse.RenderedQueryKey | null;
 
   /**
-   * Number of rows returned
+   * Total rows returned by the executed query.
    */
   row_count?: number;
 
   /**
-   * Generated SQL statement
+   * Generated SQL statement.
    */
   sql?: string | null;
+
+  /**
+   * Resolved style config.
+   */
+  style_config?: { [key: string]: unknown };
+
+  /**
+   * Resolved widget config.
+   */
+  widget_config?: { [key: string]: unknown };
+
+  /**
+   * Resolved widget type.
+   */
+  widget_type?: string | null;
 }
 
 export namespace CompilerExecuteResponse {
@@ -4312,41 +4489,6 @@ export namespace CompilerExecuteResponse {
      * Authored source field UUID for derived timeframe columns.
      */
     source_kater_id?: string | null;
-  }
-
-  /**
-   * Compilation metadata from the compiler.
-   */
-  export interface Metadata {
-    /**
-     * SQL dialect used (e.g. 'snowflake')
-     */
-    dialect: string;
-
-    /**
-     * Reference to the compiled query
-     */
-    query_ref: string;
-
-    /**
-     * Dimension names used in compilation
-     */
-    dimensions_used?: Array<string>;
-
-    /**
-     * Filter names used in compilation
-     */
-    filters_used?: Array<string>;
-
-    /**
-     * Measure names used in compilation
-     */
-    measures_used?: Array<string>;
-
-    /**
-     * View names used in compilation
-     */
-    views_used?: Array<string>;
   }
 
   /**
@@ -5027,43 +5169,102 @@ export namespace CompilerExecuteResponse {
 }
 
 /**
- * Response model for a resolved query.
+ * Route-side projection of `RenderResponse` (Story 2.1 frozen dataclass).
+ *
+ * Has NO `combination` or `combination_id` field by contract. The combination-free
+ * invariant is asserted by AST-scan tests in `test_render_route.py`.
  */
-export interface CompilerResolveResponse {
+export interface CompilerRenderResponse {
   /**
-   * The fully resolved query object
+   * Whether the render succeeded
    */
-  resolved_query: CompilerResolveResponse.ResolvedQuery;
+  success: boolean;
 
   /**
-   * Applied runtime filter state after request overrides
+   * Applied runtime filter state used for the render.
    */
-  applied_filter_state?: Array<CompilerResolveResponse.AppliedFilterState>;
+  applied_filter_state?: Array<CompilerRenderResponse.AppliedFilterState>;
 
   /**
-   * Default runtime filter state derived from filter definitions
+   * Auto-generated description text.
    */
-  default_filter_state?: Array<CompilerResolveResponse.DefaultFilterState>;
+  auto_description?: string | null;
 
   /**
-   * Dependency graph between schema objects.
+   * Structured auto-description payload, if available.
    */
-  dependency_graph?: CompilerResolveResponse.DependencyGraph | null;
+  auto_description_structured?: { [key: string]: unknown } | null;
 
   /**
-   * Resolved effective filter definitions for this query context
+   * Auto-generated title.
    */
-  filter_definitions?: Array<CompilerResolveResponse.FilterDefinition>;
+  auto_title?: string | null;
 
   /**
-   * Compilation manifest with all named objects.
+   * Whether the result was served from cache.
    */
-  manifest?: Manifest | null;
+  cache_hit?: boolean;
 
   /**
-   * Files auto-fixed due to renamed refs. None when no renames detected.
+   * Column metadata for the compiled output columns.
    */
-  ref_fixes?: Array<CompilerResolveResponse.RefFix> | null;
+  column_map?: Array<CompilerRenderResponse.ColumnMap>;
+
+  /**
+   * Per-column statistical profiles keyed by column_key.
+   */
+  column_profiles?: { [key: string]: CompilerRenderResponse.ColumnProfiles };
+
+  /**
+   * Resolved widget config with `style_config` merged under `config.style` for
+   * parity with the legacy preview response.
+   */
+  config?: { [key: string]: unknown };
+
+  /**
+   * Resolved config controls metadata.
+   */
+  config_controls?: { [key: string]: unknown };
+
+  /**
+   * Query result rows.
+   */
+  data?: Array<{ [key: string]: unknown }>;
+
+  /**
+   * Default runtime filter state derived from definitions.
+   */
+  default_filter_state?: Array<CompilerRenderResponse.DefaultFilterState>;
+
+  /**
+   * Warehouse dialect for the compiled SQL.
+   */
+  dialect?: string | null;
+
+  /**
+   * Compilation or pipeline errors (if any).
+   */
+  errors?: Array<CompilerErrorItem>;
+
+  /**
+   * Total render duration in milliseconds.
+   */
+  execution_time_ms?: number;
+
+  /**
+   * Resolved effective filter definitions.
+   */
+  filter_definitions?: Array<CompilerRenderResponse.FilterDefinition>;
+
+  /**
+   * Pagination cursor for the next page.
+   */
+  next_cursor?: string | null;
+
+  /**
+   * Page size used by the compiled query.
+   */
+  page_size?: number | null;
 
   /**
    * Top-level natural key returned by every runtime data and widget path.
@@ -5074,559 +5275,35 @@ export interface CompilerResolveResponse {
    * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
    * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
    */
-  rendered_query_key?: CompilerResolveResponse.RenderedQueryKey | null;
+  rendered_query_key?: CompilerRenderResponse.RenderedQueryKey | null;
 
   /**
-   * Write-back request ID. Non-null when ref-fix files were dispatched to CLI via
-   * WebSocket.
+   * Total rows returned by the compiled query.
    */
-  request_id?: string | null;
+  row_count?: number;
+
+  /**
+   * Compiled SQL (display form).
+   */
+  sql?: string | null;
+
+  /**
+   * Standalone style config (also merged into `config`).
+   */
+  style_config?: { [key: string]: unknown };
+
+  /**
+   * Totals row over returned measure columns (column_key keys).
+   */
+  totals_row?: { [key: string]: unknown } | null;
+
+  /**
+   * Resolved widget type.
+   */
+  widget_type?: string | null;
 }
 
-export namespace CompilerResolveResponse {
-  /**
-   * The fully resolved query object
-   */
-  export interface ResolvedQuery {
-    /**
-     * Unique identifier for this resolved query instance
-     */
-    kater_id: string;
-
-    /**
-     * Name from the leaf query in the inheritance chain
-     */
-    name: string;
-
-    /**
-     * Reference to the original query template this was resolved from
-     */
-    source_query: string;
-
-    /**
-     * Reference to the topic this query uses (always known after inheritance
-     * resolution)
-     */
-    topic: string;
-
-    /**
-     * Widget category that determines data shape constraints
-     */
-    widget_category:
-      | 'axis'
-      | 'funnel'
-      | 'heatmap'
-      | 'image'
-      | 'kpi_card'
-      | 'pie'
-      | 'radial'
-      | 'table'
-      | 'text';
-
-    /**
-     * Usage guidance for AI processing
-     */
-    ai_context?: string | null;
-
-    /**
-     * Merged required + selected optional calculations
-     */
-    calculations?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Chart recommendations preserved for evaluation
-     */
-    chart_hints?: Array<ResolvedQuery.ChartHint1Output | ResolvedQuery.ChartHint2Output> | null;
-
-    /**
-     * Custom properties
-     */
-    custom_properties?: { [key: string]: unknown } | null;
-
-    /**
-     * Description of the query
-     */
-    description?: string | null;
-
-    /**
-     * Merged required + selected optional dimensions
-     */
-    dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Widget types within the declared widget_category that must NOT render this query
-     */
-    disallowed_widget_types?: Array<
-      | 'axis_metric_by_dimension'
-      | 'axis_metric_by_dimensiondate'
-      | 'axis_metric_by_dimensiondate_sliced_by_dimension'
-      | 'axis_metric_by_metric'
-      | 'funnel_funnel_chart'
-      | 'heatmap_heatmap'
-      | 'image_image_grid'
-      | 'image_single_image'
-      | 'kpi_measure_with_dimension_expression'
-      | 'kpi_measure_with_secondary_metric'
-      | 'kpi_measure_with_target_progress'
-      | 'kpi_single_measure_compared_to_prev_period_sparkline'
-      | 'kpi_single_value'
-      | 'pie_donut_chart'
-      | 'pie_donut_with_measure'
-      | 'pie_pie_chart'
-      | 'radial_chart'
-      | 'radial_with_single_value'
-      | 'radial_with_single_value_stacked'
-      | 'table_data_table'
-      | 'table_fancy_subtotal_table'
-      | 'table_key_value_list'
-      | 'table_styled_table'
-      | 'text_data_readout_with_sparkline'
-      | 'text_narrative_text'
-    > | null;
-
-    /**
-     * Merged required + selected optional filters
-     */
-    filters?: Array<
-      | ResolvedQuery.InlineFormulaFilter
-      | string
-      | ResolvedQuery.InlineExistsFilter1
-      | ResolvedQuery.InlineExistsFilter2
-    > | null;
-
-    /**
-     * Ordered list of query refs that were merged during inheritance resolution
-     */
-    inheritance_chain?: Array<string> | null;
-
-    /**
-     * Human-readable label with var() values substituted
-     */
-    label?: string | null;
-
-    /**
-     * Maximum number of rows to return
-     */
-    limit?: number | null;
-
-    /**
-     * Merged required + selected optional measures
-     */
-    measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Sort order for query results
-     */
-    order_by?: Array<ResolvedQuery.OrderByItem | string> | null;
-
-    /**
-     * The matched chart recommendation after evaluating chart hints
-     */
-    resolved_chart?: ResolvedQuery.ResolvedChart | null;
-
-    /**
-     * Full variable definitions with bound values
-     */
-    resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
-
-    /**
-     * Resolved select_from entries with CTE metadata
-     */
-    select_from?: Array<ResolvedQuery.SelectFrom> | null;
-
-    /**
-     * When true, compute a totals_row over returned measure columns and expose it
-     * alongside data.
-     */
-    totals?: boolean | null;
-  }
-
-  export namespace ResolvedQuery {
-    /**
-     * A chart recommendation rule
-     */
-    export interface ChartHint1Output {
-      /**
-       * Chart configuration with variable references
-       */
-      config: CompilerAPI.ChartConfig;
-
-      /**
-       * Type of chart visualization
-       */
-      recommend:
-        | 'line'
-        | 'bar'
-        | 'stacked_bar'
-        | 'area'
-        | 'pie'
-        | 'donut'
-        | 'scatter'
-        | 'table'
-        | 'heatmap'
-        | 'single_value';
-
-      /**
-       * Conditions based on variable values - can be single value (string) or multiple
-       * values (array)
-       */
-      when: { [key: string]: string | Array<string> };
-    }
-
-    /**
-     * A chart recommendation rule
-     */
-    export interface ChartHint2Output {
-      default: ChartHint2Output.Default;
-    }
-
-    export namespace ChartHint2Output {
-      export interface Default {
-        /**
-         * Chart configuration with variable references
-         */
-        config: CompilerAPI.ChartConfig;
-
-        /**
-         * Type of chart visualization
-         */
-        recommend:
-          | 'line'
-          | 'bar'
-          | 'stacked_bar'
-          | 'area'
-          | 'pie'
-          | 'donut'
-          | 'scatter'
-          | 'table'
-          | 'heatmap'
-          | 'single_value';
-      }
-    }
-
-    /**
-     * An inline filter using a SQL/expression formula
-     */
-    export interface InlineFormulaFilter {
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * SQL expression for the filter condition
-       */
-      sql: string;
-    }
-
-    /**
-     * An inline filter using EXISTS or NOT EXISTS with a subquery
-     */
-    export interface InlineExistsFilter1 {
-      /**
-       * EXISTS subquery condition
-       */
-      exists: CompilerAPI.SubqueryCondition;
-
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * Description of the filter
-       */
-      description?: string | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      not_exists?: CompilerAPI.SubqueryCondition | null;
-    }
-
-    /**
-     * An inline filter using EXISTS or NOT EXISTS with a subquery
-     */
-    export interface InlineExistsFilter2 {
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * NOT EXISTS subquery condition
-       */
-      not_exists: CompilerAPI.SubqueryCondition;
-
-      /**
-       * Description of the filter
-       */
-      description?: string | null;
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      exists?: CompilerAPI.SubqueryCondition | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    /**
-     * Explicit sort direction for a field.
-     */
-    export interface OrderByItem {
-      /**
-       * Sort direction: asc (ascending, A-Z / oldest first) or desc (descending, Z-A /
-       * newest first).
-       */
-      direction: 'asc' | 'desc';
-
-      /**
-       * A string that may be a ref(), var(), or expr() reference
-       */
-      field: string;
-    }
-
-    /**
-     * The matched chart recommendation after evaluating chart hints
-     */
-    export interface ResolvedChart {
-      /**
-       * Chart configuration
-       */
-      config: CompilerAPI.ChartConfig;
-
-      /**
-       * Recommended chart type
-       */
-      recommend:
-        | 'line'
-        | 'bar'
-        | 'stacked_bar'
-        | 'area'
-        | 'pie'
-        | 'donut'
-        | 'scatter'
-        | 'table'
-        | 'heatmap'
-        | 'single_value';
-    }
-
-    /**
-     * A variable definition with its bound value
-     */
-    export interface ResolvedVariable {
-      /**
-       * The concrete value bound for this resolution
-       */
-      bound_value: string | number | boolean | Array<string | number | boolean>;
-
-      /**
-       * Default value for this variable
-       */
-      default: string | number | boolean | Array<string | number | boolean>;
-
-      /**
-       * Unique identifier for this variable
-       */
-      kater_id: string;
-
-      /**
-       * Variable name identifier
-       */
-      name: string;
-
-      /**
-       * Data type of the variable
-       */
-      type:
-        | 'STRING'
-        | 'INT'
-        | 'FLOAT'
-        | 'DATE'
-        | 'TIMESTAMP'
-        | 'BOOL'
-        | 'STRING[]'
-        | 'INT[]'
-        | 'FLOAT[]'
-        | 'DATE[]'
-        | 'DIMENSION'
-        | 'MEASURE'
-        | 'CALCULATION'
-        | 'FILTER'
-        | 'TIMEFRAME';
-
-      /**
-       * Allowed values configuration
-       */
-      allowed_values?:
-        | ResolvedVariable.VariableAllowedValues1
-        | ResolvedVariable.VariableAllowedValues2
-        | null;
-
-      /**
-       * Constraints for variable types
-       */
-      constraints?: ResolvedVariable.Constraints | null;
-
-      /**
-       * Description of the variable's purpose
-       */
-      description?: string | null;
-
-      /**
-       * True if bound_value equals the default value
-       */
-      is_default?: boolean | null;
-
-      /**
-       * True if this is a runtime variable (not resolved at compile time). Runtime
-       * variables have var() placeholders left in compiled SQL for literal substitution
-       * at execution time.
-       */
-      is_runtime?: boolean | null;
-
-      /**
-       * Human-readable label for the variable
-       */
-      label?: string | null;
-    }
-
-    export namespace ResolvedVariable {
-      /**
-       * Allowed values for a variable - either static list or from column
-       */
-      export interface VariableAllowedValues1 {
-        /**
-         * Static list of allowed values with optional labels
-         */
-        static: Array<VariableAllowedValues1.Static>;
-      }
-
-      export namespace VariableAllowedValues1 {
-        /**
-         * A value with optional display label
-         */
-        export interface Static {
-          /**
-           * The actual value
-           */
-          value: string | number | boolean;
-
-          /**
-           * Human-readable label for the value
-           */
-          label?: string | null;
-        }
-      }
-
-      /**
-       * Allowed values for a variable - either static list or from column
-       */
-      export interface VariableAllowedValues2 {
-        /**
-         * Reference to column for dynamic values
-         */
-        from_column: string;
-
-        /**
-         * Cache time-to-live in seconds
-         */
-        cache_ttl?: number;
-
-        /**
-         * Maximum number of values to retrieve
-         */
-        limit?: number;
-
-        /**
-         * Sort order for values
-         */
-        order_by?: 'asc' | 'desc';
-      }
-
-      /**
-       * Constraints for variable types
-       */
-      export interface Constraints {
-        /**
-         * Maximum allowed value
-         */
-        max?: number | null;
-
-        /**
-         * Maximum length for STRING variables
-         */
-        max_length?: number | null;
-
-        /**
-         * Minimum allowed value
-         */
-        min?: number | null;
-
-        /**
-         * Step increment for numeric input
-         */
-        step?: number | null;
-      }
-    }
-
-    /**
-     * A resolved select_from entry with CTE metadata
-     */
-    export interface SelectFrom {
-      /**
-       * CTE alias used in the WITH clause (e.g., **sf_compliance_rate**base)
-       */
-      cte_alias: string;
-
-      /**
-       * Columns produced by the CTE, available as q:query_name.field_name in the parent
-       */
-      output_columns: Array<SelectFrom.OutputColumn>;
-
-      /**
-       * Reference to the source query
-       */
-      ref: string;
-
-      /**
-       * Variable overrides passed to the referenced query
-       */
-      variables?: { [key: string]: string | number | boolean } | null;
-    }
-
-    export namespace SelectFrom {
-      /**
-       * A column produced by a select_from CTE
-       */
-      export interface OutputColumn {
-        /**
-         * The SQL column alias in the CTE output
-         */
-        column_alias: string;
-
-        /**
-         * The field name used in q:query_name.field_name references
-         */
-        field_name: string;
-
-        /**
-         * Original type of the field in the source query
-         */
-        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
-      }
-    }
-  }
-
+export namespace CompilerRenderResponse {
   /**
    * Resolved runtime filter state exposed by the V2 API contract.
    */
@@ -5777,6 +5454,118 @@ export namespace CompilerResolveResponse {
   }
 
   /**
+   * Maps a UUID column alias to its human-readable name and type.
+   */
+  export interface ColumnMap {
+    /**
+     * Field type: dimension, measure, or calculation
+     */
+    field_type: string;
+
+    /**
+     * Authored source field UUID
+     */
+    kater_id: string;
+
+    /**
+     * Human-readable column name
+     */
+    name: string;
+
+    /**
+     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
+     */
+    active_timeframe?: string | null;
+
+    /**
+     * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
+     * non-measures.
+     */
+    aggregation?: string | null;
+
+    /**
+     * SQL result alias for this concrete output column.
+     */
+    column_key?: string | null;
+
+    /**
+     * Display label
+     */
+    label?: string | null;
+
+    /**
+     * Authored source field UUID for derived timeframe columns.
+     */
+    source_kater_id?: string | null;
+  }
+
+  /**
+   * Statistical profile for a single result column.
+   */
+  export interface ColumnProfiles {
+    /**
+     * Distinct non-null values for dimension columns. Null for measures and
+     * calculations.
+     */
+    cardinality?: number | null;
+
+    /**
+     * Coefficient of variation (|stdev / mean|).
+     */
+    cv?: number | null;
+
+    /**
+     * True if any value lies outside [q1 - 1.5*IQR, q3 + 1.5*IQR].
+     */
+    has_outliers?: boolean;
+
+    /**
+     * Interquartile range (q3 - q1).
+     */
+    iqr?: number | null;
+
+    /**
+     * Maximum numeric value.
+     */
+    max?: number | null;
+
+    /**
+     * Arithmetic mean.
+     */
+    mean?: number | null;
+
+    /**
+     * Minimum numeric value. Null when the column has no numeric data.
+     */
+    min?: number | null;
+
+    /**
+     * Number of null values in the column.
+     */
+    null_count?: number;
+
+    /**
+     * Fraction of null values (0.0-1.0).
+     */
+    null_pct?: number;
+
+    /**
+     * First quartile (25th percentile).
+     */
+    q1?: number | null;
+
+    /**
+     * Third quartile (75th percentile).
+     */
+    q3?: number | null;
+
+    /**
+     * Population standard deviation.
+     */
+    stdev?: number | null;
+  }
+
+  /**
    * Resolved runtime filter state exposed by the V2 API contract.
    */
   export interface DefaultFilterState {
@@ -5922,58 +5711,6 @@ export namespace CompilerResolveResponse {
 
     export interface NullFilterValue {
       mode?: 'null';
-    }
-  }
-
-  /**
-   * Dependency graph between schema objects.
-   */
-  export interface DependencyGraph {
-    /**
-     * Edge relationships with UUID string keys
-     */
-    edges: { [key: string]: { [key: string]: Array<string> } };
-
-    /**
-     * UUID string to node mapping
-     */
-    nodes: { [key: string]: DependencyGraph.Nodes };
-  }
-
-  export namespace DependencyGraph {
-    /**
-     * A node in the dependency graph.
-     */
-    export interface Nodes {
-      /**
-       * Source file path
-       */
-      file: string;
-
-      /**
-       * Fully qualified name (e.g. 'dim_customer.region')
-       */
-      fqn: string;
-
-      /**
-       * UUID of the schema object
-       */
-      kater_id: string;
-
-      /**
-       * Line number in source file
-       */
-      line: number;
-
-      /**
-       * Node type: QUERY, VIEW, DIMENSION, MEASURE, FILTER, EXPRESSION
-       */
-      node_type: string;
-
-      /**
-       * Column number in source file
-       */
-      column?: number;
     }
   }
 
@@ -6455,49 +6192,1534 @@ export namespace CompilerResolveResponse {
   }
 
   /**
-   * A file that was modified by auto-fix with its replacements.
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
    */
-  export interface RefFix {
+  export interface RenderedQueryKey {
     /**
-     * Path to the modified file
+     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
      */
-    file_path: string;
+    aggregate_cache_key_id: string | null;
 
     /**
-     * Full updated file content after fixes
+     * The canonical sub-document. Hashing this produces `key_id`.
      */
-    new_content: string;
+    canonical: RenderedQueryKey.Canonical;
 
     /**
-     * Individual ref replacements made in this file
+     * rqk_cache_exact_v1:<sha256-hex>
      */
-    replacements: Array<RefFix.Replacement>;
+    exact_cache_key_id: string;
+
+    /**
+     * rqk_v1:<sha256-hex>
+     */
+    key_id: string;
+
+    version: 1;
   }
 
-  export namespace RefFix {
+  export namespace RenderedQueryKey {
     /**
-     * A single ref replacement within a file.
+     * The canonical sub-document. Hashing this produces `key_id`.
      */
-    export interface Replacement {
+    export interface Canonical {
       /**
-       * Path to the file containing the replaced ref
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
        */
-      file_path: string;
+      cache_projection: Canonical.CacheProjection;
 
       /**
-       * Line number where the replacement occurred
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
        */
-      line_number: number;
+      contract: Canonical.Contract;
 
       /**
-       * Updated reference string
+       * Null-filled for standalone query execution; populated for dashboard widgets.
        */
-      new_ref: string;
+      dashboard: Canonical.Dashboard;
 
       /**
-       * Original reference string
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
        */
-      old_ref: string;
+      fields: Canonical.Fields;
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      filters: Canonical.Filters;
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      presentation: Canonical.Presentation;
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      query: Canonical.Query;
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      result_window: Canonical.ResultWindow;
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      source: Canonical.Source;
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      temporal: Canonical.Temporal;
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      tenant: Canonical.Tenant;
+
+      variables: Array<Canonical.Variable>;
+    }
+
+    export namespace Canonical {
+      /**
+       * Cache projection sub-document of `canonical`. The projection itself contains no
+       * derived cache key IDs — those IDs are derived from it and live at the top level.
+       */
+      export interface CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        aggregate: CacheProjection.Aggregate | null;
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        exact: CacheProjection.Exact;
+
+        version: 1;
+      }
+
+      export namespace CacheProjection {
+        /**
+         * Projection used to derive `aggregate_cache_key_id`. Null when not eligible.
+         */
+        export interface Aggregate {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          dimensions: Array<Aggregate.Dimension>;
+
+          filters: Array<Aggregate.Filter>;
+
+          measures: Array<Aggregate.Measure>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Aggregate.Variable>;
+        }
+
+        export namespace Aggregate {
+          /**
+           * Dimension entry inside the aggregate cache projection.
+           *
+           * `source_kater_id` is required (not nullable) here so two timeframe variants of
+           * the same temporal source dimension produce different cache projections.
+           */
+          export interface Dimension {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            source_kater_id: string;
+          }
+
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Measure entry inside the aggregate cache projection.
+           *
+           * `aggregation` is required (no None): an eligible aggregate cache always has a
+           * concrete aggregation function.
+           */
+          export interface Measure {
+            aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown';
+
+            column_key: string;
+
+            kater_id: string;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+
+        /**
+         * Projection used to derive `exact_cache_key_id`.
+         */
+        export interface Exact {
+          client_id: string;
+
+          connection_kater_id: string;
+
+          filters: Array<Exact.Filter>;
+
+          output_columns: Array<Exact.OutputColumn>;
+
+          query_kater_id: string;
+
+          resolved_query_fingerprint: string;
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          result_window: Exact.ResultWindow;
+
+          source_fingerprint: string;
+
+          tenant_database: string | null;
+
+          tenant_key: string;
+
+          variables: Array<Exact.Variable>;
+        }
+
+        export namespace Exact {
+          /**
+           * Filter entry inside an exact or aggregate cache projection.
+           */
+          export interface Filter {
+            effective_kater_id: string;
+
+            enabled: boolean;
+
+            expression: string;
+
+            field_active_timeframe: string | null;
+
+            field_column_key: string | null;
+
+            field_kater_id: string | null;
+
+            field_source_kater_id: string | null;
+
+            normalized_value: string | null;
+          }
+
+          /**
+           * Column entry inside the exact cache projection.
+           */
+          export interface OutputColumn {
+            active_timeframe: string | null;
+
+            column_key: string;
+
+            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+            kater_id: string;
+
+            source_kater_id: string | null;
+          }
+
+          /**
+           * Result window subset inside the exact cache projection.
+           *
+           * Mirrors `RenderedQueryResultWindowV1` field-for-field today; kept distinct so
+           * cache-only changes do not perturb the canonical block hash, and so codegen emits
+           * a TypeScript type local to the cache projection per the PRD shape.
+           */
+          export interface ResultWindow {
+            cursor: string | null;
+
+            effective_limit: number | null;
+
+            max_row_limit: number | null;
+
+            page_size: number | null;
+
+            query_limit: number | null;
+
+            sort_by: string | null;
+
+            sort_order: 'asc' | 'desc' | null;
+          }
+
+          /**
+           * Variable entry inside an exact or aggregate cache projection.
+           */
+          export interface Variable {
+            name: string;
+
+            normalized_value: string;
+
+            query_kater_id: string;
+
+            variable_kater_id: string | null;
+          }
+        }
+      }
+
+      /**
+       * Identifies the canonicalization contract that produced this key.
+       *
+       * Changes to any of these values mean the meaning of the key has changed and
+       * consumers must treat it as a new key.
+       */
+      export interface Contract {
+        compiler_version: string;
+
+        filter_state_version: 2;
+
+        key_schema: 'RenderedQueryKeyV1';
+
+        key_version: 1;
+
+        widget_config_version: string;
+      }
+
+      /**
+       * Null-filled for standalone query execution; populated for dashboard widgets.
+       */
+      export interface Dashboard {
+        dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+        dashboard_kater_id: string | null;
+
+        dashboard_name: string | null;
+
+        slot_name: string | null;
+
+        widget_kater_id: string | null;
+
+        widget_name: string | null;
+      }
+
+      export namespace Dashboard {
+        /**
+         * Shared dashboard filter state mapped to slot-specific effective filters.
+         */
+        export interface DashboardFilterState {
+          applied_slot_effective_kater_ids: Array<string>;
+
+          dashboard_effective_kater_id: string;
+
+          enabled: boolean;
+
+          normalized_value: string | null;
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Selected, active, and output field lists that participate in compile and widget
+       * roles. Ordering rules: selected/active are sorted by stable identity;
+       * output_columns preserves output order.
+       */
+      export interface Fields {
+        active_fields: Array<Fields.ActiveField>;
+
+        output_columns: Array<Fields.OutputColumn>;
+
+        selected_fields: Array<Fields.SelectedField>;
+      }
+
+      export namespace Fields {
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface ActiveField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+
+        /**
+         * An output column entry in `canonical.fields.output_columns`.
+         */
+        export interface OutputColumn {
+          /**
+           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
+           */
+          active_timeframe: string | null;
+
+          aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
+
+          /**
+           * SQL result alias / row payload key
+           */
+          column_key: string;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          /**
+           * Authored source field UUID
+           */
+          kater_id: string;
+
+          label: string | null;
+
+          name: string;
+
+          /**
+           * Zero-based output column position
+           */
+          output_index: number;
+
+          role: string | null;
+
+          slot: 'required' | 'optional';
+
+          /**
+           * Source field UUID when derived from an authored field
+           */
+          source_kater_id: string | null;
+        }
+
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface SelectedField {
+          active_timeframe: string | null;
+
+          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+
+          kater_id: string;
+        }
+      }
+
+      /**
+       * Effective filter state (model + topic + dashboard + query, after resolution).
+       */
+      export interface Filters {
+        effective_filters: Array<Filters.EffectiveFilter>;
+      }
+
+      export namespace Filters {
+        /**
+         * An effective filter entry in `canonical.filters.effective_filters`.
+         */
+        export interface EffectiveFilter {
+          data_type: string;
+
+          declaration_kater_ids: Array<string>;
+
+          effective_kater_id: string;
+
+          enabled: boolean;
+
+          expression: string;
+
+          field_active_timeframe: string | null;
+
+          field_column_key: string | null;
+
+          field_kater_id: string | null;
+
+          field_source_kater_id: string | null;
+
+          label: string | null;
+
+          mode: 'static' | 'parameterized';
+
+          name: string;
+
+          normalized_value: string | null;
+
+          owner_chain: Array<string>;
+
+          required: boolean;
+
+          scope: 'model' | 'topic' | 'dashboard' | 'query';
+
+          value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+      }
+
+      /**
+       * Non-data inputs that affect widget config, narrative, chart rendering, and SDK
+       * rendering behavior. `display`, `chart`, and `style` are the only free-form JSON
+       * sections in the canonical key.
+       */
+      export interface Presentation {
+        chart: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        config_fingerprint: string;
+
+        display: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        /**
+         * Widget role -> column_key (not human-readable field name)
+         */
+        roles: { [key: string]: string };
+
+        style: {
+          [key: string]:
+            | string
+            | number
+            | number
+            | boolean
+            | null
+            | Array<unknown>
+            | { [key: string]: unknown };
+        };
+
+        widget_category: string;
+
+        widget_type: string | null;
+      }
+
+      /**
+       * Anchors the rendered result to the query template and its selected field shape.
+       */
+      export interface Query {
+        pinned_variant: string | null;
+
+        query_kater_id: string;
+
+        resolved_query_fingerprint: string;
+
+        /**
+         * Provenance only — consumers must not treat as identity
+         */
+        source_query_ref: string;
+      }
+
+      /**
+       * Identifies the returned window of rows. `sort_by`, when present, is a
+       * column_key.
+       */
+      export interface ResultWindow {
+        cursor: string | null;
+
+        effective_limit: number | null;
+
+        max_row_limit: number | null;
+
+        page_size: number | null;
+
+        query_limit: number | null;
+
+        sort_by: string | null;
+
+        sort_order: 'asc' | 'desc' | null;
+      }
+
+      /**
+       * Identifies the exact Kater source bundle used to resolve and compile.
+       */
+      export interface Source {
+        connection_config_fingerprint: string;
+
+        connection_kater_id: string;
+
+        dependency_graph_fingerprint: string | null;
+
+        manifest_fingerprint: string | null;
+
+        source_fingerprint: string;
+
+        source_kind: 'saved_repo' | 'branch' | 'dev_session';
+
+        source_ref: string | null;
+
+        theme_fingerprint: string | null;
+
+        widget_registry_fingerprint: string;
+      }
+
+      /**
+       * Request clock context — makes date-relative filters deterministic.
+       *
+       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * `fields.output_columns[].column_key`, not here.
+       */
+      export interface Temporal {
+        /**
+         * ISO timestamp resolved once at the start of canonicalization
+         */
+        as_of: string;
+
+        timezone: string;
+      }
+
+      /**
+       * Hard tenant identity boundary.
+       */
+      export interface Tenant {
+        client_id: string;
+
+        tenancy_mode: 'none' | 'row' | 'database';
+
+        tenant_attribute_fingerprint: string | null;
+
+        tenant_database: string | null;
+
+        tenant_key: string;
+      }
+
+      /**
+       * A variable applied to compile or post-assembly runtime substitution.
+       */
+      export interface Variable {
+        is_runtime: boolean;
+
+        name: string;
+
+        /**
+         * Deterministic string used for hashing and cache projection
+         */
+        normalized_value: string;
+
+        query_kater_id: string;
+
+        scope: 'query' | 'global';
+
+        source: 'default' | 'request' | 'pinned_variant' | 'dashboard';
+
+        /**
+         * Display/debug value (free-form JSON)
+         */
+        value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+        variable_kater_id: string | null;
+      }
+    }
+  }
+}
+
+/**
+ * Resolve-stage projection from `RenderResponse` + `RenderService` internals.
+ *
+ * Has NO `combination` / `combination_id` field by contract. The combination-free
+ * invariant is asserted by AST-scan tests in `test_resolve_route.py`.
+ */
+export interface CompilerResolveResponse {
+  /**
+   * Whether the resolve succeeded
+   */
+  success: boolean;
+
+  /**
+   * Applied runtime filter state used for the resolve.
+   */
+  applied_filter_state?: Array<CompilerResolveResponse.AppliedFilterState>;
+
+  /**
+   * Auto-generated description text.
+   */
+  auto_description?: string | null;
+
+  /**
+   * Structured auto-description payload, if available.
+   */
+  auto_description_structured?: { [key: string]: unknown } | null;
+
+  /**
+   * Auto-generated title.
+   */
+  auto_title?: string | null;
+
+  /**
+   * Default runtime filter state derived from definitions.
+   */
+  default_filter_state?: Array<CompilerResolveResponse.DefaultFilterState>;
+
+  /**
+   * Resolver errors (if any).
+   */
+  errors?: Array<CompilerErrorItem>;
+
+  /**
+   * Resolved effective filter definitions.
+   */
+  filter_definitions?: Array<CompilerResolveResponse.FilterDefinition>;
+
+  /**
+   * Top-level natural key returned by every runtime data and widget path.
+   *
+   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   *
+   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   */
+  rendered_query_key?: CompilerResolveResponse.RenderedQueryKey | null;
+
+  /**
+   * The fully resolved query object.
+   */
+  resolved_query?: { [key: string]: unknown } | null;
+
+  /**
+   * Resolved style config.
+   */
+  style_config?: { [key: string]: unknown };
+
+  /**
+   * Resolved widget config.
+   */
+  widget_config?: { [key: string]: unknown };
+
+  /**
+   * Resolved widget type (when available).
+   */
+  widget_type?: string | null;
+}
+
+export namespace CompilerResolveResponse {
+  /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface AppliedFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | AppliedFilterState.ScalarFilterValue
+      | AppliedFilterState.MultiFilterValue
+      | AppliedFilterState.NumberRangeFilterValue
+      | AppliedFilterState.AbsoluteDateFilterValue
+      | AppliedFilterState.AbsoluteRangeFilterValue
+      | AppliedFilterState.RelativeRangeFilterValue
+      | AppliedFilterState.PresetReferenceFilterValue
+      | AppliedFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace AppliedFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
+  /**
+   * Resolved runtime filter state exposed by the V2 API contract.
+   */
+  export interface DefaultFilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Whether the filter is enabled at runtime
+     */
+    enabled: boolean;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is required
+     */
+    required: boolean;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Current typed runtime value
+     */
+    value?:
+      | DefaultFilterState.ScalarFilterValue
+      | DefaultFilterState.MultiFilterValue
+      | DefaultFilterState.NumberRangeFilterValue
+      | DefaultFilterState.AbsoluteDateFilterValue
+      | DefaultFilterState.AbsoluteRangeFilterValue
+      | DefaultFilterState.RelativeRangeFilterValue
+      | DefaultFilterState.PresetReferenceFilterValue
+      | DefaultFilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace DefaultFilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
+  /**
+   * Resolved effective filter definition exposed by the V2 API contract.
+   */
+  export interface FilterDefinition {
+    /**
+     * Canonical data type
+     */
+    data_type: string;
+
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Structured filter expression
+     */
+    expression: string;
+
+    /**
+     * Target field ref
+     */
+    field: string;
+
+    /**
+     * Concrete declaration ID from the merged definition
+     */
+    kater_id: string;
+
+    /**
+     * Filter mode: static or parameterized
+     */
+    mode: string;
+
+    /**
+     * Logical filter name
+     */
+    name: string;
+
+    /**
+     * Whether the filter is always active
+     */
+    required: boolean;
+
+    /**
+     * Filter scope: model, topic, dashboard, or query
+     */
+    scope: string;
+
+    /**
+     * AI-facing filter context
+     */
+    ai_context?: string | null;
+
+    /**
+     * Whether null is allowed
+     */
+    allow_null_value?: boolean | null;
+
+    /**
+     * Concrete declaration IDs that contributed to this effective filter
+     */
+    declaration_kater_ids?: Array<string>;
+
+    /**
+     * Default enabled state
+     */
+    default_enabled?: boolean | null;
+
+    /**
+     * Default runtime value payload
+     */
+    default_value?:
+      | FilterDefinition.ScalarFilterValue
+      | FilterDefinition.MultiFilterValue
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | FilterDefinition.PresetReferenceFilterValue
+      | FilterDefinition.NullFilterValue
+      | null;
+
+    /**
+     * Filter description
+     */
+    description?: string | null;
+
+    /**
+     * Optional UI help text
+     */
+    help_text?: string | null;
+
+    /**
+     * Interactive filter kind
+     */
+    kind?: string | null;
+
+    /**
+     * Human-readable filter label
+     */
+    label?: string | null;
+
+    /**
+     * Null option label
+     */
+    null_label?: string | null;
+
+    /**
+     * Owner IDs from model/topic/dashboard/query precedence order
+     */
+    owner_chain?: Array<string>;
+
+    /**
+     * Optional input placeholder
+     */
+    placeholder?: string | null;
+
+    /**
+     * Filter preset definitions
+     */
+    presets?: Array<FilterDefinition.Preset> | null;
+
+    /**
+     * Static filter value payload
+     */
+    static_value?:
+      | string
+      | number
+      | boolean
+      | Array<string | number | boolean>
+      | FilterDefinition.NumberRangeFilterValue
+      | FilterDefinition.AbsoluteDateFilterValue
+      | FilterDefinition.AbsoluteRangeFilterValue
+      | FilterDefinition.RelativeRangeFilterValue
+      | null;
+
+    /**
+     * Selectable values metadata
+     */
+    values?:
+      | FilterDefinition.StaticFilterValuesSource
+      | FilterDefinition.DynamicDistinctFilterValuesSource
+      | null;
+  }
+
+  export namespace FilterDefinition {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+
+    export interface Preset {
+      /**
+       * Human-readable preset label
+       */
+      label: string;
+
+      /**
+       * Stable preset key
+       */
+      name: string;
+
+      /**
+       * Typed preset value payload
+       */
+      value:
+        | Preset.ScalarFilterValue
+        | Preset.MultiFilterValue
+        | Preset.NumberRangeFilterValue
+        | Preset.AbsoluteDateFilterValue
+        | Preset.AbsoluteRangeFilterValue
+        | Preset.RelativeRangeFilterValue
+        | Preset.PresetReferenceFilterValue
+        | Preset.NullFilterValue;
+    }
+
+    export namespace Preset {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface StaticFilterValuesSource {
+      /**
+       * Inline selectable items
+       */
+      items: Array<StaticFilterValuesSource.Item>;
+
+      source?: 'static';
+    }
+
+    export namespace StaticFilterValuesSource {
+      export interface Item {
+        /**
+         * Selectable scalar value
+         */
+        value: string | number | boolean;
+
+        /**
+         * Optional selectable value label
+         */
+        label?: string | null;
+      }
+    }
+
+    export interface DynamicDistinctFilterValuesSource {
+      /**
+       * Maximum number of values to request
+       */
+      limit?: number | null;
+
+      /**
+       * Supported sort order for dynamic distinct value loading
+       */
+      sort?: 'asc' | 'desc' | null;
+
+      source?: 'dynamic_distinct';
     }
   }
 
@@ -7359,32 +8581,63 @@ export namespace CompilerValidateResponse {
 
 export interface CompilerCompileParams {
   /**
-   * Body param: Connection to compile against
+   * Body param
    */
   connection_id: string;
 
   /**
-   * Body param: Previously resolved query object from /resolve
+   * Body param: Dashboard context block in `RenderedQueryRequestV1`.
    */
-  resolved_query: CompilerCompileParams.ResolvedQuery;
+  dashboard: CompilerCompileParams.Dashboard | null;
 
   /**
-   * Body param: Tenant key for multi-tenant compilation. Use 'kater_global_tenant'
-   * for no-tenancy clients or to bypass tenant isolation. For database tenancy, maps
-   * to the tenant's database. For row tenancy, used as the row-level filter value.
+   * Body param: Structured field selection: source field IDs plus optional grain
+   * overrides.
    */
-  tenant_key: string;
+  field_selection: CompilerCompileParams.FieldSelection;
+
+  /**
+   * Body param
+   */
+  filter_state: Array<CompilerCompileParams.FilterState>;
+
+  /**
+   * Body param
+   */
+  pinned_variant: string | null;
+
+  /**
+   * Body param: Presentation config block in `RenderedQueryRequestV1`.
+   */
+  presentation: CompilerCompileParams.Presentation;
+
+  /**
+   * Body param
+   */
+  query_kater_id: string;
+
+  /**
+   * Body param: Result window block in `RenderedQueryRequestV1` (consumers do not
+   * supply backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  result_window: CompilerCompileParams.ResultWindow;
+
+  /**
+   * Body param: Request clock block in `RenderedQueryRequestV1`. Either field may be
+   * `null` on the request; the backend resolves both before canonicalization (the
+   * canonical `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  temporal: CompilerCompileParams.Temporal;
+
+  /**
+   * Body param
+   */
+  variables: Array<CompilerCompileParams.Variable>;
 
   /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
-   * ID.
-   */
-  filter_state?: Array<CompilerCompileParams.FilterState> | null;
 
   /**
    * Header param
@@ -7394,545 +8647,165 @@ export interface CompilerCompileParams {
 
 export namespace CompilerCompileParams {
   /**
-   * Previously resolved query object from /resolve
+   * Dashboard context block in `RenderedQueryRequestV1`.
    */
-  export interface ResolvedQuery {
-    /**
-     * Unique identifier for this resolved query instance
-     */
-    kater_id: string;
+  export interface Dashboard {
+    dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
 
-    /**
-     * Name from the leaf query in the inheritance chain
-     */
-    name: string;
+    dashboard_kater_id: string | null;
 
-    /**
-     * Reference to the original query template this was resolved from
-     */
-    source_query: string;
+    slot_name: string | null;
 
-    /**
-     * Reference to the topic this query uses (always known after inheritance
-     * resolution)
-     */
-    topic: string;
-
-    /**
-     * Widget category that determines data shape constraints
-     */
-    widget_category:
-      | 'axis'
-      | 'funnel'
-      | 'heatmap'
-      | 'image'
-      | 'kpi_card'
-      | 'pie'
-      | 'radial'
-      | 'table'
-      | 'text';
-
-    /**
-     * Usage guidance for AI processing
-     */
-    ai_context?: string | null;
-
-    /**
-     * Merged required + selected optional calculations
-     */
-    calculations?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Chart recommendations preserved for evaluation
-     */
-    chart_hints?: Array<ResolvedQuery.ChartHint1Input | ResolvedQuery.ChartHint2Input> | null;
-
-    /**
-     * Custom properties
-     */
-    custom_properties?: { [key: string]: unknown } | null;
-
-    /**
-     * Description of the query
-     */
-    description?: string | null;
-
-    /**
-     * Merged required + selected optional dimensions
-     */
-    dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Widget types within the declared widget_category that must NOT render this query
-     */
-    disallowed_widget_types?: Array<
-      | 'axis_metric_by_dimension'
-      | 'axis_metric_by_dimensiondate'
-      | 'axis_metric_by_dimensiondate_sliced_by_dimension'
-      | 'axis_metric_by_metric'
-      | 'funnel_funnel_chart'
-      | 'heatmap_heatmap'
-      | 'image_image_grid'
-      | 'image_single_image'
-      | 'kpi_measure_with_dimension_expression'
-      | 'kpi_measure_with_secondary_metric'
-      | 'kpi_measure_with_target_progress'
-      | 'kpi_single_measure_compared_to_prev_period_sparkline'
-      | 'kpi_single_value'
-      | 'pie_donut_chart'
-      | 'pie_donut_with_measure'
-      | 'pie_pie_chart'
-      | 'radial_chart'
-      | 'radial_with_single_value'
-      | 'radial_with_single_value_stacked'
-      | 'table_data_table'
-      | 'table_fancy_subtotal_table'
-      | 'table_key_value_list'
-      | 'table_styled_table'
-      | 'text_data_readout_with_sparkline'
-      | 'text_narrative_text'
-    > | null;
-
-    /**
-     * Merged required + selected optional filters
-     */
-    filters?: Array<
-      | ResolvedQuery.InlineFormulaFilter
-      | string
-      | ResolvedQuery.InlineExistsFilter1
-      | ResolvedQuery.InlineExistsFilter2
-    > | null;
-
-    /**
-     * Ordered list of query refs that were merged during inheritance resolution
-     */
-    inheritance_chain?: Array<string> | null;
-
-    /**
-     * Human-readable label with var() values substituted
-     */
-    label?: string | null;
-
-    /**
-     * Maximum number of rows to return
-     */
-    limit?: number | null;
-
-    /**
-     * Merged required + selected optional measures
-     */
-    measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Sort order for query results
-     */
-    order_by?: Array<ResolvedQuery.OrderByItem | string> | null;
-
-    /**
-     * The matched chart recommendation after evaluating chart hints
-     */
-    resolved_chart?: ResolvedQuery.ResolvedChart | null;
-
-    /**
-     * Full variable definitions with bound values
-     */
-    resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
-
-    /**
-     * Resolved select_from entries with CTE metadata
-     */
-    select_from?: Array<ResolvedQuery.SelectFrom> | null;
-
-    /**
-     * When true, compute a totals_row over returned measure columns and expose it
-     * alongside data.
-     */
-    totals?: boolean | null;
+    widget_kater_id: string | null;
   }
 
-  export namespace ResolvedQuery {
-    /**
-     * A chart recommendation rule
-     */
-    export interface ChartHint1Input {
+  export namespace Dashboard {
+    export interface DashboardFilterState {
       /**
-       * Chart configuration with variable references
+       * Stable effective runtime filter ID
        */
-      config: CompilerAPI.ChartConfig;
+      effective_kater_id: string;
 
       /**
-       * Type of chart visualization
+       * Requested enabled state override for this effective filter
        */
-      recommend:
-        | 'line'
-        | 'bar'
-        | 'stacked_bar'
-        | 'area'
-        | 'pie'
-        | 'donut'
-        | 'scatter'
-        | 'table'
-        | 'heatmap'
-        | 'single_value';
+      enabled?: boolean | null;
 
       /**
-       * Conditions based on variable values - can be single value (string) or multiple
-       * values (array)
+       * Requested runtime value override for this effective filter
        */
-      when: { [key: string]: string | Array<string> };
-    }
-
-    /**
-     * A chart recommendation rule
-     */
-    export interface ChartHint2Input {
-      default: ChartHint2Input.Default;
-    }
-
-    export namespace ChartHint2Input {
-      export interface Default {
-        /**
-         * Chart configuration with variable references
-         */
-        config: CompilerAPI.ChartConfig;
-
-        /**
-         * Type of chart visualization
-         */
-        recommend:
-          | 'line'
-          | 'bar'
-          | 'stacked_bar'
-          | 'area'
-          | 'pie'
-          | 'donut'
-          | 'scatter'
-          | 'table'
-          | 'heatmap'
-          | 'single_value';
-      }
-    }
-
-    /**
-     * An inline filter using a SQL/expression formula
-     */
-    export interface InlineFormulaFilter {
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * SQL expression for the filter condition
-       */
-      sql: string;
-    }
-
-    /**
-     * An inline filter using EXISTS or NOT EXISTS with a subquery
-     */
-    export interface InlineExistsFilter1 {
-      /**
-       * EXISTS subquery condition
-       */
-      exists: CompilerAPI.SubqueryCondition;
-
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * Description of the filter
-       */
-      description?: string | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      not_exists?: CompilerAPI.SubqueryCondition | null;
-    }
-
-    /**
-     * An inline filter using EXISTS or NOT EXISTS with a subquery
-     */
-    export interface InlineExistsFilter2 {
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * NOT EXISTS subquery condition
-       */
-      not_exists: CompilerAPI.SubqueryCondition;
-
-      /**
-       * Description of the filter
-       */
-      description?: string | null;
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      exists?: CompilerAPI.SubqueryCondition | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    /**
-     * Explicit sort direction for a field.
-     */
-    export interface OrderByItem {
-      /**
-       * Sort direction: asc (ascending, A-Z / oldest first) or desc (descending, Z-A /
-       * newest first).
-       */
-      direction: 'asc' | 'desc';
-
-      /**
-       * A string that may be a ref(), var(), or expr() reference
-       */
-      field: string;
-    }
-
-    /**
-     * The matched chart recommendation after evaluating chart hints
-     */
-    export interface ResolvedChart {
-      /**
-       * Chart configuration
-       */
-      config: CompilerAPI.ChartConfig;
-
-      /**
-       * Recommended chart type
-       */
-      recommend:
-        | 'line'
-        | 'bar'
-        | 'stacked_bar'
-        | 'area'
-        | 'pie'
-        | 'donut'
-        | 'scatter'
-        | 'table'
-        | 'heatmap'
-        | 'single_value';
-    }
-
-    /**
-     * A variable definition with its bound value
-     */
-    export interface ResolvedVariable {
-      /**
-       * The concrete value bound for this resolution
-       */
-      bound_value: string | number | boolean | Array<string | number | boolean>;
-
-      /**
-       * Default value for this variable
-       */
-      default: string | number | boolean | Array<string | number | boolean>;
-
-      /**
-       * Unique identifier for this variable
-       */
-      kater_id: string;
-
-      /**
-       * Variable name identifier
-       */
-      name: string;
-
-      /**
-       * Data type of the variable
-       */
-      type:
-        | 'STRING'
-        | 'INT'
-        | 'FLOAT'
-        | 'DATE'
-        | 'TIMESTAMP'
-        | 'BOOL'
-        | 'STRING[]'
-        | 'INT[]'
-        | 'FLOAT[]'
-        | 'DATE[]'
-        | 'DIMENSION'
-        | 'MEASURE'
-        | 'CALCULATION'
-        | 'FILTER'
-        | 'TIMEFRAME';
-
-      /**
-       * Allowed values configuration
-       */
-      allowed_values?:
-        | ResolvedVariable.VariableAllowedValues1
-        | ResolvedVariable.VariableAllowedValues2
+      value?:
+        | DashboardFilterState.ScalarFilterValue
+        | DashboardFilterState.MultiFilterValue
+        | DashboardFilterState.NumberRangeFilterValue
+        | DashboardFilterState.AbsoluteDateFilterValue
+        | DashboardFilterState.AbsoluteRangeFilterValue
+        | DashboardFilterState.RelativeRangeFilterValue
+        | DashboardFilterState.PresetReferenceFilterValue
+        | DashboardFilterState.NullFilterValue
         | null;
-
-      /**
-       * Constraints for variable types
-       */
-      constraints?: ResolvedVariable.Constraints | null;
-
-      /**
-       * Description of the variable's purpose
-       */
-      description?: string | null;
-
-      /**
-       * True if bound_value equals the default value
-       */
-      is_default?: boolean | null;
-
-      /**
-       * True if this is a runtime variable (not resolved at compile time). Runtime
-       * variables have var() placeholders left in compiled SQL for literal substitution
-       * at execution time.
-       */
-      is_runtime?: boolean | null;
-
-      /**
-       * Human-readable label for the variable
-       */
-      label?: string | null;
     }
 
-    export namespace ResolvedVariable {
-      /**
-       * Allowed values for a variable - either static list or from column
-       */
-      export interface VariableAllowedValues1 {
+    export namespace DashboardFilterState {
+      export interface ScalarFilterValue {
         /**
-         * Static list of allowed values with optional labels
+         * Single scalar runtime value
          */
-        static: Array<VariableAllowedValues1.Static>;
+        value: string | number | boolean;
+
+        mode?: 'scalar';
       }
 
-      export namespace VariableAllowedValues1 {
+      export interface MultiFilterValue {
         /**
-         * A value with optional display label
+         * List of scalar runtime values
          */
-        export interface Static {
-          /**
-           * The actual value
-           */
-          value: string | number | boolean;
+        values: Array<string | number | boolean>;
 
-          /**
-           * Human-readable label for the value
-           */
-          label?: string | null;
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
         }
       }
 
-      /**
-       * Allowed values for a variable - either static list or from column
-       */
-      export interface VariableAllowedValues2 {
+      export interface PresetReferenceFilterValue {
         /**
-         * Reference to column for dynamic values
+         * Stable preset key matching presets[].name
          */
-        from_column: string;
+        preset: string;
 
-        /**
-         * Cache time-to-live in seconds
-         */
-        cache_ttl?: number;
-
-        /**
-         * Maximum number of values to retrieve
-         */
-        limit?: number;
-
-        /**
-         * Sort order for values
-         */
-        order_by?: 'asc' | 'desc';
+        mode?: 'preset';
       }
 
-      /**
-       * Constraints for variable types
-       */
-      export interface Constraints {
-        /**
-         * Maximum allowed value
-         */
-        max?: number | null;
-
-        /**
-         * Maximum length for STRING variables
-         */
-        max_length?: number | null;
-
-        /**
-         * Minimum allowed value
-         */
-        min?: number | null;
-
-        /**
-         * Step increment for numeric input
-         */
-        step?: number | null;
+      export interface NullFilterValue {
+        mode?: 'null';
       }
     }
+  }
 
+  /**
+   * Structured field selection: source field IDs plus optional grain overrides.
+   */
+  export interface FieldSelection {
+    selected_field_ids: Array<string>;
+
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+  }
+
+  export namespace FieldSelection {
     /**
-     * A resolved select_from entry with CTE metadata
+     * Runtime grain choice for a temporal source dimension.
      */
-    export interface SelectFrom {
-      /**
-       * CTE alias used in the WITH clause (e.g., **sf_compliance_rate**base)
-       */
-      cte_alias: string;
+    export interface TimeframeOverride {
+      active_timeframe: string;
 
-      /**
-       * Columns produced by the CTE, available as q:query_name.field_name in the parent
-       */
-      output_columns: Array<SelectFrom.OutputColumn>;
-
-      /**
-       * Reference to the source query
-       */
-      ref: string;
-
-      /**
-       * Variable overrides passed to the referenced query
-       */
-      variables?: { [key: string]: string | number | boolean } | null;
-    }
-
-    export namespace SelectFrom {
-      /**
-       * A column produced by a select_from CTE
-       */
-      export interface OutputColumn {
-        /**
-         * The SQL column alias in the CTE output
-         */
-        column_alias: string;
-
-        /**
-         * The field name used in q:query_name.field_name references
-         */
-        field_name: string;
-
-        /**
-         * Original type of the field in the source query
-         */
-        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
-      }
+      source_kater_id: string;
     }
   }
 
@@ -8060,6 +8933,78 @@ export namespace CompilerCompileParams {
     export interface NullFilterValue {
       mode?: 'null';
     }
+  }
+
+  /**
+   * Presentation config block in `RenderedQueryRequestV1`.
+   */
+  export interface Presentation {
+    chart?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    display?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    style?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+  }
+
+  /**
+   * Result window block in `RenderedQueryRequestV1` (consumers do not supply
+   * backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  export interface ResultWindow {
+    cursor: string | null;
+
+    page_size: number | null;
+
+    sort_by: string | null;
+
+    sort_order: 'asc' | 'desc' | null;
+  }
+
+  /**
+   * Request clock block in `RenderedQueryRequestV1`. Either field may be `null` on
+   * the request; the backend resolves both before canonicalization (the canonical
+   * `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  export interface Temporal {
+    as_of: string | null;
+
+    timezone: string | null;
+  }
+
+  /**
+   * Runtime variable value as supplied in a `RenderedQueryRequestV1`.
+   *
+   * `variable_kater_id` is preferred. Until every surface exposes it,
+   * `(query_kater_id, scope, name)` is the migration fallback identity.
+   */
+  export interface Variable {
+    /**
+     * Variable name within scope
+     */
+    name: string;
+
+    /**
+     * Owning query UUID
+     */
+    query_kater_id: string;
+
+    scope: 'query' | 'global';
+
+    /**
+     * Free-form JSON variable value
+     */
+    value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+    /**
+     * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
+     */
+    variable_kater_id: string | null;
   }
 }
 
@@ -8257,31 +9202,63 @@ export interface CompilerEnumerateParams {
 
 export interface CompilerExecuteParams {
   /**
-   * Body param: Connection to execute against
+   * Body param
    */
   connection_id: string;
 
   /**
-   * Body param: Previously resolved query object from /resolve
+   * Body param: Dashboard context block in `RenderedQueryRequestV1`.
    */
-  resolved_query: CompilerExecuteParams.ResolvedQuery;
+  dashboard: CompilerExecuteParams.Dashboard | null;
 
   /**
-   * Body param: Tenant key for multi-tenant execution. Use 'kater_global_tenant' for
-   * no-tenancy clients.
+   * Body param: Structured field selection: source field IDs plus optional grain
+   * overrides.
    */
-  tenant_key: string;
+  field_selection: CompilerExecuteParams.FieldSelection;
+
+  /**
+   * Body param
+   */
+  filter_state: Array<CompilerExecuteParams.FilterState>;
+
+  /**
+   * Body param
+   */
+  pinned_variant: string | null;
+
+  /**
+   * Body param: Presentation config block in `RenderedQueryRequestV1`.
+   */
+  presentation: CompilerExecuteParams.Presentation;
+
+  /**
+   * Body param
+   */
+  query_kater_id: string;
+
+  /**
+   * Body param: Result window block in `RenderedQueryRequestV1` (consumers do not
+   * supply backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  result_window: CompilerExecuteParams.ResultWindow;
+
+  /**
+   * Body param: Request clock block in `RenderedQueryRequestV1`. Either field may be
+   * `null` on the request; the backend resolves both before canonicalization (the
+   * canonical `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  temporal: CompilerExecuteParams.Temporal;
+
+  /**
+   * Body param
+   */
+  variables: Array<CompilerExecuteParams.Variable>;
 
   /**
    * Query param
    */
   source?: string | null;
-
-  /**
-   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
-   * ID.
-   */
-  filter_state?: Array<CompilerExecuteParams.FilterState> | null;
 
   /**
    * Header param
@@ -8291,545 +9268,165 @@ export interface CompilerExecuteParams {
 
 export namespace CompilerExecuteParams {
   /**
-   * Previously resolved query object from /resolve
+   * Dashboard context block in `RenderedQueryRequestV1`.
    */
-  export interface ResolvedQuery {
-    /**
-     * Unique identifier for this resolved query instance
-     */
-    kater_id: string;
+  export interface Dashboard {
+    dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
 
-    /**
-     * Name from the leaf query in the inheritance chain
-     */
-    name: string;
+    dashboard_kater_id: string | null;
 
-    /**
-     * Reference to the original query template this was resolved from
-     */
-    source_query: string;
+    slot_name: string | null;
 
-    /**
-     * Reference to the topic this query uses (always known after inheritance
-     * resolution)
-     */
-    topic: string;
-
-    /**
-     * Widget category that determines data shape constraints
-     */
-    widget_category:
-      | 'axis'
-      | 'funnel'
-      | 'heatmap'
-      | 'image'
-      | 'kpi_card'
-      | 'pie'
-      | 'radial'
-      | 'table'
-      | 'text';
-
-    /**
-     * Usage guidance for AI processing
-     */
-    ai_context?: string | null;
-
-    /**
-     * Merged required + selected optional calculations
-     */
-    calculations?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Chart recommendations preserved for evaluation
-     */
-    chart_hints?: Array<ResolvedQuery.ChartHint1Input | ResolvedQuery.ChartHint2Input> | null;
-
-    /**
-     * Custom properties
-     */
-    custom_properties?: { [key: string]: unknown } | null;
-
-    /**
-     * Description of the query
-     */
-    description?: string | null;
-
-    /**
-     * Merged required + selected optional dimensions
-     */
-    dimensions?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Widget types within the declared widget_category that must NOT render this query
-     */
-    disallowed_widget_types?: Array<
-      | 'axis_metric_by_dimension'
-      | 'axis_metric_by_dimensiondate'
-      | 'axis_metric_by_dimensiondate_sliced_by_dimension'
-      | 'axis_metric_by_metric'
-      | 'funnel_funnel_chart'
-      | 'heatmap_heatmap'
-      | 'image_image_grid'
-      | 'image_single_image'
-      | 'kpi_measure_with_dimension_expression'
-      | 'kpi_measure_with_secondary_metric'
-      | 'kpi_measure_with_target_progress'
-      | 'kpi_single_measure_compared_to_prev_period_sparkline'
-      | 'kpi_single_value'
-      | 'pie_donut_chart'
-      | 'pie_donut_with_measure'
-      | 'pie_pie_chart'
-      | 'radial_chart'
-      | 'radial_with_single_value'
-      | 'radial_with_single_value_stacked'
-      | 'table_data_table'
-      | 'table_fancy_subtotal_table'
-      | 'table_key_value_list'
-      | 'table_styled_table'
-      | 'text_data_readout_with_sparkline'
-      | 'text_narrative_text'
-    > | null;
-
-    /**
-     * Merged required + selected optional filters
-     */
-    filters?: Array<
-      | ResolvedQuery.InlineFormulaFilter
-      | string
-      | ResolvedQuery.InlineExistsFilter1
-      | ResolvedQuery.InlineExistsFilter2
-    > | null;
-
-    /**
-     * Ordered list of query refs that were merged during inheritance resolution
-     */
-    inheritance_chain?: Array<string> | null;
-
-    /**
-     * Human-readable label with var() values substituted
-     */
-    label?: string | null;
-
-    /**
-     * Maximum number of rows to return
-     */
-    limit?: number | null;
-
-    /**
-     * Merged required + selected optional measures
-     */
-    measures?: Array<CompilerAPI.RefWithLabel | CompilerAPI.InlineField | string> | null;
-
-    /**
-     * Sort order for query results
-     */
-    order_by?: Array<ResolvedQuery.OrderByItem | string> | null;
-
-    /**
-     * The matched chart recommendation after evaluating chart hints
-     */
-    resolved_chart?: ResolvedQuery.ResolvedChart | null;
-
-    /**
-     * Full variable definitions with bound values
-     */
-    resolved_variables?: Array<ResolvedQuery.ResolvedVariable> | null;
-
-    /**
-     * Resolved select_from entries with CTE metadata
-     */
-    select_from?: Array<ResolvedQuery.SelectFrom> | null;
-
-    /**
-     * When true, compute a totals_row over returned measure columns and expose it
-     * alongside data.
-     */
-    totals?: boolean | null;
+    widget_kater_id: string | null;
   }
 
-  export namespace ResolvedQuery {
-    /**
-     * A chart recommendation rule
-     */
-    export interface ChartHint1Input {
+  export namespace Dashboard {
+    export interface DashboardFilterState {
       /**
-       * Chart configuration with variable references
+       * Stable effective runtime filter ID
        */
-      config: CompilerAPI.ChartConfig;
+      effective_kater_id: string;
 
       /**
-       * Type of chart visualization
+       * Requested enabled state override for this effective filter
        */
-      recommend:
-        | 'line'
-        | 'bar'
-        | 'stacked_bar'
-        | 'area'
-        | 'pie'
-        | 'donut'
-        | 'scatter'
-        | 'table'
-        | 'heatmap'
-        | 'single_value';
+      enabled?: boolean | null;
 
       /**
-       * Conditions based on variable values - can be single value (string) or multiple
-       * values (array)
+       * Requested runtime value override for this effective filter
        */
-      when: { [key: string]: string | Array<string> };
-    }
-
-    /**
-     * A chart recommendation rule
-     */
-    export interface ChartHint2Input {
-      default: ChartHint2Input.Default;
-    }
-
-    export namespace ChartHint2Input {
-      export interface Default {
-        /**
-         * Chart configuration with variable references
-         */
-        config: CompilerAPI.ChartConfig;
-
-        /**
-         * Type of chart visualization
-         */
-        recommend:
-          | 'line'
-          | 'bar'
-          | 'stacked_bar'
-          | 'area'
-          | 'pie'
-          | 'donut'
-          | 'scatter'
-          | 'table'
-          | 'heatmap'
-          | 'single_value';
-      }
-    }
-
-    /**
-     * An inline filter using a SQL/expression formula
-     */
-    export interface InlineFormulaFilter {
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * SQL expression for the filter condition
-       */
-      sql: string;
-    }
-
-    /**
-     * An inline filter using EXISTS or NOT EXISTS with a subquery
-     */
-    export interface InlineExistsFilter1 {
-      /**
-       * EXISTS subquery condition
-       */
-      exists: CompilerAPI.SubqueryCondition;
-
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * Description of the filter
-       */
-      description?: string | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      not_exists?: CompilerAPI.SubqueryCondition | null;
-    }
-
-    /**
-     * An inline filter using EXISTS or NOT EXISTS with a subquery
-     */
-    export interface InlineExistsFilter2 {
-      /**
-       * Name of the inline filter
-       */
-      name: string;
-
-      /**
-       * NOT EXISTS subquery condition
-       */
-      not_exists: CompilerAPI.SubqueryCondition;
-
-      /**
-       * Description of the filter
-       */
-      description?: string | null;
-
-      /**
-       * A subquery condition for EXISTS/NOT EXISTS filters
-       */
-      exists?: CompilerAPI.SubqueryCondition | null;
-
-      /**
-       * Human-readable label
-       */
-      label?: string | null;
-    }
-
-    /**
-     * Explicit sort direction for a field.
-     */
-    export interface OrderByItem {
-      /**
-       * Sort direction: asc (ascending, A-Z / oldest first) or desc (descending, Z-A /
-       * newest first).
-       */
-      direction: 'asc' | 'desc';
-
-      /**
-       * A string that may be a ref(), var(), or expr() reference
-       */
-      field: string;
-    }
-
-    /**
-     * The matched chart recommendation after evaluating chart hints
-     */
-    export interface ResolvedChart {
-      /**
-       * Chart configuration
-       */
-      config: CompilerAPI.ChartConfig;
-
-      /**
-       * Recommended chart type
-       */
-      recommend:
-        | 'line'
-        | 'bar'
-        | 'stacked_bar'
-        | 'area'
-        | 'pie'
-        | 'donut'
-        | 'scatter'
-        | 'table'
-        | 'heatmap'
-        | 'single_value';
-    }
-
-    /**
-     * A variable definition with its bound value
-     */
-    export interface ResolvedVariable {
-      /**
-       * The concrete value bound for this resolution
-       */
-      bound_value: string | number | boolean | Array<string | number | boolean>;
-
-      /**
-       * Default value for this variable
-       */
-      default: string | number | boolean | Array<string | number | boolean>;
-
-      /**
-       * Unique identifier for this variable
-       */
-      kater_id: string;
-
-      /**
-       * Variable name identifier
-       */
-      name: string;
-
-      /**
-       * Data type of the variable
-       */
-      type:
-        | 'STRING'
-        | 'INT'
-        | 'FLOAT'
-        | 'DATE'
-        | 'TIMESTAMP'
-        | 'BOOL'
-        | 'STRING[]'
-        | 'INT[]'
-        | 'FLOAT[]'
-        | 'DATE[]'
-        | 'DIMENSION'
-        | 'MEASURE'
-        | 'CALCULATION'
-        | 'FILTER'
-        | 'TIMEFRAME';
-
-      /**
-       * Allowed values configuration
-       */
-      allowed_values?:
-        | ResolvedVariable.VariableAllowedValues1
-        | ResolvedVariable.VariableAllowedValues2
+      value?:
+        | DashboardFilterState.ScalarFilterValue
+        | DashboardFilterState.MultiFilterValue
+        | DashboardFilterState.NumberRangeFilterValue
+        | DashboardFilterState.AbsoluteDateFilterValue
+        | DashboardFilterState.AbsoluteRangeFilterValue
+        | DashboardFilterState.RelativeRangeFilterValue
+        | DashboardFilterState.PresetReferenceFilterValue
+        | DashboardFilterState.NullFilterValue
         | null;
-
-      /**
-       * Constraints for variable types
-       */
-      constraints?: ResolvedVariable.Constraints | null;
-
-      /**
-       * Description of the variable's purpose
-       */
-      description?: string | null;
-
-      /**
-       * True if bound_value equals the default value
-       */
-      is_default?: boolean | null;
-
-      /**
-       * True if this is a runtime variable (not resolved at compile time). Runtime
-       * variables have var() placeholders left in compiled SQL for literal substitution
-       * at execution time.
-       */
-      is_runtime?: boolean | null;
-
-      /**
-       * Human-readable label for the variable
-       */
-      label?: string | null;
     }
 
-    export namespace ResolvedVariable {
-      /**
-       * Allowed values for a variable - either static list or from column
-       */
-      export interface VariableAllowedValues1 {
+    export namespace DashboardFilterState {
+      export interface ScalarFilterValue {
         /**
-         * Static list of allowed values with optional labels
+         * Single scalar runtime value
          */
-        static: Array<VariableAllowedValues1.Static>;
+        value: string | number | boolean;
+
+        mode?: 'scalar';
       }
 
-      export namespace VariableAllowedValues1 {
+      export interface MultiFilterValue {
         /**
-         * A value with optional display label
+         * List of scalar runtime values
          */
-        export interface Static {
-          /**
-           * The actual value
-           */
-          value: string | number | boolean;
+        values: Array<string | number | boolean>;
 
-          /**
-           * Human-readable label for the value
-           */
-          label?: string | null;
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
         }
       }
 
-      /**
-       * Allowed values for a variable - either static list or from column
-       */
-      export interface VariableAllowedValues2 {
+      export interface PresetReferenceFilterValue {
         /**
-         * Reference to column for dynamic values
+         * Stable preset key matching presets[].name
          */
-        from_column: string;
+        preset: string;
 
-        /**
-         * Cache time-to-live in seconds
-         */
-        cache_ttl?: number;
-
-        /**
-         * Maximum number of values to retrieve
-         */
-        limit?: number;
-
-        /**
-         * Sort order for values
-         */
-        order_by?: 'asc' | 'desc';
+        mode?: 'preset';
       }
 
-      /**
-       * Constraints for variable types
-       */
-      export interface Constraints {
-        /**
-         * Maximum allowed value
-         */
-        max?: number | null;
-
-        /**
-         * Maximum length for STRING variables
-         */
-        max_length?: number | null;
-
-        /**
-         * Minimum allowed value
-         */
-        min?: number | null;
-
-        /**
-         * Step increment for numeric input
-         */
-        step?: number | null;
+      export interface NullFilterValue {
+        mode?: 'null';
       }
     }
+  }
 
+  /**
+   * Structured field selection: source field IDs plus optional grain overrides.
+   */
+  export interface FieldSelection {
+    selected_field_ids: Array<string>;
+
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+  }
+
+  export namespace FieldSelection {
     /**
-     * A resolved select_from entry with CTE metadata
+     * Runtime grain choice for a temporal source dimension.
      */
-    export interface SelectFrom {
-      /**
-       * CTE alias used in the WITH clause (e.g., **sf_compliance_rate**base)
-       */
-      cte_alias: string;
+    export interface TimeframeOverride {
+      active_timeframe: string;
 
-      /**
-       * Columns produced by the CTE, available as q:query_name.field_name in the parent
-       */
-      output_columns: Array<SelectFrom.OutputColumn>;
-
-      /**
-       * Reference to the source query
-       */
-      ref: string;
-
-      /**
-       * Variable overrides passed to the referenced query
-       */
-      variables?: { [key: string]: string | number | boolean } | null;
-    }
-
-    export namespace SelectFrom {
-      /**
-       * A column produced by a select_from CTE
-       */
-      export interface OutputColumn {
-        /**
-         * The SQL column alias in the CTE output
-         */
-        column_alias: string;
-
-        /**
-         * The field name used in q:query_name.field_name references
-         */
-        field_name: string;
-
-        /**
-         * Original type of the field in the source query
-         */
-        source_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
-      }
+      source_kater_id: string;
     }
   }
 
@@ -8958,18 +9555,134 @@ export namespace CompilerExecuteParams {
       mode?: 'null';
     }
   }
+
+  /**
+   * Presentation config block in `RenderedQueryRequestV1`.
+   */
+  export interface Presentation {
+    chart?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    display?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    style?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+  }
+
+  /**
+   * Result window block in `RenderedQueryRequestV1` (consumers do not supply
+   * backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  export interface ResultWindow {
+    cursor: string | null;
+
+    page_size: number | null;
+
+    sort_by: string | null;
+
+    sort_order: 'asc' | 'desc' | null;
+  }
+
+  /**
+   * Request clock block in `RenderedQueryRequestV1`. Either field may be `null` on
+   * the request; the backend resolves both before canonicalization (the canonical
+   * `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  export interface Temporal {
+    as_of: string | null;
+
+    timezone: string | null;
+  }
+
+  /**
+   * Runtime variable value as supplied in a `RenderedQueryRequestV1`.
+   *
+   * `variable_kater_id` is preferred. Until every surface exposes it,
+   * `(query_kater_id, scope, name)` is the migration fallback identity.
+   */
+  export interface Variable {
+    /**
+     * Variable name within scope
+     */
+    name: string;
+
+    /**
+     * Owning query UUID
+     */
+    query_kater_id: string;
+
+    scope: 'query' | 'global';
+
+    /**
+     * Free-form JSON variable value
+     */
+    value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+    /**
+     * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
+     */
+    variable_kater_id: string | null;
+  }
 }
 
-export interface CompilerResolveParams {
+export interface CompilerRenderParams {
   /**
-   * Body param: Connection to resolve against
+   * Body param
    */
   connection_id: string;
 
   /**
-   * Body param: UUID of the query template
+   * Body param: Dashboard context block in `RenderedQueryRequestV1`.
    */
-  query_id: string;
+  dashboard: CompilerRenderParams.Dashboard | null;
+
+  /**
+   * Body param: Structured field selection: source field IDs plus optional grain
+   * overrides.
+   */
+  field_selection: CompilerRenderParams.FieldSelection;
+
+  /**
+   * Body param
+   */
+  filter_state: Array<CompilerRenderParams.FilterState>;
+
+  /**
+   * Body param
+   */
+  pinned_variant: string | null;
+
+  /**
+   * Body param: Presentation config block in `RenderedQueryRequestV1`.
+   */
+  presentation: CompilerRenderParams.Presentation;
+
+  /**
+   * Body param
+   */
+  query_kater_id: string;
+
+  /**
+   * Body param: Result window block in `RenderedQueryRequestV1` (consumers do not
+   * supply backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  result_window: CompilerRenderParams.ResultWindow;
+
+  /**
+   * Body param: Request clock block in `RenderedQueryRequestV1`. Either field may be
+   * `null` on the request; the backend resolves both before canonicalization (the
+   * canonical `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  temporal: CompilerRenderParams.Temporal;
+
+  /**
+   * Body param
+   */
+  variables: Array<CompilerRenderParams.Variable>;
 
   /**
    * Query param
@@ -8977,28 +9690,432 @@ export interface CompilerResolveParams {
   source?: string | null;
 
   /**
-   * Body param: Automatically fix broken refs caused by renames. Defaults to True.
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
+}
+
+export namespace CompilerRenderParams {
+  /**
+   * Dashboard context block in `RenderedQueryRequestV1`.
+   */
+  export interface Dashboard {
+    dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+    dashboard_kater_id: string | null;
+
+    slot_name: string | null;
+
+    widget_kater_id: string | null;
+  }
+
+  export namespace Dashboard {
+    export interface DashboardFilterState {
+      /**
+       * Stable effective runtime filter ID
+       */
+      effective_kater_id: string;
+
+      /**
+       * Requested enabled state override for this effective filter
+       */
+      enabled?: boolean | null;
+
+      /**
+       * Requested runtime value override for this effective filter
+       */
+      value?:
+        | DashboardFilterState.ScalarFilterValue
+        | DashboardFilterState.MultiFilterValue
+        | DashboardFilterState.NumberRangeFilterValue
+        | DashboardFilterState.AbsoluteDateFilterValue
+        | DashboardFilterState.AbsoluteRangeFilterValue
+        | DashboardFilterState.RelativeRangeFilterValue
+        | DashboardFilterState.PresetReferenceFilterValue
+        | DashboardFilterState.NullFilterValue
+        | null;
+    }
+
+    export namespace DashboardFilterState {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+  }
+
+  /**
+   * Structured field selection: source field IDs plus optional grain overrides.
+   */
+  export interface FieldSelection {
+    selected_field_ids: Array<string>;
+
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+  }
+
+  export namespace FieldSelection {
+    /**
+     * Runtime grain choice for a temporal source dimension.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
+    }
+  }
+
+  export interface FilterState {
+    /**
+     * Stable effective runtime filter ID
+     */
+    effective_kater_id: string;
+
+    /**
+     * Requested enabled state override for this effective filter
+     */
+    enabled?: boolean | null;
+
+    /**
+     * Requested runtime value override for this effective filter
+     */
+    value?:
+      | FilterState.ScalarFilterValue
+      | FilterState.MultiFilterValue
+      | FilterState.NumberRangeFilterValue
+      | FilterState.AbsoluteDateFilterValue
+      | FilterState.AbsoluteRangeFilterValue
+      | FilterState.RelativeRangeFilterValue
+      | FilterState.PresetReferenceFilterValue
+      | FilterState.NullFilterValue
+      | null;
+  }
+
+  export namespace FilterState {
+    export interface ScalarFilterValue {
+      /**
+       * Single scalar runtime value
+       */
+      value: string | number | boolean;
+
+      mode?: 'scalar';
+    }
+
+    export interface MultiFilterValue {
+      /**
+       * List of scalar runtime values
+       */
+      values: Array<string | number | boolean>;
+
+      mode?: 'multi';
+    }
+
+    export interface NumberRangeFilterValue {
+      end: number;
+
+      start: number;
+
+      mode?: 'number_range';
+    }
+
+    export interface AbsoluteDateFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      value: string;
+
+      mode?: 'absolute_date';
+    }
+
+    export interface AbsoluteRangeFilterValue {
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      end: string;
+
+      /**
+       * Absolute DATE or TIMESTAMP string
+       */
+      start: string;
+
+      mode?: 'absolute_range';
+    }
+
+    export interface RelativeRangeFilterValue {
+      end: RelativeRangeFilterValue.RelativeOffsetBoundary | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      start:
+        | RelativeRangeFilterValue.RelativeOffsetBoundary
+        | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+      mode?: 'relative_range';
+    }
+
+    export namespace RelativeRangeFilterValue {
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+
+      export interface RelativeOffsetBoundary {
+        amount: number;
+
+        direction: 'ago' | 'ahead';
+
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
+
+      export interface RelativeAnchorBoundary {
+        anchor: 'today' | 'now';
+      }
+    }
+
+    export interface PresetReferenceFilterValue {
+      /**
+       * Stable preset key matching presets[].name
+       */
+      preset: string;
+
+      mode?: 'preset';
+    }
+
+    export interface NullFilterValue {
+      mode?: 'null';
+    }
+  }
+
+  /**
+   * Presentation config block in `RenderedQueryRequestV1`.
+   */
+  export interface Presentation {
+    chart?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    display?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    style?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+  }
+
+  /**
+   * Result window block in `RenderedQueryRequestV1` (consumers do not supply
+   * backend-computed `query_limit`, `max_row_limit`, `effective_limit`).
+   */
+  export interface ResultWindow {
+    cursor: string | null;
+
+    page_size: number | null;
+
+    sort_by: string | null;
+
+    sort_order: 'asc' | 'desc' | null;
+  }
+
+  /**
+   * Request clock block in `RenderedQueryRequestV1`. Either field may be `null` on
+   * the request; the backend resolves both before canonicalization (the canonical
+   * `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  export interface Temporal {
+    as_of: string | null;
+
+    timezone: string | null;
+  }
+
+  /**
+   * Runtime variable value as supplied in a `RenderedQueryRequestV1`.
+   *
+   * `variable_kater_id` is preferred. Until every surface exposes it,
+   * `(query_kater_id, scope, name)` is the migration fallback identity.
+   */
+  export interface Variable {
+    /**
+     * Variable name within scope
+     */
+    name: string;
+
+    /**
+     * Owning query UUID
+     */
+    query_kater_id: string;
+
+    scope: 'query' | 'global';
+
+    /**
+     * Free-form JSON variable value
+     */
+    value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+    /**
+     * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
+     */
+    variable_kater_id: string | null;
+  }
+}
+
+export interface CompilerResolveParams {
+  /**
+   * Body param
+   */
+  connection_id: string;
+
+  /**
+   * Body param: Structured field selection: source field IDs plus optional grain
+   * overrides.
+   */
+  field_selection: CompilerResolveParams.FieldSelection;
+
+  /**
+   * Body param
+   */
+  query_kater_id: string;
+
+  /**
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param
    */
   auto_fix?: boolean;
 
   /**
-   * Body param: Comma-separated slot selections and variable assignments. Reserved
-   * keys: measure, dimension, calculation. All other keys are variable assignments.
-   * Example: 'measure=Compliance Rate,dimension=Department,breakdown=region'
+   * Body param: Dashboard context block in `RenderedQueryRequestV1`.
    */
-  combination?: string;
+  dashboard?: CompilerResolveParams.Dashboard | null;
 
   /**
-   * Body param: Optional V2 runtime filter-state payload keyed by effective filter
-   * ID.
+   * Body param
    */
-  filter_state?: Array<CompilerResolveParams.FilterState> | null;
+  filter_state?: Array<CompilerResolveParams.FilterState>;
 
   /**
-   * Body param: Optional pinned variant name (e.g. '\_base'). Selects a specific
-   * pinned configuration.
+   * Body param
    */
   pinned_variant?: string | null;
+
+  /**
+   * Body param: Presentation config block in `RenderedQueryRequestV1`.
+   */
+  presentation?: CompilerResolveParams.Presentation;
+
+  /**
+   * Body param: Request clock block in `RenderedQueryRequestV1`. Either field may be
+   * `null` on the request; the backend resolves both before canonicalization (the
+   * canonical `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  temporal?: CompilerResolveParams.Temporal;
+
+  /**
+   * Body param
+   */
+  variables?: Array<CompilerResolveParams.Variable>;
 
   /**
    * Header param
@@ -9007,6 +10124,169 @@ export interface CompilerResolveParams {
 }
 
 export namespace CompilerResolveParams {
+  /**
+   * Structured field selection: source field IDs plus optional grain overrides.
+   */
+  export interface FieldSelection {
+    selected_field_ids: Array<string>;
+
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+  }
+
+  export namespace FieldSelection {
+    /**
+     * Runtime grain choice for a temporal source dimension.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
+    }
+  }
+
+  /**
+   * Dashboard context block in `RenderedQueryRequestV1`.
+   */
+  export interface Dashboard {
+    dashboard_filter_state: Array<Dashboard.DashboardFilterState>;
+
+    dashboard_kater_id: string | null;
+
+    slot_name: string | null;
+
+    widget_kater_id: string | null;
+  }
+
+  export namespace Dashboard {
+    export interface DashboardFilterState {
+      /**
+       * Stable effective runtime filter ID
+       */
+      effective_kater_id: string;
+
+      /**
+       * Requested enabled state override for this effective filter
+       */
+      enabled?: boolean | null;
+
+      /**
+       * Requested runtime value override for this effective filter
+       */
+      value?:
+        | DashboardFilterState.ScalarFilterValue
+        | DashboardFilterState.MultiFilterValue
+        | DashboardFilterState.NumberRangeFilterValue
+        | DashboardFilterState.AbsoluteDateFilterValue
+        | DashboardFilterState.AbsoluteRangeFilterValue
+        | DashboardFilterState.RelativeRangeFilterValue
+        | DashboardFilterState.PresetReferenceFilterValue
+        | DashboardFilterState.NullFilterValue
+        | null;
+    }
+
+    export namespace DashboardFilterState {
+      export interface ScalarFilterValue {
+        /**
+         * Single scalar runtime value
+         */
+        value: string | number | boolean;
+
+        mode?: 'scalar';
+      }
+
+      export interface MultiFilterValue {
+        /**
+         * List of scalar runtime values
+         */
+        values: Array<string | number | boolean>;
+
+        mode?: 'multi';
+      }
+
+      export interface NumberRangeFilterValue {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      export interface AbsoluteDateFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        value: string;
+
+        mode?: 'absolute_date';
+      }
+
+      export interface AbsoluteRangeFilterValue {
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        end: string;
+
+        /**
+         * Absolute DATE or TIMESTAMP string
+         */
+        start: string;
+
+        mode?: 'absolute_range';
+      }
+
+      export interface RelativeRangeFilterValue {
+        end:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        start:
+          | RelativeRangeFilterValue.RelativeOffsetBoundary
+          | RelativeRangeFilterValue.RelativeAnchorBoundary;
+
+        mode?: 'relative_range';
+      }
+
+      export namespace RelativeRangeFilterValue {
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+
+        export interface RelativeOffsetBoundary {
+          amount: number;
+
+          direction: 'ago' | 'ahead';
+
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        export interface RelativeAnchorBoundary {
+          anchor: 'today' | 'now';
+        }
+      }
+
+      export interface PresetReferenceFilterValue {
+        /**
+         * Stable preset key matching presets[].name
+         */
+        preset: string;
+
+        mode?: 'preset';
+      }
+
+      export interface NullFilterValue {
+        mode?: 'null';
+      }
+    }
+  }
+
   export interface FilterState {
     /**
      * Stable effective runtime filter ID
@@ -9131,6 +10411,64 @@ export namespace CompilerResolveParams {
     export interface NullFilterValue {
       mode?: 'null';
     }
+  }
+
+  /**
+   * Presentation config block in `RenderedQueryRequestV1`.
+   */
+  export interface Presentation {
+    chart?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    display?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+
+    style?: {
+      [key: string]: string | number | number | boolean | null | Array<unknown> | { [key: string]: unknown };
+    };
+  }
+
+  /**
+   * Request clock block in `RenderedQueryRequestV1`. Either field may be `null` on
+   * the request; the backend resolves both before canonicalization (the canonical
+   * `temporal` block requires non-null `timezone` and `as_of`).
+   */
+  export interface Temporal {
+    as_of: string | null;
+
+    timezone: string | null;
+  }
+
+  /**
+   * Runtime variable value as supplied in a `RenderedQueryRequestV1`.
+   *
+   * `variable_kater_id` is preferred. Until every surface exposes it,
+   * `(query_kater_id, scope, name)` is the migration fallback identity.
+   */
+  export interface Variable {
+    /**
+     * Variable name within scope
+     */
+    name: string;
+
+    /**
+     * Owning query UUID
+     */
+    query_kater_id: string;
+
+    scope: 'query' | 'global';
+
+    /**
+     * Free-form JSON variable value
+     */
+    value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+
+    /**
+     * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
+     */
+    variable_kater_id: string | null;
   }
 }
 
@@ -9159,6 +10497,7 @@ export interface CompilerValidateParams {
 
 Compiler.Cache = Cache;
 Compiler.Combination = CombinationAPICombination;
+Compiler.Capabilities = Capabilities;
 
 export declare namespace Compiler {
   export {
@@ -9173,12 +10512,14 @@ export declare namespace Compiler {
     type CompilerCompileDashboardResponse as CompilerCompileDashboardResponse,
     type CompilerEnumerateResponse as CompilerEnumerateResponse,
     type CompilerExecuteResponse as CompilerExecuteResponse,
+    type CompilerRenderResponse as CompilerRenderResponse,
     type CompilerResolveResponse as CompilerResolveResponse,
     type CompilerValidateResponse as CompilerValidateResponse,
     type CompilerCompileParams as CompilerCompileParams,
     type CompilerCompileDashboardParams as CompilerCompileDashboardParams,
     type CompilerEnumerateParams as CompilerEnumerateParams,
     type CompilerExecuteParams as CompilerExecuteParams,
+    type CompilerRenderParams as CompilerRenderParams,
     type CompilerResolveParams as CompilerResolveParams,
     type CompilerValidateParams as CompilerValidateParams,
   };
@@ -9194,5 +10535,13 @@ export declare namespace Compiler {
   export {
     type ManifestRegenerateAndCreatePrResponse as ManifestRegenerateAndCreatePrResponse,
     type ManifestRegenerateAndCreatePrParams as ManifestRegenerateAndCreatePrParams,
+  };
+
+  export {
+    Capabilities as Capabilities,
+    type CapabilityCreateResponse as CapabilityCreateResponse,
+    type CapabilitySampleResponse as CapabilitySampleResponse,
+    type CapabilityCreateParams as CapabilityCreateParams,
+    type CapabilitySampleParams as CapabilitySampleParams,
   };
 }
