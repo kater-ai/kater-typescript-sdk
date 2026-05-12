@@ -1385,7 +1385,7 @@ export namespace CombinationPreviewResponse {
 
             column_key: string;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
@@ -1502,7 +1502,7 @@ export namespace CombinationPreviewResponse {
         export interface ActiveField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -1523,7 +1523,7 @@ export namespace CombinationPreviewResponse {
            */
           column_key: string;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
            * Authored source field UUID
@@ -1555,7 +1555,7 @@ export namespace CombinationPreviewResponse {
         export interface SelectedField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }

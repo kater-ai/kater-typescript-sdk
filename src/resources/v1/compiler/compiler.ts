@@ -1039,7 +1039,7 @@ export namespace CompilerCompileResponse {
 
             column_key: string;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
@@ -1156,7 +1156,7 @@ export namespace CompilerCompileResponse {
         export interface ActiveField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -1177,7 +1177,7 @@ export namespace CompilerCompileResponse {
            */
           column_key: string;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
            * Authored source field UUID
@@ -1209,7 +1209,7 @@ export namespace CompilerCompileResponse {
         export interface SelectedField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -3104,7 +3104,7 @@ export namespace CompilerCompileDashboardResponse {
 
               column_key: string;
 
-              field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+              field_type: 'dimension' | 'measure' | 'calculation';
 
               kater_id: string;
 
@@ -3221,7 +3221,7 @@ export namespace CompilerCompileDashboardResponse {
           export interface ActiveField {
             active_timeframe: string | null;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
           }
@@ -3242,7 +3242,7 @@ export namespace CompilerCompileDashboardResponse {
              */
             column_key: string;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             /**
              * Authored source field UUID
@@ -3274,7 +3274,7 @@ export namespace CompilerCompileDashboardResponse {
           export interface SelectedField {
             active_timeframe: string | null;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
           }
@@ -3783,7 +3783,7 @@ export namespace CompilerEnumerateResponse {
    */
   export interface FieldMetadataItemResponse {
     /**
-     * Field type: measure, dimension, dimension_date, or calculation
+     * Field type: measure, dimension, or calculation
      */
     field_type: string;
 
@@ -5020,7 +5020,7 @@ export namespace CompilerExecuteResponse {
 
             column_key: string;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
@@ -5137,7 +5137,7 @@ export namespace CompilerExecuteResponse {
         export interface ActiveField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -5158,7 +5158,7 @@ export namespace CompilerExecuteResponse {
            */
           column_key: string;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
            * Authored source field UUID
@@ -5190,7 +5190,7 @@ export namespace CompilerExecuteResponse {
         export interface SelectedField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -6779,7 +6779,7 @@ export namespace CompilerRenderResponse {
 
             column_key: string;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
@@ -6896,7 +6896,7 @@ export namespace CompilerRenderResponse {
         export interface ActiveField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -6917,7 +6917,7 @@ export namespace CompilerRenderResponse {
            */
           column_key: string;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
            * Authored source field UUID
@@ -6949,7 +6949,7 @@ export namespace CompilerRenderResponse {
         export interface SelectedField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -8311,7 +8311,7 @@ export namespace CompilerResolveResponse {
 
             column_key: string;
 
-            field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+            field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
@@ -8428,7 +8428,7 @@ export namespace CompilerResolveResponse {
         export interface ActiveField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }
@@ -8449,7 +8449,7 @@ export namespace CompilerResolveResponse {
            */
           column_key: string;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
            * Authored source field UUID
@@ -8481,7 +8481,7 @@ export namespace CompilerResolveResponse {
         export interface SelectedField {
           active_timeframe: string | null;
 
-          field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+          field_type: 'dimension' | 'measure' | 'calculation';
 
           kater_id: string;
         }

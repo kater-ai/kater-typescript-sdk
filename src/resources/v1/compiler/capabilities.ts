@@ -236,13 +236,13 @@ export namespace CapabilityCreateResponse {
 
           min: number;
 
-          excludes_dimension_date?: boolean;
+          excludes_datetime_dimension?: boolean;
 
           max_cardinality?: number | null;
 
           requires_categorical?: boolean;
 
-          requires_dimension_date?: boolean;
+          requires_datetime_dimension?: boolean;
         }
 
         /**
@@ -492,6 +492,11 @@ export namespace CapabilityCreateResponse {
      */
     export interface SelectableField {
       /**
+       * Canonical data type for this field
+       */
+      data_type: SelectableField.DataType;
+
+      /**
        * True when the field appears in the deterministic backend default selection
        */
       default_selected: boolean;
@@ -502,9 +507,9 @@ export namespace CapabilityCreateResponse {
       description: string | null;
 
       /**
-       * Field kind: dimension, dimension_date, measure, or calculation
+       * Field kind: dimension, measure, or calculation
        */
-      field_type: 'dimension' | 'dimension_date' | 'measure' | 'calculation';
+      field_type: 'dimension' | 'measure' | 'calculation';
 
       /**
        * Authored field UUID (stable identity)
@@ -555,6 +560,60 @@ export namespace CapabilityCreateResponse {
         | 'day_of_week'
         | 'hour'
         | null;
+    }
+
+    export namespace SelectableField {
+      /**
+       * Canonical data type for this field
+       */
+      export interface DataType {
+        /**
+         * The canonical data type kind
+         */
+        kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+        /**
+         * Whether the field can be null
+         */
+        nullable: boolean;
+
+        /**
+         * Vendor-specific type extension
+         */
+        extension?: DataType.Extension | null;
+
+        /**
+         * Optional coarse metadata for the canonical type
+         */
+        params?: unknown;
+      }
+
+      export namespace DataType {
+        /**
+         * Vendor-specific type extension
+         */
+        export interface Extension {
+          /**
+           * Database engine/dialect
+           */
+          engine: string;
+
+          /**
+           * Original type name in the source database
+           */
+          orig_type: string;
+
+          /**
+           * Additional vendor-specific options
+           */
+          options?: { [key: string]: unknown } | null;
+
+          /**
+           * Raw DDL for the type
+           */
+          raw_ddl?: string | null;
+        }
+      }
     }
 
     /**
