@@ -656,6 +656,11 @@ export namespace CompilerCompileResponse {
    */
   export interface ColumnMap {
     /**
+     * Canonical data type metadata for this output column
+     */
+    data_type: ColumnMap.DataType;
+
+    /**
      * Field type: dimension, measure, or calculation
      */
     field_type: string;
@@ -695,6 +700,60 @@ export namespace CompilerCompileResponse {
      * Authored source field UUID for derived timeframe columns.
      */
     source_kater_id?: string | null;
+  }
+
+  export namespace ColumnMap {
+    /**
+     * Canonical data type metadata for this output column
+     */
+    export interface DataType {
+      /**
+       * The canonical data type kind
+       */
+      kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+      /**
+       * Whether the field can be null
+       */
+      nullable: boolean;
+
+      /**
+       * Vendor-specific type extension
+       */
+      extension?: DataType.Extension | null;
+
+      /**
+       * Optional coarse metadata for the canonical type
+       */
+      params?: unknown;
+    }
+
+    export namespace DataType {
+      /**
+       * Vendor-specific type extension
+       */
+      export interface Extension {
+        /**
+         * Database engine/dialect
+         */
+        engine: string;
+
+        /**
+         * Original type name in the source database
+         */
+        orig_type: string;
+
+        /**
+         * Additional vendor-specific options
+         */
+        options?: { [key: string]: unknown } | null;
+
+        /**
+         * Raw DDL for the type
+         */
+        raw_ddl?: string | null;
+      }
+    }
   }
 
   /**
@@ -2314,6 +2373,11 @@ export namespace CompilerCompileDashboardResponse {
      */
     export interface UnionMember0 {
       /**
+       * Canonical data type metadata for this output column
+       */
+      data_type: UnionMember0.DataType;
+
+      /**
        * Field type: dimension, measure, or calculation
        */
       field_type: string;
@@ -2355,10 +2419,69 @@ export namespace CompilerCompileDashboardResponse {
       source_kater_id?: string | null;
     }
 
+    export namespace UnionMember0 {
+      /**
+       * Canonical data type metadata for this output column
+       */
+      export interface DataType {
+        /**
+         * The canonical data type kind
+         */
+        kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+        /**
+         * Whether the field can be null
+         */
+        nullable: boolean;
+
+        /**
+         * Vendor-specific type extension
+         */
+        extension?: DataType.Extension | null;
+
+        /**
+         * Optional coarse metadata for the canonical type
+         */
+        params?: unknown;
+      }
+
+      export namespace DataType {
+        /**
+         * Vendor-specific type extension
+         */
+        export interface Extension {
+          /**
+           * Database engine/dialect
+           */
+          engine: string;
+
+          /**
+           * Original type name in the source database
+           */
+          orig_type: string;
+
+          /**
+           * Additional vendor-specific options
+           */
+          options?: { [key: string]: unknown } | null;
+
+          /**
+           * Raw DDL for the type
+           */
+          raw_ddl?: string | null;
+        }
+      }
+    }
+
     /**
      * Maps a UUID column alias to its human-readable name and type.
      */
     export interface UnionMember1 {
+      /**
+       * Canonical data type metadata for this output column
+       */
+      data_type: UnionMember1.DataType;
+
       /**
        * Field type: dimension, measure, or calculation
        */
@@ -2399,6 +2522,60 @@ export namespace CompilerCompileDashboardResponse {
        * Authored source field UUID for derived timeframe columns.
        */
       source_kater_id?: string | null;
+    }
+
+    export namespace UnionMember1 {
+      /**
+       * Canonical data type metadata for this output column
+       */
+      export interface DataType {
+        /**
+         * The canonical data type kind
+         */
+        kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+        /**
+         * Whether the field can be null
+         */
+        nullable: boolean;
+
+        /**
+         * Vendor-specific type extension
+         */
+        extension?: DataType.Extension | null;
+
+        /**
+         * Optional coarse metadata for the canonical type
+         */
+        params?: unknown;
+      }
+
+      export namespace DataType {
+        /**
+         * Vendor-specific type extension
+         */
+        export interface Extension {
+          /**
+           * Database engine/dialect
+           */
+          engine: string;
+
+          /**
+           * Original type name in the source database
+           */
+          orig_type: string;
+
+          /**
+           * Additional vendor-specific options
+           */
+          options?: { [key: string]: unknown } | null;
+
+          /**
+           * Raw DDL for the type
+           */
+          raw_ddl?: string | null;
+        }
+      }
     }
 
     /**
@@ -4138,7 +4315,7 @@ export namespace CompilerEnumerateResponse {
     name: string;
 
     /**
-     * Variable data type, e.g. STRING, INT, DATE, BOOL, STRING[]
+     * Canonical variable kind, e.g. Text, Number, Datetime, Bool, Text[]
      */
     type: string;
 
@@ -4162,6 +4339,16 @@ export namespace CompilerEnumerateResponse {
     description?: string | null;
 
     label?: string | null;
+
+    /**
+     * Optional numeric sub-kind when type=Number.
+     */
+    numeric_kind?: 'integer' | 'decimal' | null;
+
+    /**
+     * Optional temporal sub-kind when type=Datetime.
+     */
+    temporal_kind?: 'date' | 'timestamp' | null;
   }
 
   export namespace VariableDefinition {
@@ -4450,6 +4637,11 @@ export namespace CompilerExecuteResponse {
    */
   export interface ColumnMap {
     /**
+     * Canonical data type metadata for this output column
+     */
+    data_type: ColumnMap.DataType;
+
+    /**
      * Field type: dimension, measure, or calculation
      */
     field_type: string;
@@ -4489,6 +4681,60 @@ export namespace CompilerExecuteResponse {
      * Authored source field UUID for derived timeframe columns.
      */
     source_kater_id?: string | null;
+  }
+
+  export namespace ColumnMap {
+    /**
+     * Canonical data type metadata for this output column
+     */
+    export interface DataType {
+      /**
+       * The canonical data type kind
+       */
+      kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+      /**
+       * Whether the field can be null
+       */
+      nullable: boolean;
+
+      /**
+       * Vendor-specific type extension
+       */
+      extension?: DataType.Extension | null;
+
+      /**
+       * Optional coarse metadata for the canonical type
+       */
+      params?: unknown;
+    }
+
+    export namespace DataType {
+      /**
+       * Vendor-specific type extension
+       */
+      export interface Extension {
+        /**
+         * Database engine/dialect
+         */
+        engine: string;
+
+        /**
+         * Original type name in the source database
+         */
+        orig_type: string;
+
+        /**
+         * Additional vendor-specific options
+         */
+        options?: { [key: string]: unknown } | null;
+
+        /**
+         * Raw DDL for the type
+         */
+        raw_ddl?: string | null;
+      }
+    }
   }
 
   /**
@@ -5458,6 +5704,11 @@ export namespace CompilerRenderResponse {
    */
   export interface ColumnMap {
     /**
+     * Canonical data type metadata for this output column
+     */
+    data_type: ColumnMap.DataType;
+
+    /**
      * Field type: dimension, measure, or calculation
      */
     field_type: string;
@@ -5497,6 +5748,60 @@ export namespace CompilerRenderResponse {
      * Authored source field UUID for derived timeframe columns.
      */
     source_kater_id?: string | null;
+  }
+
+  export namespace ColumnMap {
+    /**
+     * Canonical data type metadata for this output column
+     */
+    export interface DataType {
+      /**
+       * The canonical data type kind
+       */
+      kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+      /**
+       * Whether the field can be null
+       */
+      nullable: boolean;
+
+      /**
+       * Vendor-specific type extension
+       */
+      extension?: DataType.Extension | null;
+
+      /**
+       * Optional coarse metadata for the canonical type
+       */
+      params?: unknown;
+    }
+
+    export namespace DataType {
+      /**
+       * Vendor-specific type extension
+       */
+      export interface Extension {
+        /**
+         * Database engine/dialect
+         */
+        engine: string;
+
+        /**
+         * Original type name in the source database
+         */
+        orig_type: string;
+
+        /**
+         * Additional vendor-specific options
+         */
+        options?: { [key: string]: unknown } | null;
+
+        /**
+         * Raw DDL for the type
+         */
+        raw_ddl?: string | null;
+      }
+    }
   }
 
   /**

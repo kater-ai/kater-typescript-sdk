@@ -329,6 +329,11 @@ export namespace WidgetRenderResponse {
    */
   export interface ColumnMap {
     /**
+     * Canonical data type metadata for this output column
+     */
+    data_type: ColumnMap.DataType;
+
+    /**
      * Field type: dimension, measure, or calculation
      */
     field_type: string;
@@ -368,6 +373,60 @@ export namespace WidgetRenderResponse {
      * Authored source field UUID for derived timeframe columns.
      */
     source_kater_id?: string | null;
+  }
+
+  export namespace ColumnMap {
+    /**
+     * Canonical data type metadata for this output column
+     */
+    export interface DataType {
+      /**
+       * The canonical data type kind
+       */
+      kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+      /**
+       * Whether the field can be null
+       */
+      nullable: boolean;
+
+      /**
+       * Vendor-specific type extension
+       */
+      extension?: DataType.Extension | null;
+
+      /**
+       * Optional coarse metadata for the canonical type
+       */
+      params?: unknown;
+    }
+
+    export namespace DataType {
+      /**
+       * Vendor-specific type extension
+       */
+      export interface Extension {
+        /**
+         * Database engine/dialect
+         */
+        engine: string;
+
+        /**
+         * Original type name in the source database
+         */
+        orig_type: string;
+
+        /**
+         * Additional vendor-specific options
+         */
+        options?: { [key: string]: unknown } | null;
+
+        /**
+         * Raw DDL for the type
+         */
+        raw_ddl?: string | null;
+      }
+    }
   }
 
   /**
