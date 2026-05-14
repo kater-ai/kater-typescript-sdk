@@ -200,9 +200,9 @@ export namespace WidgetRenderResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -227,7 +227,7 @@ export namespace WidgetRenderResponse {
   export namespace AppliedFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -559,9 +559,9 @@ export namespace WidgetRenderResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -586,7 +586,7 @@ export namespace WidgetRenderResponse {
   export namespace DefaultFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -781,14 +781,14 @@ export namespace WidgetRenderResponse {
     description?: string | null;
 
     /**
+     * Interactive filter control type
+     */
+    filter_type?: string | null;
+
+    /**
      * Optional UI help text
      */
     help_text?: string | null;
-
-    /**
-     * Interactive filter kind
-     */
-    kind?: string | null;
 
     /**
      * Human-readable filter label
@@ -841,7 +841,7 @@ export namespace WidgetRenderResponse {
   export namespace FilterDefinition {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -965,7 +965,7 @@ export namespace WidgetRenderResponse {
     export namespace Preset {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -1143,7 +1143,7 @@ export namespace WidgetRenderResponse {
     export namespace StaticFilterValuesSource {
       export interface Item {
         /**
-         * Selectable scalar value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -2131,7 +2131,7 @@ export namespace WidgetRenderParams {
     export namespace DashboardFilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -2280,7 +2280,7 @@ export namespace WidgetRenderParams {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 

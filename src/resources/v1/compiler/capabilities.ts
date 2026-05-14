@@ -299,7 +299,7 @@ export namespace CapabilityCreateResponse {
     export namespace DefaultFilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -873,7 +873,7 @@ export namespace CapabilitySampleResponse {
       export namespace DashboardFilterState {
         export interface ScalarFilterValue {
           /**
-           * Single scalar runtime value
+           * Scalar value compatible with Filter V2 runtime payloads
            */
           value: string | number | boolean;
 
@@ -1022,7 +1022,7 @@ export namespace CapabilitySampleResponse {
     export namespace FilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 

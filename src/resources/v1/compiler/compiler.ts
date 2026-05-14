@@ -499,9 +499,9 @@ export namespace CompilerCompileResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -526,7 +526,7 @@ export namespace CompilerCompileResponse {
   export namespace AppliedFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -1637,14 +1637,14 @@ export namespace CompilerCompileDashboardResponse {
     description?: string | null;
 
     /**
+     * Interactive filter control type
+     */
+    filter_type?: string | null;
+
+    /**
      * Optional UI help text
      */
     help_text?: string | null;
-
-    /**
-     * Interactive filter kind
-     */
-    kind?: string | null;
 
     /**
      * Human-readable filter label
@@ -1697,7 +1697,7 @@ export namespace CompilerCompileDashboardResponse {
   export namespace FilterDefinition {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -1821,7 +1821,7 @@ export namespace CompilerCompileDashboardResponse {
     export namespace Preset {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -1999,7 +1999,7 @@ export namespace CompilerCompileDashboardResponse {
     export namespace StaticFilterValuesSource {
       export interface Item {
         /**
-         * Selectable scalar value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -2050,9 +2050,9 @@ export namespace CompilerCompileDashboardResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -2077,7 +2077,7 @@ export namespace CompilerCompileDashboardResponse {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -3698,9 +3698,9 @@ export namespace CompilerExecuteResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -3725,7 +3725,7 @@ export namespace CompilerExecuteResponse {
   export namespace AppliedFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -4765,9 +4765,9 @@ export namespace CompilerRenderResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -4792,7 +4792,7 @@ export namespace CompilerRenderResponse {
   export namespace AppliedFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -5085,9 +5085,9 @@ export namespace CompilerRenderResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -5112,7 +5112,7 @@ export namespace CompilerRenderResponse {
   export namespace DefaultFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -5298,14 +5298,14 @@ export namespace CompilerRenderResponse {
     description?: string | null;
 
     /**
+     * Interactive filter control type
+     */
+    filter_type?: string | null;
+
+    /**
      * Optional UI help text
      */
     help_text?: string | null;
-
-    /**
-     * Interactive filter kind
-     */
-    kind?: string | null;
 
     /**
      * Human-readable filter label
@@ -5358,7 +5358,7 @@ export namespace CompilerRenderResponse {
   export namespace FilterDefinition {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -5482,7 +5482,7 @@ export namespace CompilerRenderResponse {
     export namespace Preset {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -5660,7 +5660,7 @@ export namespace CompilerRenderResponse {
     export namespace StaticFilterValuesSource {
       export interface Item {
         /**
-         * Selectable scalar value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -6468,9 +6468,9 @@ export namespace CompilerResolveResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -6495,7 +6495,7 @@ export namespace CompilerResolveResponse {
   export namespace AppliedFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -6617,9 +6617,9 @@ export namespace CompilerResolveResponse {
     required: boolean;
 
     /**
-     * Interactive filter kind
+     * Interactive filter control type
      */
-    kind?: string | null;
+    filter_type?: string | null;
 
     /**
      * Human-readable filter label
@@ -6644,7 +6644,7 @@ export namespace CompilerResolveResponse {
   export namespace DefaultFilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -6830,14 +6830,14 @@ export namespace CompilerResolveResponse {
     description?: string | null;
 
     /**
+     * Interactive filter control type
+     */
+    filter_type?: string | null;
+
+    /**
      * Optional UI help text
      */
     help_text?: string | null;
-
-    /**
-     * Interactive filter kind
-     */
-    kind?: string | null;
 
     /**
      * Human-readable filter label
@@ -6890,7 +6890,7 @@ export namespace CompilerResolveResponse {
   export namespace FilterDefinition {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -7014,7 +7014,7 @@ export namespace CompilerResolveResponse {
     export namespace Preset {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -7192,7 +7192,7 @@ export namespace CompilerResolveResponse {
     export namespace StaticFilterValuesSource {
       export interface Item {
         /**
-         * Selectable scalar value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -8184,7 +8184,7 @@ export namespace CompilerCompileParams {
     export namespace DashboardFilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -8333,7 +8333,7 @@ export namespace CompilerCompileParams {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -8568,7 +8568,7 @@ export namespace CompilerCompileDashboardParams {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -8776,7 +8776,7 @@ export namespace CompilerExecuteParams {
     export namespace DashboardFilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -8925,7 +8925,7 @@ export namespace CompilerExecuteParams {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -9205,7 +9205,7 @@ export namespace CompilerRenderParams {
     export namespace DashboardFilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -9354,7 +9354,7 @@ export namespace CompilerRenderParams {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
@@ -9653,7 +9653,7 @@ export namespace CompilerResolveParams {
     export namespace DashboardFilterState {
       export interface ScalarFilterValue {
         /**
-         * Single scalar runtime value
+         * Scalar value compatible with Filter V2 runtime payloads
          */
         value: string | number | boolean;
 
@@ -9782,7 +9782,7 @@ export namespace CompilerResolveParams {
   export namespace FilterState {
     export interface ScalarFilterValue {
       /**
-       * Single scalar runtime value
+       * Scalar value compatible with Filter V2 runtime payloads
        */
       value: string | number | boolean;
 
