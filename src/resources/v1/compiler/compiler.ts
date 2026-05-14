@@ -2206,6 +2206,11 @@ export namespace CompilerCompileDashboardResponse {
    * Validated structured output for a completed insight run.
    */
   export interface InsightRun {
+    /**
+     * Typed execution context attached to an insight run result.
+     */
+    context?: InsightRun.Context | null;
+
     findings?: Array<InsightRun.Finding>;
 
     metadata?: { [key: string]: unknown } | null;
@@ -2217,6 +2222,102 @@ export namespace CompilerCompileDashboardResponse {
   }
 
   export namespace InsightRun {
+    /**
+     * Typed execution context attached to an insight run result.
+     */
+    export interface Context {
+      /**
+       * Execution metadata captured for a completed insight run.
+       */
+      execution: Context.Execution;
+
+      /**
+       * Insight definition metadata attached to a run result.
+       */
+      insight: Context.Insight;
+
+      /**
+       * Host surface metadata for the container that triggered the run.
+       */
+      host?: Context.Host | null;
+
+      inputs?: Array<Context.Input>;
+    }
+
+    export namespace Context {
+      /**
+       * Execution metadata captured for a completed insight run.
+       */
+      export interface Execution {
+        kater_id: string;
+
+        surface: 'dashboard' | 'preview' | 'chat';
+
+        params?: { [key: string]: unknown };
+      }
+
+      /**
+       * Insight definition metadata attached to a run result.
+       */
+      export interface Insight {
+        entrypoint: string;
+
+        kater_id: string;
+
+        name: string;
+
+        description?: string | null;
+      }
+
+      /**
+       * Host surface metadata for the container that triggered the run.
+       */
+      export interface Host {
+        dashboard_kater_id?: string | null;
+
+        dashboard_name?: string | null;
+
+        query_kater_id?: string | null;
+
+        query_name?: string | null;
+
+        widget_kater_id?: string | null;
+      }
+
+      /**
+       * Normalized input metadata attached to an insight run.
+       */
+      export interface Input {
+        dataset_name: string;
+
+        input_name: string;
+
+        row_count: number;
+
+        bindings?: { [key: string]: string };
+
+        /**
+         * Query metadata describing the source of an insight input.
+         */
+        query?: Input.Query | null;
+      }
+
+      export namespace Input {
+        /**
+         * Query metadata describing the source of an insight input.
+         */
+        export interface Query {
+          description?: string | null;
+
+          kater_id?: string | null;
+
+          name?: string | null;
+
+          rendered_query_key?: string | null;
+        }
+      }
+    }
+
     /**
      * Single analytical finding emitted by an insight run.
      */
