@@ -13,7 +13,6 @@ Types:
 - <code><a href="./src/resources/v1/compiler/compiler.ts">SubqueryCondition</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileDashboardResponse</a></code>
-- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerEnumerateResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerExecuteResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerRenderResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerResolveResponse</a></code>
@@ -23,7 +22,6 @@ Methods:
 
 - <code title="post /api/v1/compiler/compile/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
 - <code title="post /api/v1/compiler/dashboard">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compileDashboard</a>({ ...params }) -> CompilerCompileDashboardResponse</code>
-- <code title="post /api/v1/compiler/enumerate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">enumerate</a>({ ...params }) -> CompilerEnumerateResponse</code>
 - <code title="post /api/v1/compiler/execute/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">execute</a>({ ...params }) -> CompilerExecuteResponse</code>
 - <code title="post /api/v1/compiler/render">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">render</a>({ ...params }) -> CompilerRenderResponse</code>
 - <code title="post /api/v1/compiler/resolve/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
@@ -32,14 +30,6 @@ Methods:
 ### Cache
 
 ### Combination
-
-Types:
-
-- <code><a href="./src/resources/v1/compiler/combination.ts">CombinationPreviewResponse</a></code>
-
-Methods:
-
-- <code title="post /api/v1/compiler/combination/preview">client.v1.compiler.combination.<a href="./src/resources/v1/compiler/combination.ts">preview</a>({ ...params }) -> CombinationPreviewResponse</code>
 
 ### Manifest
 

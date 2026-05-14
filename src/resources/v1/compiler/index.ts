@@ -8,7 +8,7 @@ export {
   type CapabilityCreateParams,
   type CapabilitySampleParams,
 } from './capabilities';
-export { Combination, type CombinationPreviewResponse, type CombinationPreviewParams } from './combination';
+export { Combination } from './combination';
 export {
   Compiler,
   type ChartConfig,
@@ -20,14 +20,12 @@ export {
   type SubqueryCondition,
   type CompilerCompileResponse,
   type CompilerCompileDashboardResponse,
-  type CompilerEnumerateResponse,
   type CompilerExecuteResponse,
   type CompilerRenderResponse,
   type CompilerResolveResponse,
   type CompilerValidateResponse,
   type CompilerCompileParams,
   type CompilerCompileDashboardParams,
-  type CompilerEnumerateParams,
   type CompilerExecuteParams,
   type CompilerRenderParams,
   type CompilerResolveParams,

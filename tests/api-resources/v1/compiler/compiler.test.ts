@@ -140,32 +140,6 @@ describe('resource compiler', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('enumerate: only required params', async () => {
-    const responsePromise = client.v1.compiler.enumerate({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      tenant_key: 'tenant_key',
-    });
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('enumerate: required and optional params', async () => {
-    const response = await client.v1.compiler.enumerate({
-      connection_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
-      tenant_key: 'tenant_key',
-      source: 'source',
-      query_ids: ['182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e'],
-      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
-    });
-  });
-
-  // Mock server tests are disabled
   test.skip('execute: only required params', async () => {
     const responsePromise = client.v1.compiler.execute({
       connection_id: 'connection_id',
