@@ -1440,6 +1440,11 @@ export interface CompilerCompileDashboardResponse {
   filter_state?: Array<CompilerCompileDashboardResponse.FilterState>;
 
   /**
+   * Compact dashboard insight summary banner.
+   */
+  insight_banner?: CompilerCompileDashboardResponse.InsightBanner | null;
+
+  /**
    * Structured dashboard-root insight execution results
    */
   insight_runs?: Array<CompilerCompileDashboardResponse.InsightRun>;
@@ -2172,6 +2177,21 @@ export namespace CompilerCompileDashboardResponse {
     export interface NullFilterValue {
       mode?: 'null';
     }
+  }
+
+  /**
+   * Compact dashboard insight summary banner.
+   */
+  export interface InsightBanner {
+    /**
+     * Short paragraph summarizing the strongest insight pattern
+     */
+    body: string;
+
+    /**
+     * Short scannable dashboard insight headline
+     */
+    headline: string;
   }
 
   /**
