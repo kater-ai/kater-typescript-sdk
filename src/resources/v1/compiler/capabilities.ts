@@ -102,7 +102,7 @@ export class Capabilities extends APIResource {
  *
  * Replaces `EnumerateResponse.combinations`; consumers build
  * `RenderedQueryRequestV1.field_selection` from `selectable_fields` plus
- * `default_selected_field_ids` instead of enumerating combinations.
+ * `default_selected_fields` instead of enumerating combinations.
  */
 export interface CapabilityCreateResponse {
   /**
@@ -161,12 +161,11 @@ export namespace CapabilityCreateResponse {
     default_filter_state?: Array<Query.DefaultFilterState>;
 
     /**
-     * Field UUIDs that the backend selects by default when a consumer omits
-     * `field_selection.selected_field_ids`. Typically empty (required fields cover the
-     * base render); non-empty when the team wants to highlight an optional dimension
-     * or measure.
+     * Field occurrences the backend selects by default when a consumer omits
+     * `field_selection.selected_fields`. Typically empty when required fields cover
+     * the base render.
      */
-    default_selected_field_ids?: Array<string>;
+    default_selected_fields?: Array<Query.DefaultSelectedField>;
 
     /**
      * Category-level field selection constraints for one query.
@@ -188,10 +187,9 @@ export namespace CapabilityCreateResponse {
     filter_definitions?: Array<Query.FilterDefinition>;
 
     /**
-     * Field UUIDs that the backend always includes in the rendered output. Replaces
-     * the legacy enumerate `required_fields` name list.
+     * Field occurrences that the backend always includes in the rendered output.
      */
-    required_field_ids?: Array<string>;
+    required_fields?: Array<Query.RequiredField>;
 
     /**
      * All fields a consumer can select, including required ones. Ordering is
@@ -399,6 +397,42 @@ export namespace CapabilityCreateResponse {
     }
 
     /**
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
+     */
+    export interface DefaultSelectedField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<DefaultSelectedField.Modifier>;
+
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
+      source_kater_id: string;
+    }
+
+    export namespace DefaultSelectedField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
+    }
+
+    /**
      * Category-level field selection constraints for one query.
      *
      * Sourced from `widget_constraints.load_widget_constraints(widget_category)` and
@@ -553,19 +587,52 @@ export namespace CapabilityCreateResponse {
     }
 
     /**
-     * One selectable field exposed by a query, with temporal grain metadata.
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
+     */
+    export interface RequiredField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<RequiredField.Modifier>;
+
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
+      source_kater_id: string;
+    }
+
+    export namespace RequiredField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
+    }
+
+    /**
+     * One selectable field exposed by a query, with generic modifier controls.
      *
      * Identity is `kater_id` (UUID). `name` is a display-only label.
      *
-     * Temporal invariants (enforced by `validate_temporal_consistency`):
+     * Modifier invariants (enforced by `validate_modifier_controls`):
      *
-     * - Non-temporal fields must have `available_timeframes == []` and
-     *   `default_active_timeframe is None`.
-     * - Temporal fields with non-null `default_active_timeframe` must list it in
-     *   `available_timeframes`.
-     * - `default_active_timeframe` is `null` when no grain default is chosen.
-     *
-     * See PRD section `QueryCapabilitiesResponseV1` for the canonical rules.
+     * - Non-dimension fields must not expose modifier controls.
+     * - Timeframe controls require `data_type.kind == Datetime`.
+     * - `default_value` must appear in `allowed_values`.
+     * - Fixed controls expose only `default_value`.
      */
     export interface SelectableField {
       /**
@@ -615,28 +682,10 @@ export namespace CapabilityCreateResponse {
       source: 'query' | 'parent' | 'pinned_variant';
 
       /**
-       * Temporal grains the field can be projected to. Empty for non-temporal fields.
-       * For temporal fields, includes `raw` plus authored timeframes in deterministic
-       * display order.
+       * Generic modifier controls this field exposes. Empty for fields with no editable
+       * or fixed modifiers.
        */
-      available_timeframes?: Array<
-        'raw' | 'date' | 'day' | 'week' | 'month' | 'quarter' | 'year' | 'day_of_week' | 'hour'
-      >;
-
-      /**
-       * Time granularity for datetime dimensions
-       */
-      default_active_timeframe?:
-        | 'raw'
-        | 'date'
-        | 'day'
-        | 'week'
-        | 'month'
-        | 'quarter'
-        | 'year'
-        | 'day_of_week'
-        | 'hour'
-        | null;
+      modifier_controls?: Array<SelectableField.ModifierControl>;
     }
 
     export namespace SelectableField {
@@ -690,6 +739,31 @@ export namespace CapabilityCreateResponse {
            */
           raw_ddl?: string | null;
         }
+      }
+
+      /**
+       * UI/control metadata for choosing a modifier value for one source field.
+       */
+      export interface ModifierControl {
+        /**
+         * Allowed values for this control. Raw may appear here as a UI value.
+         */
+        allowed_values: Array<string>;
+
+        /**
+         * Default value consumers should preselect. Must appear in allowed_values.
+         */
+        default_value: string;
+
+        /**
+         * When true, default_value is the only selectable value exposed by capabilities.
+         */
+        fixed: boolean;
+
+        /**
+         * Modifier kind this control edits.
+         */
+        kind: 'timeframe';
       }
     }
 
@@ -798,7 +872,7 @@ export namespace CapabilitySampleResponse {
     dashboard: Sample.Dashboard | null;
 
     /**
-     * Structured field selection: source field IDs plus optional grain overrides.
+     * Structured field selection expressed as semantic field occurrences.
      */
     field_selection: Sample.FieldSelection;
 
@@ -974,22 +1048,47 @@ export namespace CapabilitySampleResponse {
     }
 
     /**
-     * Structured field selection: source field IDs plus optional grain overrides.
+     * Structured field selection expressed as semantic field occurrences.
      */
     export interface FieldSelection {
-      selected_field_ids: Array<string>;
-
-      timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+      selected_fields: Array<FieldSelection.SelectedField>;
     }
 
     export namespace FieldSelection {
       /**
-       * Runtime grain choice for a temporal source dimension.
+       * Semantic identity for an active output field: source_kater_id plus normalized
+       * modifiers.
        */
-      export interface TimeframeOverride {
-        active_timeframe: string;
+      export interface SelectedField {
+        /**
+         * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+         * array.
+         */
+        modifiers: Array<SelectedField.Modifier>;
 
+        /**
+         * Stable UUID of the source field this occurrence projects.
+         */
         source_kater_id: string;
+      }
+
+      export namespace SelectedField {
+        /**
+         * A normalized modifier applied to a source field occurrence. The first contract
+         * supports only timeframe modifiers.
+         */
+        export interface Modifier {
+          /**
+           * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+           */
+          kind: 'timeframe';
+
+          /**
+           * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+           * storing value raw.
+           */
+          value: string;
+        }
       }
     }
 

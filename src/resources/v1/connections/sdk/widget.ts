@@ -13,11 +13,9 @@ export class Widget extends APIResource {
   /**
    * Render a single SDK widget from a `RenderedQueryRequestV1` body.
    *
-   * The structured replacement for `GET /api/v1/sdk/widget?combination_id=...`. The
-   * handler:
+   * The handler:
    *
-   * 1. Resolves the SDK filesystem (reusing the legacy `_resolve_sdk_filesystem`
-   *    helper).
+   * 1. Resolves the SDK filesystem.
    * 2. Calls `share_render_request_resolution(...)` with the SDK auth context.
    *    Tenant key comes from the SDK token's `tenant_key` claim.
    * 3. Awaits `RenderService.render(...)` for the full pipeline.
@@ -26,8 +24,7 @@ export class Widget extends APIResource {
    * 5. Projects the `RenderResponse` onto `SdkWidgetResponse` (the existing model
    *    from `routes/client/sdk/models.py:156`).
    *
-   * Pydantic `extra="forbid"` (inherited from `RenderedQueryRequestV1`) rejects
-   * `combination` / `combination_id` fields with HTTP 422.
+   * Pydantic `extra="forbid"` rejects unknown request fields with HTTP 422.
    */
   render(params: WidgetRenderParams, options?: RequestOptions): APIPromise<WidgetRenderResponse> {
     const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
@@ -45,7 +42,7 @@ export class Widget extends APIResource {
 }
 
 /**
- * Response from GET /api/v1/sdk/widget.
+ * Response from the structured SDK widget render route.
  *
  * Returns a single widget's data + config for SDK consumers, plus a canonical
  * `rendered_query_key` for stable cross-consumer identity. Shape matches
@@ -98,11 +95,6 @@ export interface WidgetRenderResponse {
   default_filter_state?: Array<WidgetRenderResponse.DefaultFilterState>;
 
   /**
-   * Two-field deprecation block embedded in response payloads.
-   */
-  deprecation?: WidgetRenderResponse.Deprecation | null;
-
-  /**
    * Warehouse dialect (e.g. snowflake, postgresql, databricks)
    */
   dialect?: string | null;
@@ -147,9 +139,9 @@ export interface WidgetRenderResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   rendered_query_key?: WidgetRenderResponse.RenderedQueryKey | null;
 
@@ -339,19 +331,9 @@ export namespace WidgetRenderResponse {
     field_type: string;
 
     /**
-     * Authored source field UUID
+     * Source field name
      */
-    kater_id: string;
-
-    /**
-     * Human-readable column name
-     */
-    name: string;
-
-    /**
-     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
-     */
-    active_timeframe?: string | null;
+    source_name: string;
 
     /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -365,14 +347,25 @@ export namespace WidgetRenderResponse {
     column_key?: string | null;
 
     /**
-     * Display label
+     * Backend-provided display label
      */
-    label?: string | null;
+    display_label?: string | null;
 
     /**
-     * Authored source field UUID for derived timeframe columns.
+     * Normalized modifiers for this output occurrence. Raw timeframe is represented by
+     * an empty array.
+     */
+    modifiers?: Array<ColumnMap.Modifier>;
+
+    /**
+     * Stable source field UUID for this output occurrence.
      */
     source_kater_id?: string | null;
+
+    /**
+     * Source field label
+     */
+    source_label?: string | null;
   }
 
   export namespace ColumnMap {
@@ -426,6 +419,23 @@ export namespace WidgetRenderResponse {
          */
         raw_ddl?: string | null;
       }
+    }
+
+    /**
+     * A normalized modifier applied to a source field occurrence. The first contract
+     * supports only timeframe modifiers.
+     */
+    export interface Modifier {
+      /**
+       * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+       */
+      kind: 'timeframe';
+
+      /**
+       * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+       * storing value raw.
+       */
+      value: string;
     }
   }
 
@@ -681,15 +691,6 @@ export namespace WidgetRenderResponse {
     export interface NullFilterValue {
       mode?: 'null';
     }
-  }
-
-  /**
-   * Two-field deprecation block embedded in response payloads.
-   */
-  export interface Deprecation {
-    message: string;
-
-    replacement: string;
   }
 
   /**
@@ -1349,13 +1350,13 @@ export namespace WidgetRenderResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   export interface RenderedQueryKey {
     /**
-     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     * rqk_cache_agg_v2:<sha256-hex> or null when not eligible
      */
     aggregate_cache_key_id: string | null;
 
@@ -1365,12 +1366,12 @@ export namespace WidgetRenderResponse {
     canonical: RenderedQueryKey.Canonical;
 
     /**
-     * rqk_cache_exact_v1:<sha256-hex>
+     * rqk_cache_exact_v2:<sha256-hex>
      */
     exact_cache_key_id: string;
 
     /**
-     * rqk_v1:<sha256-hex>
+     * rqk_v2:<sha256-hex>
      */
     key_id: string;
 
@@ -1439,7 +1440,7 @@ export namespace WidgetRenderResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       temporal: Canonical.Temporal;
@@ -1503,15 +1504,34 @@ export namespace WidgetRenderResponse {
           /**
            * Dimension entry inside the aggregate cache projection.
            *
-           * `source_kater_id` is required (not nullable) here so two timeframe variants of
-           * the same temporal source dimension produce different cache projections.
+           * `source_kater_id` plus normalized modifiers identify the projected source
+           * dimension in cache projections.
            */
           export interface Dimension {
-            active_timeframe: string | null;
-
             column_key: string;
 
+            modifiers: Array<Dimension.Modifier>;
+
             source_kater_id: string;
+          }
+
+          export namespace Dimension {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -1524,15 +1544,34 @@ export namespace WidgetRenderResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
 
+            field_modifiers: Array<Filter.FieldModifier> | null;
+
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
+          }
+
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -1608,30 +1647,68 @@ export namespace WidgetRenderResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
+
+            field_modifiers: Array<Filter.FieldModifier> | null;
 
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
           }
 
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
+          }
+
           /**
            * Column entry inside the exact cache projection.
            */
           export interface OutputColumn {
-            active_timeframe: string | null;
-
             column_key: string;
 
             field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
+            modifiers: Array<OutputColumn.Modifier>;
+
             source_kater_id: string | null;
+          }
+
+          export namespace OutputColumn {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -1742,22 +1819,36 @@ export namespace WidgetRenderResponse {
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface ActiveField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<ActiveField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace ActiveField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
 
         /**
          * An output column entry in `canonical.fields.output_columns`.
          */
         export interface OutputColumn {
-          /**
-           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
-           */
-          active_timeframe: string | null;
-
           aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
 
           /**
@@ -1765,16 +1856,14 @@ export namespace WidgetRenderResponse {
            */
           column_key: string;
 
+          display_label: string | null;
+
           field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
-           * Authored source field UUID
+           * Normalized modifiers for this output occurrence
            */
-          kater_id: string;
-
-          label: string | null;
-
-          name: string;
+          modifiers: Array<OutputColumn.Modifier>;
 
           /**
            * Zero-based output column position
@@ -1786,20 +1875,119 @@ export namespace WidgetRenderResponse {
           slot: 'required' | 'optional';
 
           /**
-           * Source field UUID when derived from an authored field
+           * Stable source field UUID for this output occurrence
            */
-          source_kater_id: string | null;
+          source_kater_id: string;
+
+          source_label: string | null;
+
+          source_name: string;
+
+          /**
+           * Data type specification
+           */
+          data_type?: OutputColumn.DataType;
+        }
+
+        export namespace OutputColumn {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
+
+          /**
+           * Data type specification
+           */
+          export interface DataType {
+            /**
+             * The canonical data type kind
+             */
+            kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+            /**
+             * Whether the field can be null
+             */
+            nullable: boolean;
+
+            /**
+             * Vendor-specific type extension
+             */
+            extension?: DataType.Extension | null;
+
+            /**
+             * Optional coarse metadata for the canonical type
+             */
+            params?: unknown;
+          }
+
+          export namespace DataType {
+            /**
+             * Vendor-specific type extension
+             */
+            export interface Extension {
+              /**
+               * Database engine/dialect
+               */
+              engine: string;
+
+              /**
+               * Original type name in the source database
+               */
+              orig_type: string;
+
+              /**
+               * Additional vendor-specific options
+               */
+              options?: { [key: string]: unknown } | null;
+
+              /**
+               * Raw DDL for the type
+               */
+              raw_ddl?: string | null;
+            }
+          }
         }
 
         /**
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface SelectedField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<SelectedField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -1825,11 +2013,11 @@ export namespace WidgetRenderResponse {
 
           expression: string;
 
-          field_active_timeframe: string | null;
-
           field_column_key: string | null;
 
           field_kater_id: string | null;
+
+          field_modifiers: Array<EffectiveFilter.FieldModifier> | null;
 
           field_source_kater_id: string | null;
 
@@ -1848,6 +2036,25 @@ export namespace WidgetRenderResponse {
           scope: 'model' | 'topic' | 'dashboard' | 'query';
 
           value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+
+        export namespace EffectiveFilter {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface FieldModifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -1964,7 +2171,7 @@ export namespace WidgetRenderResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       export interface Temporal {
@@ -2033,8 +2240,7 @@ export interface WidgetRenderParams {
   dashboard: WidgetRenderParams.Dashboard | null;
 
   /**
-   * Body param: Structured field selection: source field IDs plus optional grain
-   * overrides.
+   * Body param: Structured field selection expressed as semantic field occurrences.
    */
   field_selection: WidgetRenderParams.FieldSelection;
 
@@ -2232,22 +2438,47 @@ export namespace WidgetRenderParams {
   }
 
   /**
-   * Structured field selection: source field IDs plus optional grain overrides.
+   * Structured field selection expressed as semantic field occurrences.
    */
   export interface FieldSelection {
-    selected_field_ids: Array<string>;
-
-    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+    selected_fields: Array<FieldSelection.SelectedField>;
   }
 
   export namespace FieldSelection {
     /**
-     * Runtime grain choice for a temporal source dimension.
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
      */
-    export interface TimeframeOverride {
-      active_timeframe: string;
+    export interface SelectedField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<SelectedField.Modifier>;
 
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
       source_kater_id: string;
+    }
+
+    export namespace SelectedField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
     }
   }
 

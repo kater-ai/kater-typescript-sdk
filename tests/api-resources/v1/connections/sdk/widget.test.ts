@@ -19,7 +19,9 @@ describe('resource widget', () => {
         slot_name: 'slot_name',
         widget_kater_id: 'widget_kater_id',
       },
-      field_selection: { selected_field_ids: ['string'] },
+      field_selection: {
+        selected_fields: [{ modifiers: [{ kind: 'timeframe', value: 'x' }], source_kater_id: 'x' }],
+      },
       filter_state: [{ effective_kater_id: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' }],
       pinned_variant: 'pinned_variant',
       presentation: {},
@@ -67,8 +69,7 @@ describe('resource widget', () => {
         widget_kater_id: 'widget_kater_id',
       },
       field_selection: {
-        selected_field_ids: ['string'],
-        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
+        selected_fields: [{ modifiers: [{ kind: 'timeframe', value: 'x' }], source_kater_id: 'x' }],
       },
       filter_state: [
         {

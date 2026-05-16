@@ -6,7 +6,6 @@ Types:
 
 - <code><a href="./src/resources/v1/compiler/compiler.ts">ChartConfig</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerErrorItem</a></code>
-- <code><a href="./src/resources/v1/compiler/compiler.ts">InlineField</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">Manifest</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">ManifestEntry</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">RefWithLabel</a></code>

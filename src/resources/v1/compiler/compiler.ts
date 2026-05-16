@@ -300,31 +300,6 @@ export interface CompilerErrorItem {
 }
 
 /**
- * An inline field definition for dimensions/measures/calculations
- */
-export interface InlineField {
-  /**
-   * Unique identifier for this inline field
-   */
-  kater_id: string;
-
-  /**
-   * Name of the inline field
-   */
-  name: string;
-
-  /**
-   * SQL expression for the field
-   */
-  sql: string;
-
-  /**
-   * Human-readable label
-   */
-  label?: string | null;
-}
-
-/**
  * Compilation manifest with all named objects.
  */
 export interface Manifest {
@@ -353,7 +328,7 @@ export interface ManifestEntry {
 }
 
 /**
- * A reference with optional label override
+ * A reference with optional label and field modifier metadata
  */
 export interface RefWithLabel {
   /**
@@ -362,9 +337,57 @@ export interface RefWithLabel {
   ref: string;
 
   /**
+   * Editable default modifiers for this field reference. Raw timeframe is
+   * represented by omitting the timeframe modifier.
+   */
+  default_modifiers?: Array<RefWithLabel.DefaultModifier> | null;
+
+  /**
    * Optional label override for this reference
    */
   label?: string | null;
+
+  /**
+   * Fixed modifiers for this field reference. Consumers may not override these
+   * values.
+   */
+  modifiers?: Array<RefWithLabel.Modifier> | null;
+}
+
+export namespace RefWithLabel {
+  /**
+   * A normalized modifier applied to a source field occurrence. The first contract
+   * supports only timeframe modifiers.
+   */
+  export interface DefaultModifier {
+    /**
+     * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+     */
+    kind: 'timeframe';
+
+    /**
+     * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+     * storing value raw.
+     */
+    value: string;
+  }
+
+  /**
+   * A normalized modifier applied to a source field occurrence. The first contract
+   * supports only timeframe modifiers.
+   */
+  export interface Modifier {
+    /**
+     * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+     */
+    kind: 'timeframe';
+
+    /**
+     * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+     * storing value raw.
+     */
+    value: string;
+  }
 }
 
 /**
@@ -441,9 +464,9 @@ export interface CompilerCompileResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   rendered_query_key?: CompilerCompileResponse.RenderedQueryKey | null;
 
@@ -638,19 +661,9 @@ export namespace CompilerCompileResponse {
     field_type: string;
 
     /**
-     * Authored source field UUID
+     * Source field name
      */
-    kater_id: string;
-
-    /**
-     * Human-readable column name
-     */
-    name: string;
-
-    /**
-     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
-     */
-    active_timeframe?: string | null;
+    source_name: string;
 
     /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -664,14 +677,25 @@ export namespace CompilerCompileResponse {
     column_key?: string | null;
 
     /**
-     * Display label
+     * Backend-provided display label
      */
-    label?: string | null;
+    display_label?: string | null;
 
     /**
-     * Authored source field UUID for derived timeframe columns.
+     * Normalized modifiers for this output occurrence. Raw timeframe is represented by
+     * an empty array.
+     */
+    modifiers?: Array<ColumnMap.Modifier>;
+
+    /**
+     * Stable source field UUID for this output occurrence.
      */
     source_kater_id?: string | null;
+
+    /**
+     * Source field label
+     */
+    source_label?: string | null;
   }
 
   export namespace ColumnMap {
@@ -726,6 +750,23 @@ export namespace CompilerCompileResponse {
         raw_ddl?: string | null;
       }
     }
+
+    /**
+     * A normalized modifier applied to a source field occurrence. The first contract
+     * supports only timeframe modifiers.
+     */
+    export interface Modifier {
+      /**
+       * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+       */
+      kind: 'timeframe';
+
+      /**
+       * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+       * storing value raw.
+       */
+      value: string;
+    }
   }
 
   /**
@@ -733,13 +774,13 @@ export namespace CompilerCompileResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   export interface RenderedQueryKey {
     /**
-     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     * rqk_cache_agg_v2:<sha256-hex> or null when not eligible
      */
     aggregate_cache_key_id: string | null;
 
@@ -749,12 +790,12 @@ export namespace CompilerCompileResponse {
     canonical: RenderedQueryKey.Canonical;
 
     /**
-     * rqk_cache_exact_v1:<sha256-hex>
+     * rqk_cache_exact_v2:<sha256-hex>
      */
     exact_cache_key_id: string;
 
     /**
-     * rqk_v1:<sha256-hex>
+     * rqk_v2:<sha256-hex>
      */
     key_id: string;
 
@@ -823,7 +864,7 @@ export namespace CompilerCompileResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       temporal: Canonical.Temporal;
@@ -887,15 +928,34 @@ export namespace CompilerCompileResponse {
           /**
            * Dimension entry inside the aggregate cache projection.
            *
-           * `source_kater_id` is required (not nullable) here so two timeframe variants of
-           * the same temporal source dimension produce different cache projections.
+           * `source_kater_id` plus normalized modifiers identify the projected source
+           * dimension in cache projections.
            */
           export interface Dimension {
-            active_timeframe: string | null;
-
             column_key: string;
 
+            modifiers: Array<Dimension.Modifier>;
+
             source_kater_id: string;
+          }
+
+          export namespace Dimension {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -908,15 +968,34 @@ export namespace CompilerCompileResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
 
+            field_modifiers: Array<Filter.FieldModifier> | null;
+
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
+          }
+
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -992,30 +1071,68 @@ export namespace CompilerCompileResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
+
+            field_modifiers: Array<Filter.FieldModifier> | null;
 
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
           }
 
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
+          }
+
           /**
            * Column entry inside the exact cache projection.
            */
           export interface OutputColumn {
-            active_timeframe: string | null;
-
             column_key: string;
 
             field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
+            modifiers: Array<OutputColumn.Modifier>;
+
             source_kater_id: string | null;
+          }
+
+          export namespace OutputColumn {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -1126,22 +1243,36 @@ export namespace CompilerCompileResponse {
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface ActiveField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<ActiveField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace ActiveField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
 
         /**
          * An output column entry in `canonical.fields.output_columns`.
          */
         export interface OutputColumn {
-          /**
-           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
-           */
-          active_timeframe: string | null;
-
           aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
 
           /**
@@ -1149,16 +1280,14 @@ export namespace CompilerCompileResponse {
            */
           column_key: string;
 
+          display_label: string | null;
+
           field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
-           * Authored source field UUID
+           * Normalized modifiers for this output occurrence
            */
-          kater_id: string;
-
-          label: string | null;
-
-          name: string;
+          modifiers: Array<OutputColumn.Modifier>;
 
           /**
            * Zero-based output column position
@@ -1170,20 +1299,119 @@ export namespace CompilerCompileResponse {
           slot: 'required' | 'optional';
 
           /**
-           * Source field UUID when derived from an authored field
+           * Stable source field UUID for this output occurrence
            */
-          source_kater_id: string | null;
+          source_kater_id: string;
+
+          source_label: string | null;
+
+          source_name: string;
+
+          /**
+           * Data type specification
+           */
+          data_type?: OutputColumn.DataType;
+        }
+
+        export namespace OutputColumn {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
+
+          /**
+           * Data type specification
+           */
+          export interface DataType {
+            /**
+             * The canonical data type kind
+             */
+            kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+            /**
+             * Whether the field can be null
+             */
+            nullable: boolean;
+
+            /**
+             * Vendor-specific type extension
+             */
+            extension?: DataType.Extension | null;
+
+            /**
+             * Optional coarse metadata for the canonical type
+             */
+            params?: unknown;
+          }
+
+          export namespace DataType {
+            /**
+             * Vendor-specific type extension
+             */
+            export interface Extension {
+              /**
+               * Database engine/dialect
+               */
+              engine: string;
+
+              /**
+               * Original type name in the source database
+               */
+              orig_type: string;
+
+              /**
+               * Additional vendor-specific options
+               */
+              options?: { [key: string]: unknown } | null;
+
+              /**
+               * Raw DDL for the type
+               */
+              raw_ddl?: string | null;
+            }
+          }
         }
 
         /**
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface SelectedField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<SelectedField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -1209,11 +1437,11 @@ export namespace CompilerCompileResponse {
 
           expression: string;
 
-          field_active_timeframe: string | null;
-
           field_column_key: string | null;
 
           field_kater_id: string | null;
+
+          field_modifiers: Array<EffectiveFilter.FieldModifier> | null;
 
           field_source_kater_id: string | null;
 
@@ -1232,6 +1460,25 @@ export namespace CompilerCompileResponse {
           scope: 'model' | 'topic' | 'dashboard' | 'query';
 
           value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+
+        export namespace EffectiveFilter {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface FieldModifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -1348,7 +1595,7 @@ export namespace CompilerCompileResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       export interface Temporal {
@@ -2433,9 +2680,9 @@ export namespace CompilerCompileDashboardResponse {
      *
      * Format invariants (validation enforced by Story 1.2's hashing helpers):
      *
-     * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-     * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-     * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+     * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+     * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+     * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
      */
     rendered_query_key?: Widget.RenderedQueryKey | null;
 
@@ -2476,19 +2723,9 @@ export namespace CompilerCompileDashboardResponse {
       field_type: string;
 
       /**
-       * Authored source field UUID
+       * Source field name
        */
-      kater_id: string;
-
-      /**
-       * Human-readable column name
-       */
-      name: string;
-
-      /**
-       * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
-       */
-      active_timeframe?: string | null;
+      source_name: string;
 
       /**
        * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -2502,14 +2739,25 @@ export namespace CompilerCompileDashboardResponse {
       column_key?: string | null;
 
       /**
-       * Display label
+       * Backend-provided display label
        */
-      label?: string | null;
+      display_label?: string | null;
 
       /**
-       * Authored source field UUID for derived timeframe columns.
+       * Normalized modifiers for this output occurrence. Raw timeframe is represented by
+       * an empty array.
+       */
+      modifiers?: Array<UnionMember0.Modifier>;
+
+      /**
+       * Stable source field UUID for this output occurrence.
        */
       source_kater_id?: string | null;
+
+      /**
+       * Source field label
+       */
+      source_label?: string | null;
     }
 
     export namespace UnionMember0 {
@@ -2564,6 +2812,23 @@ export namespace CompilerCompileDashboardResponse {
           raw_ddl?: string | null;
         }
       }
+
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
     }
 
     /**
@@ -2581,19 +2846,9 @@ export namespace CompilerCompileDashboardResponse {
       field_type: string;
 
       /**
-       * Authored source field UUID
+       * Source field name
        */
-      kater_id: string;
-
-      /**
-       * Human-readable column name
-       */
-      name: string;
-
-      /**
-       * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
-       */
-      active_timeframe?: string | null;
+      source_name: string;
 
       /**
        * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -2607,14 +2862,25 @@ export namespace CompilerCompileDashboardResponse {
       column_key?: string | null;
 
       /**
-       * Display label
+       * Backend-provided display label
        */
-      label?: string | null;
+      display_label?: string | null;
 
       /**
-       * Authored source field UUID for derived timeframe columns.
+       * Normalized modifiers for this output occurrence. Raw timeframe is represented by
+       * an empty array.
+       */
+      modifiers?: Array<UnionMember1.Modifier>;
+
+      /**
+       * Stable source field UUID for this output occurrence.
        */
       source_kater_id?: string | null;
+
+      /**
+       * Source field label
+       */
+      source_label?: string | null;
     }
 
     export namespace UnionMember1 {
@@ -2668,6 +2934,23 @@ export namespace CompilerCompileDashboardResponse {
            */
           raw_ddl?: string | null;
         }
+      }
+
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
       }
     }
 
@@ -2842,19 +3125,14 @@ export namespace CompilerCompileDashboardResponse {
         query_name: string;
 
         /**
-         * UUIDs of selected fields for this dependency slot
+         * Selected field occurrences for this dependency slot
          */
-        selected_field_ids: Array<string>;
+        selected_fields: Array<Slot.SelectedField>;
 
         /**
          * Dashboard slot name
          */
         slot_name: string;
-
-        /**
-         * Temporal grain overrides for selected fields
-         */
-        timeframe_overrides: Array<Slot.TimeframeOverride>;
 
         /**
          * Runtime variable values applied to the slot
@@ -2874,12 +3152,39 @@ export namespace CompilerCompileDashboardResponse {
 
       export namespace Slot {
         /**
-         * Runtime grain choice for a temporal source dimension.
+         * Semantic identity for an active output field: source_kater_id plus normalized
+         * modifiers.
          */
-        export interface TimeframeOverride {
-          active_timeframe: string;
+        export interface SelectedField {
+          /**
+           * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+           * array.
+           */
+          modifiers: Array<SelectedField.Modifier>;
 
+          /**
+           * Stable UUID of the source field this occurrence projects.
+           */
           source_kater_id: string;
+        }
+
+        export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
 
         /**
@@ -2919,13 +3224,13 @@ export namespace CompilerCompileDashboardResponse {
      *
      * Format invariants (validation enforced by Story 1.2's hashing helpers):
      *
-     * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-     * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-     * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+     * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+     * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+     * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
      */
     export interface RenderedQueryKey {
       /**
-       * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+       * rqk_cache_agg_v2:<sha256-hex> or null when not eligible
        */
       aggregate_cache_key_id: string | null;
 
@@ -2935,12 +3240,12 @@ export namespace CompilerCompileDashboardResponse {
       canonical: RenderedQueryKey.Canonical;
 
       /**
-       * rqk_cache_exact_v1:<sha256-hex>
+       * rqk_cache_exact_v2:<sha256-hex>
        */
       exact_cache_key_id: string;
 
       /**
-       * rqk_v1:<sha256-hex>
+       * rqk_v2:<sha256-hex>
        */
       key_id: string;
 
@@ -3009,7 +3314,7 @@ export namespace CompilerCompileDashboardResponse {
         /**
          * Request clock context — makes date-relative filters deterministic.
          *
-         * Selected date-grain identity lives in `fields.*.active_timeframe` and
+         * Selected date-grain identity lives in `fields.*.modifiers` and
          * `fields.output_columns[].column_key`, not here.
          */
         temporal: Canonical.Temporal;
@@ -3073,15 +3378,34 @@ export namespace CompilerCompileDashboardResponse {
             /**
              * Dimension entry inside the aggregate cache projection.
              *
-             * `source_kater_id` is required (not nullable) here so two timeframe variants of
-             * the same temporal source dimension produce different cache projections.
+             * `source_kater_id` plus normalized modifiers identify the projected source
+             * dimension in cache projections.
              */
             export interface Dimension {
-              active_timeframe: string | null;
-
               column_key: string;
 
+              modifiers: Array<Dimension.Modifier>;
+
               source_kater_id: string;
+            }
+
+            export namespace Dimension {
+              /**
+               * A normalized modifier applied to a source field occurrence. The first contract
+               * supports only timeframe modifiers.
+               */
+              export interface Modifier {
+                /**
+                 * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+                 */
+                kind: 'timeframe';
+
+                /**
+                 * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+                 * storing value raw.
+                 */
+                value: string;
+              }
             }
 
             /**
@@ -3094,15 +3418,34 @@ export namespace CompilerCompileDashboardResponse {
 
               expression: string;
 
-              field_active_timeframe: string | null;
-
               field_column_key: string | null;
 
               field_kater_id: string | null;
 
+              field_modifiers: Array<Filter.FieldModifier> | null;
+
               field_source_kater_id: string | null;
 
               normalized_value: string | null;
+            }
+
+            export namespace Filter {
+              /**
+               * A normalized modifier applied to a source field occurrence. The first contract
+               * supports only timeframe modifiers.
+               */
+              export interface FieldModifier {
+                /**
+                 * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+                 */
+                kind: 'timeframe';
+
+                /**
+                 * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+                 * storing value raw.
+                 */
+                value: string;
+              }
             }
 
             /**
@@ -3178,30 +3521,68 @@ export namespace CompilerCompileDashboardResponse {
 
               expression: string;
 
-              field_active_timeframe: string | null;
-
               field_column_key: string | null;
 
               field_kater_id: string | null;
+
+              field_modifiers: Array<Filter.FieldModifier> | null;
 
               field_source_kater_id: string | null;
 
               normalized_value: string | null;
             }
 
+            export namespace Filter {
+              /**
+               * A normalized modifier applied to a source field occurrence. The first contract
+               * supports only timeframe modifiers.
+               */
+              export interface FieldModifier {
+                /**
+                 * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+                 */
+                kind: 'timeframe';
+
+                /**
+                 * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+                 * storing value raw.
+                 */
+                value: string;
+              }
+            }
+
             /**
              * Column entry inside the exact cache projection.
              */
             export interface OutputColumn {
-              active_timeframe: string | null;
-
               column_key: string;
 
               field_type: 'dimension' | 'measure' | 'calculation';
 
               kater_id: string;
 
+              modifiers: Array<OutputColumn.Modifier>;
+
               source_kater_id: string | null;
+            }
+
+            export namespace OutputColumn {
+              /**
+               * A normalized modifier applied to a source field occurrence. The first contract
+               * supports only timeframe modifiers.
+               */
+              export interface Modifier {
+                /**
+                 * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+                 */
+                kind: 'timeframe';
+
+                /**
+                 * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+                 * storing value raw.
+                 */
+                value: string;
+              }
             }
 
             /**
@@ -3312,22 +3693,36 @@ export namespace CompilerCompileDashboardResponse {
            * A selected/active source field entry — strict subset of the field item.
            */
           export interface ActiveField {
-            active_timeframe: string | null;
-
             field_type: 'dimension' | 'measure' | 'calculation';
 
-            kater_id: string;
+            modifiers: Array<ActiveField.Modifier>;
+
+            source_kater_id: string;
+          }
+
+          export namespace ActiveField {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
            * An output column entry in `canonical.fields.output_columns`.
            */
           export interface OutputColumn {
-            /**
-             * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
-             */
-            active_timeframe: string | null;
-
             aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
 
             /**
@@ -3335,16 +3730,14 @@ export namespace CompilerCompileDashboardResponse {
              */
             column_key: string;
 
+            display_label: string | null;
+
             field_type: 'dimension' | 'measure' | 'calculation';
 
             /**
-             * Authored source field UUID
+             * Normalized modifiers for this output occurrence
              */
-            kater_id: string;
-
-            label: string | null;
-
-            name: string;
+            modifiers: Array<OutputColumn.Modifier>;
 
             /**
              * Zero-based output column position
@@ -3356,20 +3749,119 @@ export namespace CompilerCompileDashboardResponse {
             slot: 'required' | 'optional';
 
             /**
-             * Source field UUID when derived from an authored field
+             * Stable source field UUID for this output occurrence
              */
-            source_kater_id: string | null;
+            source_kater_id: string;
+
+            source_label: string | null;
+
+            source_name: string;
+
+            /**
+             * Data type specification
+             */
+            data_type?: OutputColumn.DataType;
+          }
+
+          export namespace OutputColumn {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
+
+            /**
+             * Data type specification
+             */
+            export interface DataType {
+              /**
+               * The canonical data type kind
+               */
+              kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+              /**
+               * Whether the field can be null
+               */
+              nullable: boolean;
+
+              /**
+               * Vendor-specific type extension
+               */
+              extension?: DataType.Extension | null;
+
+              /**
+               * Optional coarse metadata for the canonical type
+               */
+              params?: unknown;
+            }
+
+            export namespace DataType {
+              /**
+               * Vendor-specific type extension
+               */
+              export interface Extension {
+                /**
+                 * Database engine/dialect
+                 */
+                engine: string;
+
+                /**
+                 * Original type name in the source database
+                 */
+                orig_type: string;
+
+                /**
+                 * Additional vendor-specific options
+                 */
+                options?: { [key: string]: unknown } | null;
+
+                /**
+                 * Raw DDL for the type
+                 */
+                raw_ddl?: string | null;
+              }
+            }
           }
 
           /**
            * A selected/active source field entry — strict subset of the field item.
            */
           export interface SelectedField {
-            active_timeframe: string | null;
-
             field_type: 'dimension' | 'measure' | 'calculation';
 
-            kater_id: string;
+            modifiers: Array<SelectedField.Modifier>;
+
+            source_kater_id: string;
+          }
+
+          export namespace SelectedField {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
         }
 
@@ -3395,11 +3887,11 @@ export namespace CompilerCompileDashboardResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
+
+            field_modifiers: Array<EffectiveFilter.FieldModifier> | null;
 
             field_source_kater_id: string | null;
 
@@ -3418,6 +3910,25 @@ export namespace CompilerCompileDashboardResponse {
             scope: 'model' | 'topic' | 'dashboard' | 'query';
 
             value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+          }
+
+          export namespace EffectiveFilter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
         }
 
@@ -3534,7 +4045,7 @@ export namespace CompilerCompileDashboardResponse {
         /**
          * Request clock context — makes date-relative filters deterministic.
          *
-         * Selected date-grain identity lives in `fields.*.active_timeframe` and
+         * Selected date-grain identity lives in `fields.*.modifiers` and
          * `fields.output_columns[].column_key`, not here.
          */
         export interface Temporal {
@@ -3660,9 +4171,9 @@ export interface CompilerExecuteResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   rendered_query_key?: CompilerExecuteResponse.RenderedQueryKey | null;
 
@@ -3857,19 +4368,9 @@ export namespace CompilerExecuteResponse {
     field_type: string;
 
     /**
-     * Authored source field UUID
+     * Source field name
      */
-    kater_id: string;
-
-    /**
-     * Human-readable column name
-     */
-    name: string;
-
-    /**
-     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
-     */
-    active_timeframe?: string | null;
+    source_name: string;
 
     /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -3883,14 +4384,25 @@ export namespace CompilerExecuteResponse {
     column_key?: string | null;
 
     /**
-     * Display label
+     * Backend-provided display label
      */
-    label?: string | null;
+    display_label?: string | null;
 
     /**
-     * Authored source field UUID for derived timeframe columns.
+     * Normalized modifiers for this output occurrence. Raw timeframe is represented by
+     * an empty array.
+     */
+    modifiers?: Array<ColumnMap.Modifier>;
+
+    /**
+     * Stable source field UUID for this output occurrence.
      */
     source_kater_id?: string | null;
+
+    /**
+     * Source field label
+     */
+    source_label?: string | null;
   }
 
   export namespace ColumnMap {
@@ -3945,6 +4457,23 @@ export namespace CompilerExecuteResponse {
         raw_ddl?: string | null;
       }
     }
+
+    /**
+     * A normalized modifier applied to a source field occurrence. The first contract
+     * supports only timeframe modifiers.
+     */
+    export interface Modifier {
+      /**
+       * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+       */
+      kind: 'timeframe';
+
+      /**
+       * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+       * storing value raw.
+       */
+      value: string;
+    }
   }
 
   /**
@@ -3952,13 +4481,13 @@ export namespace CompilerExecuteResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   export interface RenderedQueryKey {
     /**
-     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     * rqk_cache_agg_v2:<sha256-hex> or null when not eligible
      */
     aggregate_cache_key_id: string | null;
 
@@ -3968,12 +4497,12 @@ export namespace CompilerExecuteResponse {
     canonical: RenderedQueryKey.Canonical;
 
     /**
-     * rqk_cache_exact_v1:<sha256-hex>
+     * rqk_cache_exact_v2:<sha256-hex>
      */
     exact_cache_key_id: string;
 
     /**
-     * rqk_v1:<sha256-hex>
+     * rqk_v2:<sha256-hex>
      */
     key_id: string;
 
@@ -4042,7 +4571,7 @@ export namespace CompilerExecuteResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       temporal: Canonical.Temporal;
@@ -4106,15 +4635,34 @@ export namespace CompilerExecuteResponse {
           /**
            * Dimension entry inside the aggregate cache projection.
            *
-           * `source_kater_id` is required (not nullable) here so two timeframe variants of
-           * the same temporal source dimension produce different cache projections.
+           * `source_kater_id` plus normalized modifiers identify the projected source
+           * dimension in cache projections.
            */
           export interface Dimension {
-            active_timeframe: string | null;
-
             column_key: string;
 
+            modifiers: Array<Dimension.Modifier>;
+
             source_kater_id: string;
+          }
+
+          export namespace Dimension {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -4127,15 +4675,34 @@ export namespace CompilerExecuteResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
 
+            field_modifiers: Array<Filter.FieldModifier> | null;
+
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
+          }
+
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -4211,30 +4778,68 @@ export namespace CompilerExecuteResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
+
+            field_modifiers: Array<Filter.FieldModifier> | null;
 
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
           }
 
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
+          }
+
           /**
            * Column entry inside the exact cache projection.
            */
           export interface OutputColumn {
-            active_timeframe: string | null;
-
             column_key: string;
 
             field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
+            modifiers: Array<OutputColumn.Modifier>;
+
             source_kater_id: string | null;
+          }
+
+          export namespace OutputColumn {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -4345,22 +4950,36 @@ export namespace CompilerExecuteResponse {
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface ActiveField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<ActiveField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace ActiveField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
 
         /**
          * An output column entry in `canonical.fields.output_columns`.
          */
         export interface OutputColumn {
-          /**
-           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
-           */
-          active_timeframe: string | null;
-
           aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
 
           /**
@@ -4368,16 +4987,14 @@ export namespace CompilerExecuteResponse {
            */
           column_key: string;
 
+          display_label: string | null;
+
           field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
-           * Authored source field UUID
+           * Normalized modifiers for this output occurrence
            */
-          kater_id: string;
-
-          label: string | null;
-
-          name: string;
+          modifiers: Array<OutputColumn.Modifier>;
 
           /**
            * Zero-based output column position
@@ -4389,20 +5006,119 @@ export namespace CompilerExecuteResponse {
           slot: 'required' | 'optional';
 
           /**
-           * Source field UUID when derived from an authored field
+           * Stable source field UUID for this output occurrence
            */
-          source_kater_id: string | null;
+          source_kater_id: string;
+
+          source_label: string | null;
+
+          source_name: string;
+
+          /**
+           * Data type specification
+           */
+          data_type?: OutputColumn.DataType;
+        }
+
+        export namespace OutputColumn {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
+
+          /**
+           * Data type specification
+           */
+          export interface DataType {
+            /**
+             * The canonical data type kind
+             */
+            kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+            /**
+             * Whether the field can be null
+             */
+            nullable: boolean;
+
+            /**
+             * Vendor-specific type extension
+             */
+            extension?: DataType.Extension | null;
+
+            /**
+             * Optional coarse metadata for the canonical type
+             */
+            params?: unknown;
+          }
+
+          export namespace DataType {
+            /**
+             * Vendor-specific type extension
+             */
+            export interface Extension {
+              /**
+               * Database engine/dialect
+               */
+              engine: string;
+
+              /**
+               * Original type name in the source database
+               */
+              orig_type: string;
+
+              /**
+               * Additional vendor-specific options
+               */
+              options?: { [key: string]: unknown } | null;
+
+              /**
+               * Raw DDL for the type
+               */
+              raw_ddl?: string | null;
+            }
+          }
         }
 
         /**
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface SelectedField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<SelectedField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -4428,11 +5144,11 @@ export namespace CompilerExecuteResponse {
 
           expression: string;
 
-          field_active_timeframe: string | null;
-
           field_column_key: string | null;
 
           field_kater_id: string | null;
+
+          field_modifiers: Array<EffectiveFilter.FieldModifier> | null;
 
           field_source_kater_id: string | null;
 
@@ -4451,6 +5167,25 @@ export namespace CompilerExecuteResponse {
           scope: 'model' | 'topic' | 'dashboard' | 'query';
 
           value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+
+        export namespace EffectiveFilter {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface FieldModifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -4567,7 +5302,7 @@ export namespace CompilerExecuteResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       export interface Temporal {
@@ -4727,9 +5462,9 @@ export interface CompilerRenderResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   rendered_query_key?: CompilerRenderResponse.RenderedQueryKey | null;
 
@@ -4924,19 +5659,9 @@ export namespace CompilerRenderResponse {
     field_type: string;
 
     /**
-     * Authored source field UUID
+     * Source field name
      */
-    kater_id: string;
-
-    /**
-     * Human-readable column name
-     */
-    name: string;
-
-    /**
-     * Concrete active timeframe for temporal dimensions, e.g. raw, month, quarter.
-     */
-    active_timeframe?: string | null;
+    source_name: string;
 
     /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -4950,14 +5675,25 @@ export namespace CompilerRenderResponse {
     column_key?: string | null;
 
     /**
-     * Display label
+     * Backend-provided display label
      */
-    label?: string | null;
+    display_label?: string | null;
 
     /**
-     * Authored source field UUID for derived timeframe columns.
+     * Normalized modifiers for this output occurrence. Raw timeframe is represented by
+     * an empty array.
+     */
+    modifiers?: Array<ColumnMap.Modifier>;
+
+    /**
+     * Stable source field UUID for this output occurrence.
      */
     source_kater_id?: string | null;
+
+    /**
+     * Source field label
+     */
+    source_label?: string | null;
   }
 
   export namespace ColumnMap {
@@ -5011,6 +5747,23 @@ export namespace CompilerRenderResponse {
          */
         raw_ddl?: string | null;
       }
+    }
+
+    /**
+     * A normalized modifier applied to a source field occurrence. The first contract
+     * supports only timeframe modifiers.
+     */
+    export interface Modifier {
+      /**
+       * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+       */
+      kind: 'timeframe';
+
+      /**
+       * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+       * storing value raw.
+       */
+      value: string;
     }
   }
 
@@ -5711,13 +6464,13 @@ export namespace CompilerRenderResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   export interface RenderedQueryKey {
     /**
-     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     * rqk_cache_agg_v2:<sha256-hex> or null when not eligible
      */
     aggregate_cache_key_id: string | null;
 
@@ -5727,12 +6480,12 @@ export namespace CompilerRenderResponse {
     canonical: RenderedQueryKey.Canonical;
 
     /**
-     * rqk_cache_exact_v1:<sha256-hex>
+     * rqk_cache_exact_v2:<sha256-hex>
      */
     exact_cache_key_id: string;
 
     /**
-     * rqk_v1:<sha256-hex>
+     * rqk_v2:<sha256-hex>
      */
     key_id: string;
 
@@ -5801,7 +6554,7 @@ export namespace CompilerRenderResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       temporal: Canonical.Temporal;
@@ -5865,15 +6618,34 @@ export namespace CompilerRenderResponse {
           /**
            * Dimension entry inside the aggregate cache projection.
            *
-           * `source_kater_id` is required (not nullable) here so two timeframe variants of
-           * the same temporal source dimension produce different cache projections.
+           * `source_kater_id` plus normalized modifiers identify the projected source
+           * dimension in cache projections.
            */
           export interface Dimension {
-            active_timeframe: string | null;
-
             column_key: string;
 
+            modifiers: Array<Dimension.Modifier>;
+
             source_kater_id: string;
+          }
+
+          export namespace Dimension {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -5886,15 +6658,34 @@ export namespace CompilerRenderResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
 
+            field_modifiers: Array<Filter.FieldModifier> | null;
+
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
+          }
+
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -5970,30 +6761,68 @@ export namespace CompilerRenderResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
+
+            field_modifiers: Array<Filter.FieldModifier> | null;
 
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
           }
 
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
+          }
+
           /**
            * Column entry inside the exact cache projection.
            */
           export interface OutputColumn {
-            active_timeframe: string | null;
-
             column_key: string;
 
             field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
+            modifiers: Array<OutputColumn.Modifier>;
+
             source_kater_id: string | null;
+          }
+
+          export namespace OutputColumn {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -6104,22 +6933,36 @@ export namespace CompilerRenderResponse {
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface ActiveField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<ActiveField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace ActiveField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
 
         /**
          * An output column entry in `canonical.fields.output_columns`.
          */
         export interface OutputColumn {
-          /**
-           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
-           */
-          active_timeframe: string | null;
-
           aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
 
           /**
@@ -6127,16 +6970,14 @@ export namespace CompilerRenderResponse {
            */
           column_key: string;
 
+          display_label: string | null;
+
           field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
-           * Authored source field UUID
+           * Normalized modifiers for this output occurrence
            */
-          kater_id: string;
-
-          label: string | null;
-
-          name: string;
+          modifiers: Array<OutputColumn.Modifier>;
 
           /**
            * Zero-based output column position
@@ -6148,20 +6989,119 @@ export namespace CompilerRenderResponse {
           slot: 'required' | 'optional';
 
           /**
-           * Source field UUID when derived from an authored field
+           * Stable source field UUID for this output occurrence
            */
-          source_kater_id: string | null;
+          source_kater_id: string;
+
+          source_label: string | null;
+
+          source_name: string;
+
+          /**
+           * Data type specification
+           */
+          data_type?: OutputColumn.DataType;
+        }
+
+        export namespace OutputColumn {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
+
+          /**
+           * Data type specification
+           */
+          export interface DataType {
+            /**
+             * The canonical data type kind
+             */
+            kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+            /**
+             * Whether the field can be null
+             */
+            nullable: boolean;
+
+            /**
+             * Vendor-specific type extension
+             */
+            extension?: DataType.Extension | null;
+
+            /**
+             * Optional coarse metadata for the canonical type
+             */
+            params?: unknown;
+          }
+
+          export namespace DataType {
+            /**
+             * Vendor-specific type extension
+             */
+            export interface Extension {
+              /**
+               * Database engine/dialect
+               */
+              engine: string;
+
+              /**
+               * Original type name in the source database
+               */
+              orig_type: string;
+
+              /**
+               * Additional vendor-specific options
+               */
+              options?: { [key: string]: unknown } | null;
+
+              /**
+               * Raw DDL for the type
+               */
+              raw_ddl?: string | null;
+            }
+          }
         }
 
         /**
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface SelectedField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<SelectedField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -6187,11 +7127,11 @@ export namespace CompilerRenderResponse {
 
           expression: string;
 
-          field_active_timeframe: string | null;
-
           field_column_key: string | null;
 
           field_kater_id: string | null;
+
+          field_modifiers: Array<EffectiveFilter.FieldModifier> | null;
 
           field_source_kater_id: string | null;
 
@@ -6210,6 +7150,25 @@ export namespace CompilerRenderResponse {
           scope: 'model' | 'topic' | 'dashboard' | 'query';
 
           value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+
+        export namespace EffectiveFilter {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface FieldModifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -6326,7 +7285,7 @@ export namespace CompilerRenderResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       export interface Temporal {
@@ -6435,9 +7394,9 @@ export interface CompilerResolveResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   rendered_query_key?: CompilerResolveResponse.RenderedQueryKey | null;
 
@@ -7243,13 +8202,13 @@ export namespace CompilerResolveResponse {
    *
    * Format invariants (validation enforced by Story 1.2's hashing helpers):
    *
-   * - `key_id`: `rqk_v1:<64 lowercase hex chars>`
-   * - `exact_cache_key_id`: `rqk_cache_exact_v1:<64 lowercase hex chars>`
-   * - `aggregate_cache_key_id`: `rqk_cache_agg_v1:<64 lowercase hex chars>` or null
+   * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
+   * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
+   * - `aggregate_cache_key_id`: `rqk_cache_agg_v2:<64 lowercase hex chars>` or null
    */
   export interface RenderedQueryKey {
     /**
-     * rqk_cache_agg_v1:<sha256-hex> or null when not eligible
+     * rqk_cache_agg_v2:<sha256-hex> or null when not eligible
      */
     aggregate_cache_key_id: string | null;
 
@@ -7259,12 +8218,12 @@ export namespace CompilerResolveResponse {
     canonical: RenderedQueryKey.Canonical;
 
     /**
-     * rqk_cache_exact_v1:<sha256-hex>
+     * rqk_cache_exact_v2:<sha256-hex>
      */
     exact_cache_key_id: string;
 
     /**
-     * rqk_v1:<sha256-hex>
+     * rqk_v2:<sha256-hex>
      */
     key_id: string;
 
@@ -7333,7 +8292,7 @@ export namespace CompilerResolveResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       temporal: Canonical.Temporal;
@@ -7397,15 +8356,34 @@ export namespace CompilerResolveResponse {
           /**
            * Dimension entry inside the aggregate cache projection.
            *
-           * `source_kater_id` is required (not nullable) here so two timeframe variants of
-           * the same temporal source dimension produce different cache projections.
+           * `source_kater_id` plus normalized modifiers identify the projected source
+           * dimension in cache projections.
            */
           export interface Dimension {
-            active_timeframe: string | null;
-
             column_key: string;
 
+            modifiers: Array<Dimension.Modifier>;
+
             source_kater_id: string;
+          }
+
+          export namespace Dimension {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -7418,15 +8396,34 @@ export namespace CompilerResolveResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
 
+            field_modifiers: Array<Filter.FieldModifier> | null;
+
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
+          }
+
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -7502,30 +8499,68 @@ export namespace CompilerResolveResponse {
 
             expression: string;
 
-            field_active_timeframe: string | null;
-
             field_column_key: string | null;
 
             field_kater_id: string | null;
+
+            field_modifiers: Array<Filter.FieldModifier> | null;
 
             field_source_kater_id: string | null;
 
             normalized_value: string | null;
           }
 
+          export namespace Filter {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface FieldModifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
+          }
+
           /**
            * Column entry inside the exact cache projection.
            */
           export interface OutputColumn {
-            active_timeframe: string | null;
-
             column_key: string;
 
             field_type: 'dimension' | 'measure' | 'calculation';
 
             kater_id: string;
 
+            modifiers: Array<OutputColumn.Modifier>;
+
             source_kater_id: string | null;
+          }
+
+          export namespace OutputColumn {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -7636,22 +8671,36 @@ export namespace CompilerResolveResponse {
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface ActiveField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<ActiveField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace ActiveField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
 
         /**
          * An output column entry in `canonical.fields.output_columns`.
          */
         export interface OutputColumn {
-          /**
-           * Concrete temporal grain (e.g. 'raw', 'month'); null for non-temporal
-           */
-          active_timeframe: string | null;
-
           aggregation: 'sum' | 'count' | 'min' | 'max' | 'avg' | 'unknown' | null;
 
           /**
@@ -7659,16 +8708,14 @@ export namespace CompilerResolveResponse {
            */
           column_key: string;
 
+          display_label: string | null;
+
           field_type: 'dimension' | 'measure' | 'calculation';
 
           /**
-           * Authored source field UUID
+           * Normalized modifiers for this output occurrence
            */
-          kater_id: string;
-
-          label: string | null;
-
-          name: string;
+          modifiers: Array<OutputColumn.Modifier>;
 
           /**
            * Zero-based output column position
@@ -7680,20 +8727,119 @@ export namespace CompilerResolveResponse {
           slot: 'required' | 'optional';
 
           /**
-           * Source field UUID when derived from an authored field
+           * Stable source field UUID for this output occurrence
            */
-          source_kater_id: string | null;
+          source_kater_id: string;
+
+          source_label: string | null;
+
+          source_name: string;
+
+          /**
+           * Data type specification
+           */
+          data_type?: OutputColumn.DataType;
+        }
+
+        export namespace OutputColumn {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
+
+          /**
+           * Data type specification
+           */
+          export interface DataType {
+            /**
+             * The canonical data type kind
+             */
+            kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+            /**
+             * Whether the field can be null
+             */
+            nullable: boolean;
+
+            /**
+             * Vendor-specific type extension
+             */
+            extension?: DataType.Extension | null;
+
+            /**
+             * Optional coarse metadata for the canonical type
+             */
+            params?: unknown;
+          }
+
+          export namespace DataType {
+            /**
+             * Vendor-specific type extension
+             */
+            export interface Extension {
+              /**
+               * Database engine/dialect
+               */
+              engine: string;
+
+              /**
+               * Original type name in the source database
+               */
+              orig_type: string;
+
+              /**
+               * Additional vendor-specific options
+               */
+              options?: { [key: string]: unknown } | null;
+
+              /**
+               * Raw DDL for the type
+               */
+              raw_ddl?: string | null;
+            }
+          }
         }
 
         /**
          * A selected/active source field entry — strict subset of the field item.
          */
         export interface SelectedField {
-          active_timeframe: string | null;
-
           field_type: 'dimension' | 'measure' | 'calculation';
 
-          kater_id: string;
+          modifiers: Array<SelectedField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -7719,11 +8865,11 @@ export namespace CompilerResolveResponse {
 
           expression: string;
 
-          field_active_timeframe: string | null;
-
           field_column_key: string | null;
 
           field_kater_id: string | null;
+
+          field_modifiers: Array<EffectiveFilter.FieldModifier> | null;
 
           field_source_kater_id: string | null;
 
@@ -7742,6 +8888,25 @@ export namespace CompilerResolveResponse {
           scope: 'model' | 'topic' | 'dashboard' | 'query';
 
           value: string | number | boolean | Array<unknown> | { [key: string]: unknown } | null;
+        }
+
+        export namespace EffectiveFilter {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface FieldModifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
         }
       }
 
@@ -7858,7 +9023,7 @@ export namespace CompilerResolveResponse {
       /**
        * Request clock context — makes date-relative filters deterministic.
        *
-       * Selected date-grain identity lives in `fields.*.active_timeframe` and
+       * Selected date-grain identity lives in `fields.*.modifiers` and
        * `fields.output_columns[].column_key`, not here.
        */
       export interface Temporal {
@@ -8106,8 +9271,7 @@ export interface CompilerCompileParams {
   dashboard: CompilerCompileParams.Dashboard | null;
 
   /**
-   * Body param: Structured field selection: source field IDs plus optional grain
-   * overrides.
+   * Body param: Structured field selection expressed as semantic field occurrences.
    */
   field_selection: CompilerCompileParams.FieldSelection;
 
@@ -8305,22 +9469,47 @@ export namespace CompilerCompileParams {
   }
 
   /**
-   * Structured field selection: source field IDs plus optional grain overrides.
+   * Structured field selection expressed as semantic field occurrences.
    */
   export interface FieldSelection {
-    selected_field_ids: Array<string>;
-
-    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+    selected_fields: Array<FieldSelection.SelectedField>;
   }
 
   export namespace FieldSelection {
     /**
-     * Runtime grain choice for a temporal source dimension.
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
      */
-    export interface TimeframeOverride {
-      active_timeframe: string;
+    export interface SelectedField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<SelectedField.Modifier>;
 
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
       source_kater_id: string;
+    }
+
+    export namespace SelectedField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
     }
   }
 
@@ -8698,8 +9887,7 @@ export interface CompilerExecuteParams {
   dashboard: CompilerExecuteParams.Dashboard | null;
 
   /**
-   * Body param: Structured field selection: source field IDs plus optional grain
-   * overrides.
+   * Body param: Structured field selection expressed as semantic field occurrences.
    */
   field_selection: CompilerExecuteParams.FieldSelection;
 
@@ -8897,22 +10085,47 @@ export namespace CompilerExecuteParams {
   }
 
   /**
-   * Structured field selection: source field IDs plus optional grain overrides.
+   * Structured field selection expressed as semantic field occurrences.
    */
   export interface FieldSelection {
-    selected_field_ids: Array<string>;
-
-    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+    selected_fields: Array<FieldSelection.SelectedField>;
   }
 
   export namespace FieldSelection {
     /**
-     * Runtime grain choice for a temporal source dimension.
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
      */
-    export interface TimeframeOverride {
-      active_timeframe: string;
+    export interface SelectedField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<SelectedField.Modifier>;
 
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
       source_kater_id: string;
+    }
+
+    export namespace SelectedField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
     }
   }
 
@@ -9127,8 +10340,7 @@ export interface CompilerRenderParams {
   dashboard: CompilerRenderParams.Dashboard | null;
 
   /**
-   * Body param: Structured field selection: source field IDs plus optional grain
-   * overrides.
+   * Body param: Structured field selection expressed as semantic field occurrences.
    */
   field_selection: CompilerRenderParams.FieldSelection;
 
@@ -9326,22 +10538,47 @@ export namespace CompilerRenderParams {
   }
 
   /**
-   * Structured field selection: source field IDs plus optional grain overrides.
+   * Structured field selection expressed as semantic field occurrences.
    */
   export interface FieldSelection {
-    selected_field_ids: Array<string>;
-
-    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+    selected_fields: Array<FieldSelection.SelectedField>;
   }
 
   export namespace FieldSelection {
     /**
-     * Runtime grain choice for a temporal source dimension.
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
      */
-    export interface TimeframeOverride {
-      active_timeframe: string;
+    export interface SelectedField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<SelectedField.Modifier>;
 
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
       source_kater_id: string;
+    }
+
+    export namespace SelectedField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
     }
   }
 
@@ -9551,8 +10788,7 @@ export interface CompilerResolveParams {
   connection_id: string;
 
   /**
-   * Body param: Structured field selection: source field IDs plus optional grain
-   * overrides.
+   * Body param: Structured field selection expressed as semantic field occurrences.
    */
   field_selection: CompilerResolveParams.FieldSelection;
 
@@ -9611,22 +10847,47 @@ export interface CompilerResolveParams {
 
 export namespace CompilerResolveParams {
   /**
-   * Structured field selection: source field IDs plus optional grain overrides.
+   * Structured field selection expressed as semantic field occurrences.
    */
   export interface FieldSelection {
-    selected_field_ids: Array<string>;
-
-    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
+    selected_fields: Array<FieldSelection.SelectedField>;
   }
 
   export namespace FieldSelection {
     /**
-     * Runtime grain choice for a temporal source dimension.
+     * Semantic identity for an active output field: source_kater_id plus normalized
+     * modifiers.
      */
-    export interface TimeframeOverride {
-      active_timeframe: string;
+    export interface SelectedField {
+      /**
+       * Normalized modifiers sorted by kind. Raw timeframe is represented by an empty
+       * array.
+       */
+      modifiers: Array<SelectedField.Modifier>;
 
+      /**
+       * Stable UUID of the source field this occurrence projects.
+       */
       source_kater_id: string;
+    }
+
+    export namespace SelectedField {
+      /**
+       * A normalized modifier applied to a source field occurrence. The first contract
+       * supports only timeframe modifiers.
+       */
+      export interface Modifier {
+        /**
+         * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+         */
+        kind: 'timeframe';
+
+        /**
+         * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+         * storing value raw.
+         */
+        value: string;
+      }
     }
   }
 
@@ -9989,7 +11250,6 @@ export declare namespace Compiler {
   export {
     type ChartConfig as ChartConfig,
     type CompilerErrorItem as CompilerErrorItem,
-    type InlineField as InlineField,
     type Manifest as Manifest,
     type ManifestEntry as ManifestEntry,
     type RefWithLabel as RefWithLabel,
