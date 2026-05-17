@@ -11,6 +11,38 @@ import { RequestOptions } from '../../../../internal/request-options';
  */
 export class Widget extends APIResource {
   /**
+   * Regenerate SDK widget narrative metadata from post-query state mutation.
+   *
+   * This endpoint accepts post-query state changes for SDK widgets and returns
+   * regenerated narrative metadata based on the transformed row set.
+   *
+   * The endpoint mirrors the compiler post-query mutation behavior but uses SDK
+   * authentication and authorization context.
+   *
+   * Persistence behavior:
+   *
+   * - persist.mode="none": Returns metadata without saving state
+   * - persist.mode="upsert": Saves state with revision tracking under SDK tenant
+   *   scope
+   */
+  regenerateMetadata(
+    params: WidgetRegenerateMetadataParams,
+    options?: RequestOptions,
+  ): APIPromise<WidgetRegenerateMetadataResponse> {
+    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
+    return this._client.post('/api/v1/sdk/widget/render/post-query', {
+      query: { source },
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
+        options?.headers,
+      ]),
+      __security: {},
+    });
+  }
+
+  /**
    * Render a single SDK widget from a `RenderedQueryRequestV1` body.
    *
    * The handler:
@@ -38,6 +70,488 @@ export class Widget extends APIResource {
       ]),
       __security: {},
     });
+  }
+}
+
+/**
+ * Response from post-query mutation endpoints.
+ */
+export interface WidgetRegenerateMetadataResponse {
+  /**
+   * Auto-generated description text
+   */
+  auto_description?: string | null;
+
+  /**
+   * Auto-generated structured description
+   */
+  auto_description_structured?: { [key: string]: unknown } | null;
+
+  /**
+   * Auto-generated title
+   */
+  auto_title?: string | null;
+
+  /**
+   * Schema for post-query refinements that run after SQL execution on returned
+   * result rows
+   */
+  canonical_post_query_state?: WidgetRegenerateMetadataResponse.CanonicalPostQueryState | null;
+
+  /**
+   * Auto-generated footnote text
+   */
+  footnote?: string | null;
+
+  /**
+   * Auto-generated structured footnote
+   */
+  footnote_structured?: { [key: string]: unknown } | null;
+
+  /**
+   * Regenerated insight runs for transformed data
+   */
+  insight_runs?: Array<WidgetRegenerateMetadataResponse.InsightRun>;
+
+  /**
+   * Deterministic hash for narrative caching (null for unavailable)
+   */
+  post_query_key_id?: string | null;
+
+  /**
+   * Saved post-query state ID (null for unavailable responses)
+   */
+  post_query_state_id?: string | null;
+
+  /**
+   * Reason for unavailable status
+   */
+  reason?: string | null;
+
+  /**
+   * Scope metadata for post-query transformation results.
+   */
+  result_scope?: WidgetRegenerateMetadataResponse.ResultScope | null;
+
+  /**
+   * Current revision number (null for unavailable responses)
+   */
+  revision?: number | null;
+
+  /**
+   * Status for error cases ('unavailable', null for success)
+   */
+  status?: string | null;
+}
+
+export namespace WidgetRegenerateMetadataResponse {
+  /**
+   * Schema for post-query refinements that run after SQL execution on returned
+   * result rows
+   */
+  export interface CanonicalPostQueryState {
+    /**
+     * Post-query filter definitions that apply to returned result rows
+     */
+    filters?: Array<CanonicalPostQueryState.Filter> | null;
+
+    /**
+     * Post-query sort definitions that apply to returned result rows
+     */
+    sorts?: Array<CanonicalPostQueryState.Sort> | null;
+  }
+
+  export namespace CanonicalPostQueryState {
+    /**
+     * A post-query filter definition for a specific field occurrence
+     */
+    export interface Filter {
+      /**
+       * Filter expression operator
+       */
+      expression: 'equals' | 'in' | 'between';
+
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      field: Filter.Field;
+
+      /**
+       * Filter kind that determines UI control type
+       */
+      kind: 'date' | 'dropdown' | 'multiselect' | 'number_range';
+
+      /**
+       * Whether this filter should be enabled by default
+       */
+      default_enabled?: boolean | null;
+
+      /**
+       * Default value for the filter when enabled
+       */
+      default_value?:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | Filter.DateRangeValue
+        | Filter.NumberRangeValue
+        | null;
+
+      /**
+       * Values source configuration for categorical filters
+       */
+      values?: Filter.Values | null;
+    }
+
+    export namespace Filter {
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      export interface Field {
+        /**
+         * Reference to the field
+         */
+        ref: string;
+
+        /**
+         * Optional modifiers for the field (e.g. timeframe)
+         */
+        modifiers?: Array<Field.Modifier> | null;
+      }
+
+      export namespace Field {
+        /**
+         * A normalized modifier applied to a source field occurrence. The first contract
+         * supports only timeframe modifiers.
+         */
+        export interface Modifier {
+          /**
+           * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+           */
+          kind: 'timeframe';
+
+          /**
+           * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+           * storing value raw.
+           */
+          value: string;
+        }
+      }
+
+      /**
+       * Date range filter value
+       */
+      export interface DateRangeValue {
+        mode: 'absolute_range' | 'relative_range';
+      }
+
+      /**
+       * Number range filter value
+       */
+      export interface NumberRangeValue {
+        /**
+         * Maximum value (inclusive)
+         */
+        max: number;
+
+        /**
+         * Minimum value (inclusive)
+         */
+        min: number;
+      }
+
+      /**
+       * Values source configuration for categorical filters
+       */
+      export interface Values {
+        /**
+         * Source of filter values
+         */
+        source: 'result_distinct';
+
+        /**
+         * Maximum number of values to show
+         */
+        limit?: number;
+
+        /**
+         * Whether the filter should be searchable
+         */
+        searchable?: boolean;
+
+        /**
+         * Sort order for values
+         */
+        sort?: 'asc' | 'desc';
+      }
+    }
+
+    /**
+     * A post-query sort definition for a specific field occurrence
+     */
+    export interface Sort {
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      field: Sort.Field;
+
+      /**
+       * Default sort direction when enabled
+       */
+      default_direction?: 'asc' | 'desc' | null;
+
+      /**
+       * Whether this sort should be enabled by default
+       */
+      default_enabled?: boolean | null;
+
+      /**
+       * Sort priority for multi-field sorts (lower numbers sort first)
+       */
+      priority?: number | null;
+    }
+
+    export namespace Sort {
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      export interface Field {
+        /**
+         * Reference to the field
+         */
+        ref: string;
+
+        /**
+         * Optional modifiers for the field (e.g. timeframe)
+         */
+        modifiers?: Array<Field.Modifier> | null;
+      }
+
+      export namespace Field {
+        /**
+         * A normalized modifier applied to a source field occurrence. The first contract
+         * supports only timeframe modifiers.
+         */
+        export interface Modifier {
+          /**
+           * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+           */
+          kind: 'timeframe';
+
+          /**
+           * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+           * storing value raw.
+           */
+          value: string;
+        }
+      }
+    }
+  }
+
+  /**
+   * Validated structured output for a completed insight run.
+   */
+  export interface InsightRun {
+    /**
+     * Typed execution context attached to an insight run result.
+     */
+    context?: InsightRun.Context | null;
+
+    findings?: Array<InsightRun.Finding>;
+
+    metadata?: { [key: string]: unknown } | null;
+
+    /**
+     * Top-level summary for an insight run.
+     */
+    summary?: InsightRun.Summary | null;
+  }
+
+  export namespace InsightRun {
+    /**
+     * Typed execution context attached to an insight run result.
+     */
+    export interface Context {
+      /**
+       * Execution metadata captured for a completed insight run.
+       */
+      execution: Context.Execution;
+
+      /**
+       * Insight definition metadata attached to a run result.
+       */
+      insight: Context.Insight;
+
+      /**
+       * Host surface metadata for the container that triggered the run.
+       */
+      host?: Context.Host | null;
+
+      inputs?: Array<Context.Input>;
+    }
+
+    export namespace Context {
+      /**
+       * Execution metadata captured for a completed insight run.
+       */
+      export interface Execution {
+        kater_id: string;
+
+        surface: 'dashboard' | 'preview' | 'chat';
+
+        params?: { [key: string]: unknown };
+      }
+
+      /**
+       * Insight definition metadata attached to a run result.
+       */
+      export interface Insight {
+        entrypoint: string;
+
+        kater_id: string;
+
+        name: string;
+
+        description?: string | null;
+      }
+
+      /**
+       * Host surface metadata for the container that triggered the run.
+       */
+      export interface Host {
+        dashboard_kater_id?: string | null;
+
+        dashboard_name?: string | null;
+
+        query_kater_id?: string | null;
+
+        query_name?: string | null;
+
+        widget_kater_id?: string | null;
+      }
+
+      /**
+       * Normalized input metadata attached to an insight run.
+       */
+      export interface Input {
+        dataset_name: string;
+
+        input_name: string;
+
+        row_count: number;
+
+        bindings?: { [key: string]: string };
+
+        /**
+         * Query metadata describing the source of an insight input.
+         */
+        query?: Input.Query | null;
+      }
+
+      export namespace Input {
+        /**
+         * Query metadata describing the source of an insight input.
+         */
+        export interface Query {
+          description?: string | null;
+
+          kater_id?: string | null;
+
+          name?: string | null;
+
+          rendered_query_key?: string | null;
+        }
+      }
+    }
+
+    /**
+     * Single analytical finding emitted by an insight run.
+     */
+    export interface Finding {
+      kind: string;
+
+      summary: string;
+
+      confidence?: number | null;
+
+      details?: Array<string>;
+
+      evidence?: Array<Finding.Evidence>;
+
+      follow_ups?: Array<Finding.FollowUp>;
+
+      metadata?: { [key: string]: unknown } | null;
+
+      severity?: 'info' | 'positive' | 'warning' | 'critical' | null;
+    }
+
+    export namespace Finding {
+      /**
+       * Structured evidence attached to a finding.
+       */
+      export interface Evidence {
+        label: string;
+
+        value: string | number | boolean;
+
+        description?: string | null;
+      }
+
+      /**
+       * Structured action hint emitted by an insight finding.
+       */
+      export interface FollowUp {
+        id: string;
+
+        instructions: string;
+
+        label: string;
+
+        payload?: { [key: string]: unknown } | null;
+      }
+    }
+
+    /**
+     * Top-level summary for an insight run.
+     */
+    export interface Summary {
+      text: string;
+
+      confidence?: number | null;
+
+      severity?: 'info' | 'positive' | 'warning' | 'critical' | null;
+    }
+  }
+
+  /**
+   * Scope metadata for post-query transformation results.
+   */
+  export interface ResultScope {
+    /**
+     * Number of base rows before post-query transformation
+     */
+    base_row_count: number;
+
+    /**
+     * Whether more rows are available beyond the current set
+     */
+    has_more: boolean;
+
+    /**
+     * Whether the result is limited by row count restrictions
+     */
+    is_row_limited: boolean;
+
+    /**
+     * Scope of transformation: 'available_rows', etc.
+     */
+    scope: string;
+
+    /**
+     * Number of rows after post-query transformation
+     */
+    transformed_row_count: number;
   }
 }
 
@@ -133,6 +647,11 @@ export interface WidgetRenderResponse {
    * Number of rows requested per table page
    */
   page_size?: number | null;
+
+  /**
+   * Derived post-query filter and sort definitions keyed by occurrence identity.
+   */
+  post_query_refinements?: { [key: string]: unknown };
 
   /**
    * Top-level natural key returned by every runtime data and widget path.
@@ -320,6 +839,11 @@ export namespace WidgetRenderResponse {
    * Maps a UUID column alias to its human-readable name and type.
    */
   export interface ColumnMap {
+    /**
+     * Canonical column type metadata for post-query contracts
+     */
+    column_type: { [key: string]: unknown };
+
     /**
      * Canonical data type metadata for this output column
      */
@@ -2283,6 +2807,300 @@ export namespace WidgetRenderResponse {
   }
 }
 
+export interface WidgetRegenerateMetadataParams {
+  /**
+   * Body param: Persistence behavior configuration
+   */
+  persist: WidgetRegenerateMetadataParams.Persist;
+
+  /**
+   * Body param: Canonical post-query filters, sorts, and refinements
+   */
+  post_query_state: WidgetRegenerateMetadataParams.PostQueryState;
+
+  /**
+   * Body param: Query kater_id this state applies to
+   */
+  query_kater_id: string;
+
+  /**
+   * Body param: Base rendered query key ID (without post-query state)
+   */
+  rendered_query_key_id: string;
+
+  /**
+   * Query param
+   */
+  source?: string | null;
+
+  /**
+   * Body param: Existing post-query state ID for updates
+   */
+  post_query_state_id?: string | null;
+
+  /**
+   * Body param: Expected revision for conflict detection
+   */
+  revision?: number | null;
+
+  /**
+   * Header param
+   */
+  'X-Kater-CLI-ID'?: string;
+}
+
+export namespace WidgetRegenerateMetadataParams {
+  /**
+   * Persistence behavior configuration
+   */
+  export interface Persist {
+    /**
+     * Persistence mode: 'none' or 'upsert'
+     */
+    mode: string;
+
+    /**
+     * Scope definition for post-query state persistence.
+     */
+    scope?: Persist.Scope | null;
+
+    /**
+     * Type of scope (e.g., 'chat_message_widget', 'query_builder_draft')
+     */
+    scope_type?: string | null;
+  }
+
+  export namespace Persist {
+    /**
+     * Scope definition for post-query state persistence.
+     */
+    export interface Scope {
+      /**
+       * Chat thread ID for chat_message_widget scope
+       */
+      chat_thread_id?: string | null;
+
+      /**
+       * Message ID for chat_message_widget scope
+       */
+      message_id?: string | null;
+
+      /**
+       * Session ID for query_builder_draft scope
+       */
+      session_id?: string | null;
+
+      /**
+       * Widget instance ID for chat_message_widget scope
+       */
+      widget_instance_id?: string | null;
+    }
+  }
+
+  /**
+   * Canonical post-query filters, sorts, and refinements
+   */
+  export interface PostQueryState {
+    /**
+     * Post-query filter definitions that apply to returned result rows
+     */
+    filters?: Array<PostQueryState.Filter> | null;
+
+    /**
+     * Post-query sort definitions that apply to returned result rows
+     */
+    sorts?: Array<PostQueryState.Sort> | null;
+  }
+
+  export namespace PostQueryState {
+    /**
+     * A post-query filter definition for a specific field occurrence
+     */
+    export interface Filter {
+      /**
+       * Filter expression operator
+       */
+      expression: 'equals' | 'in' | 'between';
+
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      field: Filter.Field;
+
+      /**
+       * Filter kind that determines UI control type
+       */
+      kind: 'date' | 'dropdown' | 'multiselect' | 'number_range';
+
+      /**
+       * Whether this filter should be enabled by default
+       */
+      default_enabled?: boolean | null;
+
+      /**
+       * Default value for the filter when enabled
+       */
+      default_value?:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | Filter.DateRangeValue
+        | Filter.NumberRangeValue
+        | null;
+
+      /**
+       * Values source configuration for categorical filters
+       */
+      values?: Filter.Values | null;
+    }
+
+    export namespace Filter {
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      export interface Field {
+        /**
+         * Reference to the field
+         */
+        ref: string;
+
+        /**
+         * Optional modifiers for the field (e.g. timeframe)
+         */
+        modifiers?: Array<Field.Modifier> | null;
+      }
+
+      export namespace Field {
+        /**
+         * A normalized modifier applied to a source field occurrence. The first contract
+         * supports only timeframe modifiers.
+         */
+        export interface Modifier {
+          /**
+           * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+           */
+          kind: 'timeframe';
+
+          /**
+           * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+           * storing value raw.
+           */
+          value: string;
+        }
+      }
+
+      /**
+       * Date range filter value
+       */
+      export interface DateRangeValue {
+        mode: 'absolute_range' | 'relative_range';
+      }
+
+      /**
+       * Number range filter value
+       */
+      export interface NumberRangeValue {
+        /**
+         * Maximum value (inclusive)
+         */
+        max: number;
+
+        /**
+         * Minimum value (inclusive)
+         */
+        min: number;
+      }
+
+      /**
+       * Values source configuration for categorical filters
+       */
+      export interface Values {
+        /**
+         * Source of filter values
+         */
+        source: 'result_distinct';
+
+        /**
+         * Maximum number of values to show
+         */
+        limit?: number;
+
+        /**
+         * Whether the filter should be searchable
+         */
+        searchable?: boolean;
+
+        /**
+         * Sort order for values
+         */
+        sort?: 'asc' | 'desc';
+      }
+    }
+
+    /**
+     * A post-query sort definition for a specific field occurrence
+     */
+    export interface Sort {
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      field: Sort.Field;
+
+      /**
+       * Default sort direction when enabled
+       */
+      default_direction?: 'asc' | 'desc' | null;
+
+      /**
+       * Whether this sort should be enabled by default
+       */
+      default_enabled?: boolean | null;
+
+      /**
+       * Sort priority for multi-field sorts (lower numbers sort first)
+       */
+      priority?: number | null;
+    }
+
+    export namespace Sort {
+      /**
+       * Field target using object form with ref and optional modifiers
+       */
+      export interface Field {
+        /**
+         * Reference to the field
+         */
+        ref: string;
+
+        /**
+         * Optional modifiers for the field (e.g. timeframe)
+         */
+        modifiers?: Array<Field.Modifier> | null;
+      }
+
+      export namespace Field {
+        /**
+         * A normalized modifier applied to a source field occurrence. The first contract
+         * supports only timeframe modifiers.
+         */
+        export interface Modifier {
+          /**
+           * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+           */
+          kind: 'timeframe';
+
+          /**
+           * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+           * storing value raw.
+           */
+          value: string;
+        }
+      }
+    }
+  }
+}
+
 export interface WidgetRenderParams {
   /**
    * Body param
@@ -2737,5 +3555,10 @@ export namespace WidgetRenderParams {
 }
 
 export declare namespace Widget {
-  export { type WidgetRenderResponse as WidgetRenderResponse, type WidgetRenderParams as WidgetRenderParams };
+  export {
+    type WidgetRegenerateMetadataResponse as WidgetRegenerateMetadataResponse,
+    type WidgetRenderResponse as WidgetRenderResponse,
+    type WidgetRegenerateMetadataParams as WidgetRegenerateMetadataParams,
+    type WidgetRenderParams as WidgetRenderParams,
+  };
 }

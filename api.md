@@ -13,6 +13,7 @@ Types:
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerCompileDashboardResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerExecuteResponse</a></code>
+- <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerRegenerateMetadataResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerRenderResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerResolveResponse</a></code>
 - <code><a href="./src/resources/v1/compiler/compiler.ts">CompilerValidateResponse</a></code>
@@ -22,6 +23,7 @@ Methods:
 - <code title="post /api/v1/compiler/compile/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compile</a>({ ...params }) -> CompilerCompileResponse</code>
 - <code title="post /api/v1/compiler/dashboard">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">compileDashboard</a>({ ...params }) -> CompilerCompileDashboardResponse</code>
 - <code title="post /api/v1/compiler/execute/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">execute</a>({ ...params }) -> CompilerExecuteResponse</code>
+- <code title="post /api/v1/compiler/render/post-query">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">regenerateMetadata</a>({ ...params }) -> CompilerRegenerateMetadataResponse</code>
 - <code title="post /api/v1/compiler/render">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">render</a>({ ...params }) -> CompilerRenderResponse</code>
 - <code title="post /api/v1/compiler/resolve/structured">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">resolve</a>({ ...params }) -> CompilerResolveResponse</code>
 - <code title="post /api/v1/compiler/validate">client.v1.compiler.<a href="./src/resources/v1/compiler/compiler.ts">validate</a>({ ...params }) -> CompilerValidateResponse</code>
@@ -135,10 +137,12 @@ Methods:
 
 Types:
 
+- <code><a href="./src/resources/v1/connections/sdk/widget.ts">WidgetRegenerateMetadataResponse</a></code>
 - <code><a href="./src/resources/v1/connections/sdk/widget.ts">WidgetRenderResponse</a></code>
 
 Methods:
 
+- <code title="post /api/v1/sdk/widget/render/post-query">client.v1.connections.sdk.widget.<a href="./src/resources/v1/connections/sdk/widget.ts">regenerateMetadata</a>({ ...params }) -> WidgetRegenerateMetadataResponse</code>
 - <code title="post /api/v1/sdk/widget/render">client.v1.connections.sdk.widget.<a href="./src/resources/v1/connections/sdk/widget.ts">render</a>({ ...params }) -> WidgetRenderResponse</code>
 
 ## Tenants

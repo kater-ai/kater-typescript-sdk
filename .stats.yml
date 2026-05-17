@@ -1,4 +1,4 @@
-configured_endpoints: 28
-openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/kater-ai/kater-5e33145b8b381cb21a1ba9f8fcc655716c3262f7c17a15e3e6265340b635ec0f.yml
-openapi_spec_hash: 28b0285e51a4d8f7897ba07c181d20f4
-config_hash: f20d92e2f6a5bec2218109e73727d724
+configured_endpoints: 30
+openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/kater-ai/kater-a371b4cd3bf84f84452dd9e15576199b7e38f567539208c9ee6a3dff242448db.yml
+openapi_spec_hash: d18a07c0c11764e818411dadefc7a226
+config_hash: 757df8f0edbbd25225328e21b3e8ff03
