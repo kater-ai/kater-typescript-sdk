@@ -777,6 +777,11 @@ export namespace CapabilityCreateResponse {
      */
     export interface VariableDefinition {
       /**
+       * Canonical data type inferred from the shared variable model helper
+       */
+      data_type: VariableDefinition.DataType;
+
+      /**
        * True = dynamic (entered at run time); False = static (authored default that
        * never changes at runtime).
        */
@@ -798,15 +803,15 @@ export namespace CapabilityCreateResponse {
       scope: 'query' | 'global';
 
       /**
-       * Variable data type, e.g. STRING, INT, DATE, BOOL, STRING[], TIMEFRAME
-       */
-      type: string;
-
-      /**
        * Stable variable UUID. Fall back to (query_kater_id, scope, name) when null
        * (migration fallback only).
        */
       variable_kater_id: string | null;
+
+      /**
+       * Variable control type
+       */
+      variable_type: 'date' | 'number_input' | 'text_input' | 'dropdown' | 'multiselect' | 'number_range';
 
       /**
        * Dimension column UUID for from-column variables; null otherwise
@@ -817,12 +822,19 @@ export namespace CapabilityCreateResponse {
        * Static enumeration of allowed values; null when the variable is unconstrained or
        * column-derived
        */
-      allowed_values_static?: Array<string | number | boolean> | null;
+      allowed_values_static?: Array<VariableDefinition.AllowedValuesStatic> | null;
 
       /**
        * Authored default value
        */
-      default?: string | number | boolean | Array<string | number | boolean> | null;
+      default?:
+        | string
+        | number
+        | boolean
+        | Array<string | number | boolean>
+        | VariableDefinition.NumberRangeDefault
+        | VariableDefinition.RelativeDateDefault
+        | null;
 
       /**
        * Free-form description
@@ -833,6 +845,107 @@ export namespace CapabilityCreateResponse {
        * Display label
        */
       label?: string | null;
+
+      /**
+       * Selection domain for selectable query variables
+       */
+      source_kind?: 'Literal' | 'Dimension' | 'Measure' | 'Calculation' | null;
+    }
+
+    export namespace VariableDefinition {
+      /**
+       * Canonical data type inferred from the shared variable model helper
+       */
+      export interface DataType {
+        /**
+         * The canonical data type kind
+         */
+        kind: 'Bool' | 'Text' | 'Number' | 'Datetime' | 'Complex' | 'Unknown';
+
+        /**
+         * Whether the field can be null
+         */
+        nullable: boolean;
+
+        /**
+         * Vendor-specific type extension
+         */
+        extension?: DataType.Extension | null;
+
+        /**
+         * Optional coarse metadata for the canonical type
+         */
+        params?: unknown;
+      }
+
+      export namespace DataType {
+        /**
+         * Vendor-specific type extension
+         */
+        export interface Extension {
+          /**
+           * Database engine/dialect
+           */
+          engine: string;
+
+          /**
+           * Original type name in the source database
+           */
+          orig_type: string;
+
+          /**
+           * Additional vendor-specific options
+           */
+          options?: { [key: string]: unknown } | null;
+
+          /**
+           * Raw DDL for the type
+           */
+          raw_ddl?: string | null;
+        }
+      }
+
+      /**
+       * A value with optional display label
+       */
+      export interface AllowedValuesStatic {
+        /**
+         * The actual value
+         */
+        value: string | number | boolean;
+
+        /**
+         * Human-readable label for the value
+         */
+        label?: string | null;
+      }
+
+      /**
+       * Default payload for number range variables.
+       */
+      export interface NumberRangeDefault {
+        end: number;
+
+        start: number;
+
+        mode?: 'number_range';
+      }
+
+      /**
+       * A relative date default for DATE/TIMESTAMP variables. Computes a concrete date
+       * relative to the current date at resolve time.
+       */
+      export interface RelativeDateDefault {
+        /**
+         * Offset amount. Negative = past, positive = future (e.g., -30 = 30 days ago)
+         */
+        amount: number;
+
+        /**
+         * Time unit for the offset
+         */
+        unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+      }
     }
   }
 }
