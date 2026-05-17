@@ -714,6 +714,11 @@ export namespace CompilerCompileResponse {
     source_name: string;
 
     /**
+     * Backward-compatible timeframe modifier value.
+     */
+    active_timeframe?: string | null;
+
+    /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
      * non-measures.
      */
@@ -1381,9 +1386,29 @@ export namespace CompilerCompileResponse {
           source_name: string;
 
           /**
+           * Backward-compatible timeframe modifier value.
+           */
+          active_timeframe?: string | null;
+
+          /**
            * Data type specification
            */
           data_type?: OutputColumn.DataType;
+
+          /**
+           * Backward-compatible alias for source_kater_id.
+           */
+          kater_id?: string | null;
+
+          /**
+           * Backward-compatible display label.
+           */
+          label?: string | null;
+
+          /**
+           * Backward-compatible alias for source_name.
+           */
+          name?: string | null;
         }
 
         export namespace OutputColumn {
@@ -2836,6 +2861,11 @@ export namespace CompilerCompileDashboardResponse {
       source_name: string;
 
       /**
+       * Backward-compatible timeframe modifier value.
+       */
+      active_timeframe?: string | null;
+
+      /**
        * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
        * non-measures.
        */
@@ -2962,6 +2992,11 @@ export namespace CompilerCompileDashboardResponse {
        * Source field name
        */
       source_name: string;
+
+      /**
+       * Backward-compatible timeframe modifier value.
+       */
+      active_timeframe?: string | null;
 
       /**
        * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -3261,6 +3296,16 @@ export namespace CompilerCompileDashboardResponse {
          * Pinned query variant used for the slot, if any
          */
         pinned_variant?: string | null;
+
+        /**
+         * Backward-compatible selected source field UUIDs.
+         */
+        selected_field_ids?: Array<string>;
+
+        /**
+         * Backward-compatible timeframe overrides.
+         */
+        timeframe_overrides?: Array<Slot.TimeframeOverride>;
       }
 
       export namespace Slot {
@@ -3328,6 +3373,15 @@ export namespace CompilerCompileDashboardResponse {
            * Stable variable UUID; fall back to (query_kater_id, scope, name) when null
            */
           variable_kater_id: string | null;
+        }
+
+        /**
+         * A timeframe modifier override for a specific source field.
+         */
+        export interface TimeframeOverride {
+          active_timeframe: string;
+
+          source_kater_id: string;
         }
       }
     }
@@ -3896,9 +3950,29 @@ export namespace CompilerCompileDashboardResponse {
             source_name: string;
 
             /**
+             * Backward-compatible timeframe modifier value.
+             */
+            active_timeframe?: string | null;
+
+            /**
              * Data type specification
              */
             data_type?: OutputColumn.DataType;
+
+            /**
+             * Backward-compatible alias for source_kater_id.
+             */
+            kater_id?: string | null;
+
+            /**
+             * Backward-compatible display label.
+             */
+            label?: string | null;
+
+            /**
+             * Backward-compatible alias for source_name.
+             */
+            name?: string | null;
           }
 
           export namespace OutputColumn {
@@ -4544,6 +4618,11 @@ export namespace CompilerExecuteResponse {
      * Source field name
      */
     source_name: string;
+
+    /**
+     * Backward-compatible timeframe modifier value.
+     */
+    active_timeframe?: string | null;
 
     /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -5213,9 +5292,29 @@ export namespace CompilerExecuteResponse {
           source_name: string;
 
           /**
+           * Backward-compatible timeframe modifier value.
+           */
+          active_timeframe?: string | null;
+
+          /**
            * Data type specification
            */
           data_type?: OutputColumn.DataType;
+
+          /**
+           * Backward-compatible alias for source_kater_id.
+           */
+          kater_id?: string | null;
+
+          /**
+           * Backward-compatible display label.
+           */
+          label?: string | null;
+
+          /**
+           * Backward-compatible alias for source_name.
+           */
+          name?: string | null;
         }
 
         export namespace OutputColumn {
@@ -6382,6 +6481,11 @@ export namespace CompilerRenderResponse {
      * Source field name
      */
     source_name: string;
+
+    /**
+     * Backward-compatible timeframe modifier value.
+     */
+    active_timeframe?: string | null;
 
     /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
@@ -7743,9 +7847,29 @@ export namespace CompilerRenderResponse {
           source_name: string;
 
           /**
+           * Backward-compatible timeframe modifier value.
+           */
+          active_timeframe?: string | null;
+
+          /**
            * Data type specification
            */
           data_type?: OutputColumn.DataType;
+
+          /**
+           * Backward-compatible alias for source_kater_id.
+           */
+          kater_id?: string | null;
+
+          /**
+           * Backward-compatible display label.
+           */
+          label?: string | null;
+
+          /**
+           * Backward-compatible alias for source_name.
+           */
+          name?: string | null;
         }
 
         export namespace OutputColumn {
@@ -9536,9 +9660,29 @@ export namespace CompilerResolveResponse {
           source_name: string;
 
           /**
+           * Backward-compatible timeframe modifier value.
+           */
+          active_timeframe?: string | null;
+
+          /**
            * Data type specification
            */
           data_type?: OutputColumn.DataType;
+
+          /**
+           * Backward-compatible alias for source_kater_id.
+           */
+          kater_id?: string | null;
+
+          /**
+           * Backward-compatible display label.
+           */
+          label?: string | null;
+
+          /**
+           * Backward-compatible alias for source_name.
+           */
+          name?: string | null;
         }
 
         export namespace OutputColumn {
@@ -10303,6 +10447,18 @@ export namespace CompilerCompileParams {
    */
   export interface FieldSelection {
     selected_fields: Array<FieldSelection.SelectedField>;
+
+    /**
+     * Backward-compatible source field UUIDs. New consumers should use selected_fields
+     * instead.
+     */
+    selected_field_ids?: Array<string>;
+
+    /**
+     * Backward-compatible timeframe overrides. New consumers should encode timeframes
+     * as selected_fields modifiers.
+     */
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
   }
 
   export namespace FieldSelection {
@@ -10340,6 +10496,15 @@ export namespace CompilerCompileParams {
          */
         value: string;
       }
+    }
+
+    /**
+     * A timeframe modifier override for a specific source field.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
     }
   }
 
@@ -10919,6 +11084,18 @@ export namespace CompilerExecuteParams {
    */
   export interface FieldSelection {
     selected_fields: Array<FieldSelection.SelectedField>;
+
+    /**
+     * Backward-compatible source field UUIDs. New consumers should use selected_fields
+     * instead.
+     */
+    selected_field_ids?: Array<string>;
+
+    /**
+     * Backward-compatible timeframe overrides. New consumers should encode timeframes
+     * as selected_fields modifiers.
+     */
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
   }
 
   export namespace FieldSelection {
@@ -10956,6 +11133,15 @@ export namespace CompilerExecuteParams {
          */
         value: string;
       }
+    }
+
+    /**
+     * A timeframe modifier override for a specific source field.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
     }
   }
 
@@ -11666,6 +11852,18 @@ export namespace CompilerRenderParams {
    */
   export interface FieldSelection {
     selected_fields: Array<FieldSelection.SelectedField>;
+
+    /**
+     * Backward-compatible source field UUIDs. New consumers should use selected_fields
+     * instead.
+     */
+    selected_field_ids?: Array<string>;
+
+    /**
+     * Backward-compatible timeframe overrides. New consumers should encode timeframes
+     * as selected_fields modifiers.
+     */
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
   }
 
   export namespace FieldSelection {
@@ -11703,6 +11901,15 @@ export namespace CompilerRenderParams {
          */
         value: string;
       }
+    }
+
+    /**
+     * A timeframe modifier override for a specific source field.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
     }
   }
 
@@ -11975,6 +12182,18 @@ export namespace CompilerResolveParams {
    */
   export interface FieldSelection {
     selected_fields: Array<FieldSelection.SelectedField>;
+
+    /**
+     * Backward-compatible source field UUIDs. New consumers should use selected_fields
+     * instead.
+     */
+    selected_field_ids?: Array<string>;
+
+    /**
+     * Backward-compatible timeframe overrides. New consumers should encode timeframes
+     * as selected_fields modifiers.
+     */
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
   }
 
   export namespace FieldSelection {
@@ -12012,6 +12231,15 @@ export namespace CompilerResolveParams {
          */
         value: string;
       }
+    }
+
+    /**
+     * A timeframe modifier override for a specific source field.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
     }
   }
 

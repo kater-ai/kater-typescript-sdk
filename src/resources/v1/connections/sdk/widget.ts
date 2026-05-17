@@ -860,6 +860,11 @@ export namespace WidgetRenderResponse {
     source_name: string;
 
     /**
+     * Backward-compatible timeframe modifier value.
+     */
+    active_timeframe?: string | null;
+
+    /**
      * Aggregation type for measures: sum, count, min, max, avg, unknown. None for
      * non-measures.
      */
@@ -2433,9 +2438,29 @@ export namespace WidgetRenderResponse {
           source_name: string;
 
           /**
+           * Backward-compatible timeframe modifier value.
+           */
+          active_timeframe?: string | null;
+
+          /**
            * Data type specification
            */
           data_type?: OutputColumn.DataType;
+
+          /**
+           * Backward-compatible alias for source_kater_id.
+           */
+          kater_id?: string | null;
+
+          /**
+           * Backward-compatible display label.
+           */
+          label?: string | null;
+
+          /**
+           * Backward-compatible alias for source_name.
+           */
+          name?: string | null;
         }
 
         export namespace OutputColumn {
@@ -3315,6 +3340,18 @@ export namespace WidgetRenderParams {
    */
   export interface FieldSelection {
     selected_fields: Array<FieldSelection.SelectedField>;
+
+    /**
+     * Backward-compatible source field UUIDs. New consumers should use selected_fields
+     * instead.
+     */
+    selected_field_ids?: Array<string>;
+
+    /**
+     * Backward-compatible timeframe overrides. New consumers should encode timeframes
+     * as selected_fields modifiers.
+     */
+    timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
   }
 
   export namespace FieldSelection {
@@ -3352,6 +3389,15 @@ export namespace WidgetRenderParams {
          */
         value: string;
       }
+    }
+
+    /**
+     * A timeframe modifier override for a specific source field.
+     */
+    export interface TimeframeOverride {
+      active_timeframe: string;
+
+      source_kater_id: string;
     }
   }
 

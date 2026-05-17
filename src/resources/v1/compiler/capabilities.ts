@@ -161,6 +161,12 @@ export namespace CapabilityCreateResponse {
     default_filter_state?: Array<Query.DefaultFilterState>;
 
     /**
+     * Backward-compatible default selected source field UUIDs. New consumers should
+     * read default_selected_fields instead.
+     */
+    default_selected_field_ids?: Array<string>;
+
+    /**
      * Field occurrences the backend selects by default when a consumer omits
      * `field_selection.selected_fields`. Typically empty when required fields cover
      * the base render.
@@ -185,6 +191,12 @@ export namespace CapabilityCreateResponse {
      * Effective filter definitions in scope for this query
      */
     filter_definitions?: Array<Query.FilterDefinition>;
+
+    /**
+     * Backward-compatible required source field UUIDs. New consumers should read
+     * required_fields instead.
+     */
+    required_field_ids?: Array<string>;
 
     /**
      * Field occurrences that the backend always includes in the rendered output.
@@ -682,6 +694,29 @@ export namespace CapabilityCreateResponse {
       source: 'query' | 'parent' | 'pinned_variant';
 
       /**
+       * Backward-compatible temporal grain values for Datetime dimensions. New consumers
+       * should read modifier_controls instead.
+       */
+      available_timeframes?: Array<
+        'raw' | 'date' | 'day' | 'week' | 'month' | 'quarter' | 'year' | 'day_of_week' | 'hour'
+      >;
+
+      /**
+       * Time granularity for datetime dimensions
+       */
+      default_active_timeframe?:
+        | 'raw'
+        | 'date'
+        | 'day'
+        | 'week'
+        | 'month'
+        | 'quarter'
+        | 'year'
+        | 'day_of_week'
+        | 'hour'
+        | null;
+
+      /**
        * Generic modifier controls this field exposes. Empty for fields with no editable
        * or fixed modifiers.
        */
@@ -1165,6 +1200,18 @@ export namespace CapabilitySampleResponse {
      */
     export interface FieldSelection {
       selected_fields: Array<FieldSelection.SelectedField>;
+
+      /**
+       * Backward-compatible source field UUIDs. New consumers should use selected_fields
+       * instead.
+       */
+      selected_field_ids?: Array<string>;
+
+      /**
+       * Backward-compatible timeframe overrides. New consumers should encode timeframes
+       * as selected_fields modifiers.
+       */
+      timeframe_overrides?: Array<FieldSelection.TimeframeOverride>;
     }
 
     export namespace FieldSelection {
@@ -1202,6 +1249,15 @@ export namespace CapabilitySampleResponse {
            */
           value: string;
         }
+      }
+
+      /**
+       * A timeframe modifier override for a specific source field.
+       */
+      export interface TimeframeOverride {
+        active_timeframe: string;
+
+        source_kater_id: string;
       }
     }
 

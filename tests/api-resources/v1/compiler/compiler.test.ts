@@ -70,6 +70,8 @@ describe('resource compiler', () => {
       },
       field_selection: {
         selected_fields: [{ modifiers: [{ kind: 'timeframe', value: 'x' }], source_kater_id: 'x' }],
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
       },
       filter_state: [
         {
@@ -201,6 +203,8 @@ describe('resource compiler', () => {
       },
       field_selection: {
         selected_fields: [{ modifiers: [{ kind: 'timeframe', value: 'x' }], source_kater_id: 'x' }],
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
       },
       filter_state: [
         {
@@ -362,6 +366,8 @@ describe('resource compiler', () => {
       },
       field_selection: {
         selected_fields: [{ modifiers: [{ kind: 'timeframe', value: 'x' }], source_kater_id: 'x' }],
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
       },
       filter_state: [
         {
@@ -422,6 +428,8 @@ describe('resource compiler', () => {
       connection_id: 'connection_id',
       field_selection: {
         selected_fields: [{ modifiers: [{ kind: 'timeframe', value: 'x' }], source_kater_id: 'x' }],
+        selected_field_ids: ['string'],
+        timeframe_overrides: [{ active_timeframe: 'active_timeframe', source_kater_id: 'source_kater_id' }],
       },
       query_kater_id: 'query_kater_id',
       source: 'source',
