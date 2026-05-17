@@ -137,7 +137,7 @@ export interface WidgetRenderResponse {
   /**
    * Top-level natural key returned by every runtime data and widget path.
    *
-   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   * Format invariants:
    *
    * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
    * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
@@ -1348,7 +1348,7 @@ export namespace WidgetRenderResponse {
   /**
    * Top-level natural key returned by every runtime data and widget path.
    *
-   * Format invariants (validation enforced by Story 1.2's hashing helpers):
+   * Format invariants:
    *
    * - `key_id`: `rqk_v2:<64 lowercase hex chars>`
    * - `exact_cache_key_id`: `rqk_cache_exact_v2:<64 lowercase hex chars>`
@@ -1375,7 +1375,7 @@ export namespace WidgetRenderResponse {
      */
     key_id: string;
 
-    version: 1;
+    version: 2;
   }
 
   export namespace RenderedQueryKey {
@@ -1469,7 +1469,7 @@ export namespace WidgetRenderResponse {
          */
         exact: CacheProjection.Exact;
 
-        version: 1;
+        version: 2;
       }
 
       export namespace CacheProjection {
@@ -1586,6 +1586,29 @@ export namespace WidgetRenderResponse {
             column_key: string;
 
             kater_id: string;
+
+            modifiers?: Array<Measure.Modifier>;
+
+            source_kater_id?: string | null;
+          }
+
+          export namespace Measure {
+            /**
+             * A normalized modifier applied to a source field occurrence. The first contract
+             * supports only timeframe modifiers.
+             */
+            export interface Modifier {
+              /**
+               * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+               */
+              kind: 'timeframe';
+
+              /**
+               * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+               * storing value raw.
+               */
+              value: string;
+            }
           }
 
           /**
@@ -1760,9 +1783,9 @@ export namespace WidgetRenderResponse {
 
         filter_state_version: 2;
 
-        key_schema: 'RenderedQueryKeyV1';
+        key_schema: 'RenderedQueryKeyV2';
 
-        key_version: 1;
+        key_version: 2;
 
         widget_config_version: string;
       }
@@ -1812,6 +1835,8 @@ export namespace WidgetRenderResponse {
         output_columns: Array<Fields.OutputColumn>;
 
         selected_fields: Array<Fields.SelectedField>;
+
+        required_fields?: Array<Fields.RequiredField>;
       }
 
       export namespace Fields {
@@ -1972,6 +1997,36 @@ export namespace WidgetRenderResponse {
         }
 
         export namespace SelectedField {
+          /**
+           * A normalized modifier applied to a source field occurrence. The first contract
+           * supports only timeframe modifiers.
+           */
+          export interface Modifier {
+            /**
+             * Modifier kind. Unknown kinds are invalid until the shared contract is extended.
+             */
+            kind: 'timeframe';
+
+            /**
+             * Concrete modifier value. Canonical contexts omit raw timeframe instead of
+             * storing value raw.
+             */
+            value: string;
+          }
+        }
+
+        /**
+         * A selected/active source field entry — strict subset of the field item.
+         */
+        export interface RequiredField {
+          field_type: 'dimension' | 'measure' | 'calculation';
+
+          modifiers: Array<RequiredField.Modifier>;
+
+          source_kater_id: string;
+        }
+
+        export namespace RequiredField {
           /**
            * A normalized modifier applied to a source field occurrence. The first contract
            * supports only timeframe modifiers.
