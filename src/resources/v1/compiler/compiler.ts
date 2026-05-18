@@ -2580,6 +2580,8 @@ export namespace CompilerCompileDashboardResponse {
 
     findings?: Array<InsightRun.Finding>;
 
+    follow_ups?: Array<InsightRun.FollowUp>;
+
     metadata?: { [key: string]: unknown } | null;
 
     /**
@@ -2719,7 +2721,7 @@ export namespace CompilerCompileDashboardResponse {
       }
 
       /**
-       * Structured action hint emitted by an insight finding.
+       * Structured action hint emitted by an insight run or finding.
        */
       export interface FollowUp {
         id: string;
@@ -2728,8 +2730,61 @@ export namespace CompilerCompileDashboardResponse {
 
         label: string;
 
+        finding_index?: number | null;
+
+        finding_kind?: string | null;
+
         payload?: { [key: string]: unknown } | null;
+
+        query_description?: string | null;
+
+        query_kater_id?: string | null;
+
+        query_name?: string | null;
+
+        rationale?: string | null;
+
+        readiness?: 'ready' | 'needs_discovery' | null;
+
+        scope?: 'run' | 'finding' | null;
+
+        slot_hints?: { [key: string]: unknown } | null;
+
+        source?: 'authored' | 'llm' | null;
       }
+    }
+
+    /**
+     * Structured action hint emitted by an insight run or finding.
+     */
+    export interface FollowUp {
+      id: string;
+
+      instructions: string;
+
+      label: string;
+
+      finding_index?: number | null;
+
+      finding_kind?: string | null;
+
+      payload?: { [key: string]: unknown } | null;
+
+      query_description?: string | null;
+
+      query_kater_id?: string | null;
+
+      query_name?: string | null;
+
+      rationale?: string | null;
+
+      readiness?: 'ready' | 'needs_discovery' | null;
+
+      scope?: 'run' | 'finding' | null;
+
+      slot_hints?: { [key: string]: unknown } | null;
+
+      source?: 'authored' | 'llm' | null;
     }
 
     /**
@@ -5807,8 +5862,9 @@ export namespace CompilerRegenerateMetadataResponse {
         | number
         | boolean
         | Array<string | number | boolean>
-        | Filter.DateRangeValue
         | Filter.NumberRangeValue
+        | Filter.AbsoluteDateRangeValue
+        | Filter.RelativeDateRangeValueOutput
         | null;
 
       /**
@@ -5853,13 +5909,6 @@ export namespace CompilerRegenerateMetadataResponse {
       }
 
       /**
-       * Date range filter value
-       */
-      export interface DateRangeValue {
-        mode: 'absolute_range' | 'relative_range';
-      }
-
-      /**
        * Number range filter value
        */
       export interface NumberRangeValue {
@@ -5872,6 +5921,66 @@ export namespace CompilerRegenerateMetadataResponse {
          * Minimum value (inclusive)
          */
         min: number;
+      }
+
+      /**
+       * Absolute date range filter value
+       */
+      export interface AbsoluteDateRangeValue {
+        end: string;
+
+        mode: 'absolute_range';
+
+        start: string;
+      }
+
+      /**
+       * Relative date range filter value
+       */
+      export interface RelativeDateRangeValueOutput {
+        /**
+         * Relative date offset for date ranges
+         */
+        end: RelativeDateRangeValueOutput.End;
+
+        mode: 'relative_range';
+
+        /**
+         * Relative date offset for date ranges
+         */
+        start: RelativeDateRangeValueOutput.Start;
+      }
+
+      export namespace RelativeDateRangeValueOutput {
+        /**
+         * Relative date offset for date ranges
+         */
+        export interface End {
+          /**
+           * Offset amount (negative = past, positive = future)
+           */
+          amount: number;
+
+          /**
+           * Time unit for the offset
+           */
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        /**
+         * Relative date offset for date ranges
+         */
+        export interface Start {
+          /**
+           * Offset amount (negative = past, positive = future)
+           */
+          amount: number;
+
+          /**
+           * Time unit for the offset
+           */
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
       }
 
       /**
@@ -5972,6 +6081,8 @@ export namespace CompilerRegenerateMetadataResponse {
     context?: InsightRun.Context | null;
 
     findings?: Array<InsightRun.Finding>;
+
+    follow_ups?: Array<InsightRun.FollowUp>;
 
     metadata?: { [key: string]: unknown } | null;
 
@@ -6112,7 +6223,7 @@ export namespace CompilerRegenerateMetadataResponse {
       }
 
       /**
-       * Structured action hint emitted by an insight finding.
+       * Structured action hint emitted by an insight run or finding.
        */
       export interface FollowUp {
         id: string;
@@ -6121,8 +6232,61 @@ export namespace CompilerRegenerateMetadataResponse {
 
         label: string;
 
+        finding_index?: number | null;
+
+        finding_kind?: string | null;
+
         payload?: { [key: string]: unknown } | null;
+
+        query_description?: string | null;
+
+        query_kater_id?: string | null;
+
+        query_name?: string | null;
+
+        rationale?: string | null;
+
+        readiness?: 'ready' | 'needs_discovery' | null;
+
+        scope?: 'run' | 'finding' | null;
+
+        slot_hints?: { [key: string]: unknown } | null;
+
+        source?: 'authored' | 'llm' | null;
       }
+    }
+
+    /**
+     * Structured action hint emitted by an insight run or finding.
+     */
+    export interface FollowUp {
+      id: string;
+
+      instructions: string;
+
+      label: string;
+
+      finding_index?: number | null;
+
+      finding_kind?: string | null;
+
+      payload?: { [key: string]: unknown } | null;
+
+      query_description?: string | null;
+
+      query_kater_id?: string | null;
+
+      query_name?: string | null;
+
+      rationale?: string | null;
+
+      readiness?: 'ready' | 'needs_discovery' | null;
+
+      scope?: 'run' | 'finding' | null;
+
+      slot_hints?: { [key: string]: unknown } | null;
+
+      source?: 'authored' | 'llm' | null;
     }
 
     /**
@@ -11482,8 +11646,9 @@ export namespace CompilerRegenerateMetadataParams {
         | number
         | boolean
         | Array<string | number | boolean>
-        | Filter.DateRangeValue
         | Filter.NumberRangeValue
+        | Filter.AbsoluteDateRangeValue
+        | Filter.RelativeDateRangeValueInput
         | null;
 
       /**
@@ -11528,13 +11693,6 @@ export namespace CompilerRegenerateMetadataParams {
       }
 
       /**
-       * Date range filter value
-       */
-      export interface DateRangeValue {
-        mode: 'absolute_range' | 'relative_range';
-      }
-
-      /**
        * Number range filter value
        */
       export interface NumberRangeValue {
@@ -11547,6 +11705,66 @@ export namespace CompilerRegenerateMetadataParams {
          * Minimum value (inclusive)
          */
         min: number;
+      }
+
+      /**
+       * Absolute date range filter value
+       */
+      export interface AbsoluteDateRangeValue {
+        end: string;
+
+        mode: 'absolute_range';
+
+        start: string;
+      }
+
+      /**
+       * Relative date range filter value
+       */
+      export interface RelativeDateRangeValueInput {
+        /**
+         * Relative date offset for date ranges
+         */
+        end: RelativeDateRangeValueInput.End;
+
+        mode: 'relative_range';
+
+        /**
+         * Relative date offset for date ranges
+         */
+        start: RelativeDateRangeValueInput.Start;
+      }
+
+      export namespace RelativeDateRangeValueInput {
+        /**
+         * Relative date offset for date ranges
+         */
+        export interface End {
+          /**
+           * Offset amount (negative = past, positive = future)
+           */
+          amount: number;
+
+          /**
+           * Time unit for the offset
+           */
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
+
+        /**
+         * Relative date offset for date ranges
+         */
+        export interface Start {
+          /**
+           * Offset amount (negative = past, positive = future)
+           */
+          amount: number;
+
+          /**
+           * Time unit for the offset
+           */
+          unit: 'day' | 'week' | 'month' | 'quarter' | 'year';
+        }
       }
 
       /**
