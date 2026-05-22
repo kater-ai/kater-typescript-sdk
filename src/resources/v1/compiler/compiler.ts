@@ -4464,6 +4464,11 @@ export interface CompilerExecuteResponse {
   is_row_limited?: boolean;
 
   /**
+   * Ranked follow-on insight recommendations inferred from the result dataset
+   */
+  recommended_insights?: Array<CompilerExecuteResponse.RecommendedInsight>;
+
+  /**
    * Top-level natural key returned by every runtime data and widget path.
    *
    * Format invariants:
@@ -4780,6 +4785,78 @@ export namespace CompilerExecuteResponse {
        * storing value raw.
        */
       value: string;
+    }
+  }
+
+  /**
+   * Ranked recommendation for a follow-on insight that can run on this result.
+   */
+  export interface RecommendedInsight {
+    /**
+     * Whether the recommendation can execute without extra parameter discovery
+     */
+    can_run_now: boolean;
+
+    /**
+     * Input/result bindings the recommendation engine resolved
+     */
+    candidate_binding: RecommendedInsight.CandidateBinding;
+
+    /**
+     * Qualitative confidence band for the recommendation
+     */
+    confidence: 'high' | 'medium' | 'low';
+
+    /**
+     * Stable kater_id for the suggested insight
+     */
+    insight_kater_id: string;
+
+    /**
+     * Insight name from its definition
+     */
+    insight_name: string;
+
+    /**
+     * Relative ranking score for this recommendation
+     */
+    relevance_score: number;
+
+    /**
+     * Signals that contributed to the recommendation score
+     */
+    reasons?: Array<RecommendedInsight.Reason>;
+  }
+
+  export namespace RecommendedInsight {
+    /**
+     * Input/result bindings the recommendation engine resolved
+     */
+    export interface CandidateBinding {
+      /**
+       * Maps insight input bindings to result column keys
+       */
+      column_bindings?: { [key: string]: { [key: string]: string } };
+
+      /**
+       * Maps insight input names to available result dataset names
+       */
+      result_bindings?: { [key: string]: string };
+    }
+
+    /**
+     * Human-readable explanation for why an insight was recommended.
+     */
+    export interface Reason {
+      /**
+       * Machine-readable reason code
+       */
+      code: string;
+
+      /**
+       * Short explanation of the recommendation signal
+       */
+      message: string;
     }
   }
 
