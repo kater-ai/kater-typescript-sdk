@@ -71,11 +71,9 @@ describe('resource tenants', () => {
       schema: 'x',
       table: 'x',
       tenant_key_column: 'x',
-      source: 'source',
       attribute_columns: { foo: 'string' },
       tenant_group_column: 'tenant_group_column',
       tenant_name_column: 'tenant_name_column',
-      'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
     });
   });
 });

@@ -89,19 +89,10 @@ export class Tenants extends APIResource {
    * TenantCreationNotAllowedError: If tenancy type is NONE (400)
    */
   importFromWarehouse(
-    params: TenantImportFromWarehouseParams,
+    body: TenantImportFromWarehouseParams,
     options?: RequestOptions,
   ): APIPromise<ImportTenantsResponse> {
-    const { source, 'X-Kater-CLI-ID': xKaterCliID, ...body } = params;
-    return this._client.post('/api/v1/tenants/import/warehouse', {
-      query: { source },
-      body,
-      ...options,
-      headers: buildHeaders([
-        { ...(xKaterCliID != null ? { 'X-Kater-CLI-ID': xKaterCliID } : undefined) },
-        options?.headers,
-      ]),
-    });
+    return this._client.post('/api/v1/tenants/import/warehouse', { body, ...options });
   }
 }
 
@@ -245,55 +236,44 @@ export interface TenantImportFromCsvParams {
 
 export interface TenantImportFromWarehouseParams {
   /**
-   * Body param: Warehouse connection ID to query
+   * Warehouse connection ID to query
    */
   connection_id: string;
 
   /**
-   * Body param: Database name containing the tenant table
+   * Database name containing the tenant table
    */
   database: string;
 
   /**
-   * Body param: Schema name containing the tenant table
+   * Schema name containing the tenant table
    */
   schema: string;
 
   /**
-   * Body param: Table name containing tenant data
+   * Table name containing tenant data
    */
   table: string;
 
   /**
-   * Body param: Column name for tenant key
+   * Column name for tenant key
    */
   tenant_key_column: string;
 
   /**
-   * Query param
-   */
-  source?: string | null;
-
-  /**
-   * Body param: Mapping of attribute names to warehouse column names for attribute
-   * import
+   * Mapping of attribute names to warehouse column names for attribute import
    */
   attribute_columns?: { [key: string]: string } | null;
 
   /**
-   * Body param: Column name for tenant group (optional)
+   * Column name for tenant group (optional)
    */
   tenant_group_column?: string | null;
 
   /**
-   * Body param: Column name for tenant display name (optional)
+   * Column name for tenant display name (optional)
    */
   tenant_name_column?: string | null;
-
-  /**
-   * Header param
-   */
-  'X-Kater-CLI-ID'?: string;
 }
 
 Tenants.Groups = Groups;
