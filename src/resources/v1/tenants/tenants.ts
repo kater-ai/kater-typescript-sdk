@@ -4,7 +4,6 @@ import { APIResource } from '../../../core/resource';
 import * as GroupsAPI from './groups';
 import { GroupGetTenantGroupsSchemaResponse, Groups } from './groups';
 import { APIPromise } from '../../../core/api-promise';
-import { type Uploadable } from '../../../core/uploads';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { multipartFormRequestOptions } from '../../../internal/uploads';
@@ -216,7 +215,7 @@ export interface TenantImportFromCsvParams {
   /**
    * Body param: CSV file with tenant data
    */
-  file: Uploadable;
+  file: string;
 
   /**
    * Query param

@@ -1,6 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import Kater, { toFile } from '@katerai/sdk';
+import Kater from '@katerai/sdk';
 
 const client = new Kater({
   apiKey: 'My API Key',
@@ -23,9 +23,7 @@ describe('resource tenants', () => {
 
   // Mock server tests are disabled
   test.skip('importFromCsv: only required params', async () => {
-    const responsePromise = client.v1.tenants.importFromCsv({
-      file: await toFile(Buffer.from('Example data'), 'README.md'),
-    });
+    const responsePromise = client.v1.tenants.importFromCsv({ file: 'file' });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -38,7 +36,7 @@ describe('resource tenants', () => {
   // Mock server tests are disabled
   test.skip('importFromCsv: required and optional params', async () => {
     const response = await client.v1.tenants.importFromCsv({
-      file: await toFile(Buffer.from('Example data'), 'README.md'),
+      file: 'file',
       source: 'source',
       attribute_columns: 'attribute_columns',
       'X-Kater-CLI-ID': 'X-Kater-CLI-ID',
