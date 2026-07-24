@@ -17,6 +17,7 @@ import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
 import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
+import { Account, AccountGetStatusResponse } from './resources/account';
 import { V1 } from './resources/v1/v1';
 import { type Fetch } from './internal/builtin-types';
 import { HeadersLike, NullableHeaders, buildHeaders } from './internal/headers';
@@ -780,12 +781,19 @@ export class Kater {
   static toFile = Uploads.toFile;
 
   v1: API.V1 = new API.V1(this);
+  /**
+   * Account activation and access status
+   */
+  account: API.Account = new API.Account(this);
 }
 
 Kater.V1 = V1;
+Kater.Account = Account;
 
 export declare namespace Kater {
   export type RequestOptions = Opts.RequestOptions;
 
   export { V1 as V1 };
+
+  export { Account as Account, type AccountGetStatusResponse as AccountGetStatusResponse };
 }

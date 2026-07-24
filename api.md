@@ -167,3 +167,13 @@ Types:
 Methods:
 
 - <code title="get /api/v1/tenants/groups/schema">client.v1.tenants.groups.<a href="./src/resources/v1/tenants/groups.ts">getTenantGroupsSchema</a>() -> GroupGetTenantGroupsSchemaResponse</code>
+
+# Account
+
+Types:
+
+- <code><a href="./src/resources/account.ts">AccountGetStatusResponse</a></code>
+
+Methods:
+
+- <code title="get /api/account/status">client.account.<a href="./src/resources/account.ts">getStatus</a>() -> AccountGetStatusResponse</code>
